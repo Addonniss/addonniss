@@ -29,11 +29,11 @@ def create_repo():
             for root, _, files in os.walk(service_id):
                 for file in files:
                     fp = os.path.join(root, file)
+                    # Correct structure: folder_name/file
                     z.write(fp, os.path.join(service_id, os.path.relpath(fp, service_id)))
-        print(f"Zipped {service_id}")
 
-    # --- PART B: ZIP THE REPOSITORY (Self-Hosting) ---
-    repo_xml = 'addon.xml' # Looking in the root
+    # --- PART B: ZIP THE REPOSITORY ---
+    repo_xml = 'addon.xml'
     if os.path.exists(repo_xml):
         with open(repo_xml, 'r', encoding='utf-8') as f:
             lines = f.readlines()
@@ -44,13 +44,11 @@ def create_repo():
         os.makedirs(target_dir)
         zip_name = f"{repo_id}-{repo_version}.zip"
         with zipfile.ZipFile(os.path.join(target_dir, zip_name), 'w', zipfile.ZIP_DEFLATED) as z:
-            # We put the root addon.xml into a folder named after the repo ID inside the zip
+            # IMPORTANT: Put files inside a folder named repository.addonniss inside the zip
             z.write(repo_xml, os.path.join(repo_id, repo_xml))
-            # Include icons if they exist in root
             for extra in ['icon.png', 'fanart.jpg']:
                 if os.path.exists(extra):
                     z.write(extra, os.path.join(repo_id, extra))
-        print(f"Zipped {repo_id}")
 
     # --- PART C: FINALIZE ---
     xml_content += u'</addons>\n'
