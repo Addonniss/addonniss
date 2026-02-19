@@ -61,6 +61,7 @@ To get the best results, you can fine-tune Translatarr in the settings menu. Her
 ---
 
 ## ☕ Support the Project
-If you enjoy using Translatarr and want to help keep the development going (or buy a treat for my son Toma!), feel free to support me here:
+If you enjoy using Translatarr and want to help keep the development going, feel free to support me here:
 
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Donate-yellow.svg?style=for-the-badge&logo=buy-me-a-coffee)](https://www.buymeacoffee.com/addonniss)
+
