@@ -2,6 +2,13 @@ import os
 import hashlib
 import zipfile
 import shutil
+import re
+
+def get_version(xml_path):
+    with open(xml_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+        match = re.search(r'version="([^"]+)"', content)
+        return match.group(1) if match else "1.0.0"
 
 def create_repo():
     service_id = 'service.translatarr'
@@ -14,49 +21,51 @@ def create_repo():
 
     xml_content = u'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<addons>\n'
 
-    # --- PART A: ZIP THE SERVICE ---
-    if os.path.exists(service_id):
-        xml_path = os.path.join(service_id, 'addon.xml')
+    # Process Addons
+    for addon_id in [service_id, repo_id]:
+        # Path logic
+        addon_dir = addon_id if addon_id == service_id else "."
+        xml_path = os.path.join(addon_dir, 'addon.xml')
+        
+        if not os.path.exists(xml_path):
+            continue
+
+        version = get_version(xml_path)
+        
+        # Add to master XML
         with open(xml_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
-            version = next((line.split('version="')[1].split('"')[0] for line in lines if 'version="' in line), "1.0.0")
             xml_content += "".join(lines[1:]) + "\n"
 
-        target_dir = os.path.join(zips_path, service_id)
+        # Create Zip Folder
+        target_dir = os.path.join(zips_path, addon_id)
         os.makedirs(target_dir)
-        zip_name = f"{service_id}-{version}.zip"
-        with zipfile.ZipFile(os.path.join(target_dir, zip_name), 'w', zipfile.ZIP_DEFLATED) as z:
-            for root, _, files in os.walk(service_id):
-                for file in files:
-                    fp = os.path.join(root, file)
-                    # Correct structure: folder_name/file
-                    z.write(fp, os.path.join(service_id, os.path.relpath(fp, service_id)))
+        
+        # Create Zip File - using the EXACT version from XML
+        zip_name = f"{addon_id}-{version}.zip"
+        zip_full_path = os.path.join(target_dir, zip_name)
+        
+        with zipfile.ZipFile(zip_full_path, 'w', zipfile.ZIP_DEFLATED) as z:
+            if addon_id == service_id:
+                for root, _, files in os.walk(addon_id):
+                    for file in files:
+                        fp = os.path.join(root, file)
+                        z.write(fp, os.path.join(addon_id, os.path.relpath(fp, addon_id)))
+            else:
+                # For the repo itself
+                for f in ['addon.xml', 'icon.png', 'fanart.jpg']:
+                    if os.path.exists(f):
+                        z.write(f, os.path.join(repo_id, f))
+        
+        print(f"Created: {zip_name}")
 
-    # --- PART B: ZIP THE REPOSITORY ---
-    repo_xml = 'addon.xml'
-    if os.path.exists(repo_xml):
-        with open(repo_xml, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-            repo_version = next((line.split('version="')[1].split('"')[0] for line in lines if 'version="' in line), "1.0.0")
-            xml_content += "".join(lines[1:]) + "\n"
-
-        target_dir = os.path.join(zips_path, repo_id)
-        os.makedirs(target_dir)
-        zip_name = f"{repo_id}-{repo_version}.zip"
-        with zipfile.ZipFile(os.path.join(target_dir, zip_name), 'w', zipfile.ZIP_DEFLATED) as z:
-            # IMPORTANT: Put files inside a folder named repository.addonniss inside the zip
-            z.write(repo_xml, os.path.join(repo_id, repo_xml))
-            for extra in ['icon.png', 'fanart.jpg']:
-                if os.path.exists(extra):
-                    z.write(extra, os.path.join(repo_id, extra))
-
-    # --- PART C: FINALIZE ---
+    # Finalize
     xml_content += u'</addons>\n'
     with open(os.path.join(zips_path, 'addons.xml'), 'w', encoding='utf-8') as f:
         f.write(xml_content)
-    md5_hash = hashlib.md5(xml_content.encode('utf-8')).hexdigest()
+    md5 = hashlib.md5(xml_content.encode('utf-8')).hexdigest()
     with open(os.path.join(zips_path, 'addons.xml.md5'), 'w') as f:
-        f.write(md5_hash)
+        f.write(md5)
 
 if __name__ == "__main__":
     create_repo()
