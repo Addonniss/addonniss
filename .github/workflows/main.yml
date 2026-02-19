@@ -2,19 +2,20 @@ name: Update Kodi Repository
 
 on:
   push:
-    branches:
-      - master
-      - main
-  workflow_dispatch: # Allows you to run it manually if needed
+    branches: [ master, main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # This explicitly gives the bot permission to write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }} # Uses the built-in security token
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -22,13 +23,11 @@ jobs:
           python-version: '3.x'
 
       - name: Generate Kodi Repo Files
-        run: |
-          python create_repository.py
+        run: python create_repository.py
 
       - name: Commit and Push Changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add .
-          # Only commit if there are actual changes to the XML or MD5
           git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update: Subtitle Engine & MD5 [skip ci]" && git push)
