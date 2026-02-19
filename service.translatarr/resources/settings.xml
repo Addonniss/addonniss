@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+    <category label="Translatarr Config">
+        <setting id="api_key" type="text" label="Gemini API Key" default="" />
+        <setting id="model" type="enum" label="Model AI" values="Gemini 2.0 Flash|Gemini 1.5 Flash|Gemini 2.5 Flash" default="0" />
+        
+        <setting id="source_lang" type="enum" label="Source Language" values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Auto-Detect" default="10" />
+        <setting id="target_lang" type="enum" label="Target Language" values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Auto-Detect" default="0" />
+        
+        <setting id="temp" type="text" label="Temperature" default="0.15" />
+        <setting id="chunk_size" type="text" label="Lines per Chunk" default="50" />
+        <setting id="sub_folder" type="folder" label="Save Folder" default="/storage/emulated/0/Download/sub/" />
+        <setting id="show_stats" type="bool" label="Show Statistics" default="true" />
+        <setting id="notify_mode" type="bool" label="Simple Notifications" default="false" />
+    </category>
+</settings>
