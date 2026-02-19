@@ -57,3 +57,10 @@ To get the best results, you can fine-tune Translatarr in the settings menu. Her
 * **No translation appears:** Check your API key and ensure the "Save Folder" path is correct in settings.
 * **Translation stops midway:** This usually happens if the AI hits a "Safety Filter" (common in movies with heavy profanity). Try lowering the Temperature.
 * **Artifacts:** If you see strange characters, ensure you are using the latest version of the addon which includes the "Language-Blind" cleaning logic.
+
+---
+
+## ☕ Support the Project
+If you enjoy using Translatarr and want to help keep the development going (or buy a treat for my son Toma!), feel free to support me here:
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Donate-yellow.svg?style=for-the-badge&logo=buy-me-a-coffee)](https://www.buymeacoffee.com/addonniss)
