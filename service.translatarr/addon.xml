@@ -4,30 +4,13 @@
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" version="2.25.1"/>
     </requires>
-    <extension point="xbmc.python.script" library="service.py">
-        <provides>executable</provides>
-    </extension>
     <extension point="xbmc.service" library="service.py" start="login"/>
     <extension point="xbmc.addon.metadata">
         <summary lang="en_GB">AI Subtitle Translator (Translatarr)</summary>
-        <description lang="en_GB">Automatically translates Any subtitles to Your Language using Gemini.</description>
+        <description lang="en_GB">Automatically translates Any subtitles to Your Language using Gemini AI.</description>
         <platform>all</platform>
         <assets>
             <icon>icon.png</icon>
         </assets>
     </extension>
 </addon>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
