@@ -4,11 +4,11 @@
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" version="2.25.1"/>
     </requires>
-    # THIS BLOCK MAKES IT SHOW IN PROGRAMS
+    
     <extension point="xbmc.python.script" library="service.py">
         <provides>executable</provides>
     </extension>
-    # THIS BLOCK MAKES IT RUN AT STARTUP
+    
     <extension point="xbmc.service" library="service.py" start="login"/>
     <extension point="xbmc.addon.metadata">
         <summary lang="en_GB">AI Subtitle Translator (Translatarr)</summary>
@@ -19,6 +19,7 @@
         </assets>
     </extension>
 </addon>
+
 
 
 
