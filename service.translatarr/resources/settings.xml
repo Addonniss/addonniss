@@ -11,8 +11,9 @@
         <setting id="chunk_size" type="text" label="Lines per Chunk" default="50" />
         <setting id="sub_folder" type="folder" label="Save Folder" default="/storage/emulated/0/Download/sub/" />
         <setting id="show_stats" type="bool" label="Show Statistics" default="true" />
-        <setting id="notify_mode" type="bool" label="Simple Notifications" default="false" />
+        <setting id="notify_mode" type="bool" label="Simple Notifications" default="true" />
     </category>
 </settings>
+
 
 
