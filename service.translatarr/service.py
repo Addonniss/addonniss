@@ -46,7 +46,7 @@ def process_subtitles(original_path):
     trg_name, trg_iso = get_lang_params(ADDON.getSetting('target_lang'))
     if trg_iso == "auto": trg_iso = "ro"
     
-    # CRITICAL: If the file we found IS already our target language, STOP.
+    # FIX: Check for target ISO in filename to prevent infinite loops
     if f".{trg_iso}." in original_path.lower():
         log(f"Skipping {original_path} - already in target language.")
         return
@@ -61,6 +61,9 @@ def process_subtitles(original_path):
         return
 
     use_notifications = ADDON.getSettingBool('notify_mode')
+    
+    # FIX: Only initialize pDialog if Notifications are OFF
+    pDialog = None
     if not use_notifications:
         pDialog = xbmcgui.DialogProgress()
         pDialog.create('[B][COLOR gold]Translatarr AI[/COLOR][/B]', 'Starting...')
@@ -80,8 +83,8 @@ def process_subtitles(original_path):
         total_chunks = math.ceil(len(texts) / chunk_size)
 
         while idx < len(texts):
-            if (not use_notifications and pDialog.iscanceled()) or not xbmc.Player().isPlaying():
-                if not use_notifications: pDialog.close()
+            if (pDialog and pDialog.iscanceled()) or not xbmc.Player().isPlaying():
+                if pDialog: pDialog.close()
                 return
             
             curr_size = min(chunk_size, len(texts) - idx)
@@ -90,36 +93,49 @@ def process_subtitles(original_path):
             
             # Progress Logic
             msg = f"Chunk {chunk_num}/{total_chunks} ({idx}/{len(texts)} lines)"
-            if not use_notifications:
-                pDialog.update(percent, f"[B]File:[/B] {base_name}\n[B]Progress:[/B] [COLOR springgreen]{msg}[/COLOR]")
-            elif chunk_num % 2 == 0: # Notify every 2nd chunk to avoid spamming
-                notify(msg, f"Translating... {percent}%")
+            if pDialog:
+                # Combined message for 2-argument update support
+                p_msg = f"[B]File:[/B] {base_name}\n[B]Progress:[/B] [COLOR springgreen]{msg}[/COLOR]"
+                pDialog.update(percent, p_msg)
+            elif use_notifications and chunk_num % 3 == 0: 
+                # Notify every 3rd chunk to avoid toast spam
+                notify(f"{percent}%: {msg}", "Translating...")
 
             res, in_t, out_t = translate_text_only(texts[idx:idx + curr_size], curr_size)
             if res:
                 all_translated.extend(res)
                 cum_in += in_t; cum_out += out_t; idx += curr_size
             else:
-                if not use_notifications: pDialog.close()
+                if pDialog: pDialog.close()
                 notify("Translation failed."); return 
 
         final_srt = [f"{t[0]}\n{t[1]}\n{txt.replace(' | ', '\n')}\n" for t, txt in zip(timestamps, all_translated)]
         with xbmcvfs.File(save_path, 'w') as f: f.write("\n".join(final_srt))
         
         xbmc.Player().setSubtitles(save_path)
-        if not use_notifications: pDialog.close()
+        if pDialog: pDialog.close()
 
+        # Billing Logic from gemini_v2.py
         cost = ((cum_in / 1_000_000) * 0.075) + ((cum_out / 1_000_000) * 0.30)
         
-        # Show Results
+        # FINAL DISPLAY LOGIC: Respects independent settings
         if ADDON.getSettingBool('show_stats'):
-            DIALOG.textviewer("Stats", f"File: {clean_name}\nCost: ${cost:.4f}\nTokens: {cum_in + cum_out}")
+            stats_msg = (
+                "[B][COLOR gold]TRANSLATARR SUCCESS[/COLOR][/B]\n"
+                "------------------------------------------------------------\n"
+                f"[B]File:[/B]  [COLOR lightgray]{clean_name}[/COLOR]\n"
+                f"[B]Target:[/B] [COLOR lightblue]{trg_name}[/COLOR]\n"
+                f"[B]Cost:[/B] [COLOR gold]${cost:.4f}[/COLOR]\n"
+                f"[B]Tokens:[/B] {cum_in + cum_out:,}"
+            )
+            DIALOG.textviewer("Stats", stats_msg)
+            
         if use_notifications:
             notify(f"Success! Cost: ${cost:.4f}", "Translation Done")
 
     except Exception as e:
         log(f"Error: {e}")
-        if 'pDialog' in locals(): pDialog.close()
+        if pDialog: pDialog.close()
 
 class GeminiMonitor(xbmc.Monitor):
     def __init__(self):
@@ -129,7 +145,6 @@ class GeminiMonitor(xbmc.Monitor):
     def check_for_subs(self):
         if not xbmc.Player().isPlaying(): return
         
-        # Determine current target ISO
         _, trg_iso = get_lang_params(ADDON.getSetting('target_lang'))
         if trg_iso == "auto": trg_iso = "ro"
         
@@ -138,18 +153,18 @@ class GeminiMonitor(xbmc.Monitor):
 
         _, files = xbmcvfs.listdir(custom_dir)
         
-        # 1. Filter out already translated files (prevents loops)
-        # 2. Filter for files modified in the last 3 minutes (fresh downloads)
         valid_files = []
         for f in files:
+            # Only trigger if it's an SRT and NOT already the target language
             if f.lower().endswith('.srt') and f".{trg_iso}." not in f.lower():
                 path = os.path.join(custom_dir, f)
                 stat = xbmcvfs.Stat(path)
+                # Freshness check: modified in last 3 mins
                 if (time.time() - stat.st_mtime() < 180) and stat.st_size() > 500:
                     valid_files.append(path)
 
         if valid_files:
-            # Sort to find English priority
+            # Prioritize English files for translation source
             valid_files.sort(key=lambda x: (".en." in x.lower() or ".eng." in x.lower()), reverse=True)
             newest_path = valid_files[0]
             
