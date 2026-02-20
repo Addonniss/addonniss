@@ -28,7 +28,7 @@ def show_stats_box(src_file, trg_file, trg_name, cost, tokens, chunks, chunk_siz
     DIALOG.textviewer("Translatarr Statistics", stats_msg, usemono=False)
 
 class TranslationProgress:
-    def __init__(self, use_notifications, title='[B][COLOR gold]Translatarr AI[/COLOR][/B]'):
+    def __init__(self, use_notifications, title='[B][COLOR gold]Translatarr[/COLOR][/B]'):
         self.use_notifications = use_notifications
         self.pDialog = None
         if not self.use_notifications:
