@@ -147,23 +147,28 @@ def process_subtitles(original_path):
 
         cost = ((cum_in / 1_000_000) * 0.075) + ((cum_out / 1_000_000) * 0.30)
 
+                # --- UI DISPLAY LOGIC ---
+        
+        # 1. Handle Big Pop-up (Cassette)
         if ADDON.getSettingBool('show_stats'):
             stats_msg = (
                 "[B][COLOR gold]TRANSLATARR SUCCESS[/COLOR][/B]\n"
                 "------------------------------------------------------------\n"
                 f"[B]File:[/B]  [COLOR lightgray]{clean_name}[/COLOR]\n"
-                f"[B]Target:[/B] [COLOR lightblue]{trg_name}[/COLOR]\n"
-                f"[B]Model:[/B]  [COLOR lightblue]{get_model_string()}[/COLOR]\n\n"
+                f"[B]Target:[/B] [COLOR lightblue]{trg_name}[/COLOR]\n\n"
                 "[B][COLOR orange]BILLING & USAGE[/COLOR][/B]\n"
                 "------------------------------------------------------------\n"
                 f"[B]• Input Tokens:[/B]    [COLOR springgreen]{cum_in:,}[/COLOR]\n"
                 f"[B]• Output Tokens:[/B]   [COLOR springgreen]{cum_out:,}[/COLOR]\n"
-                f"[B][COLOR gold]• Estimated Cost:[/COLOR][/B]  [B][COLOR gold]${cost:.4f}[/COLOR][/B]\n\n"
-                "[I][COLOR gray]Subtitle applied automatically.[/COLOR][/I]"
+                f"[B][COLOR gold]• Estimated Cost:[/COLOR][/B]  [B][COLOR gold]${cost:.4f}[/COLOR][/B]"
             )
             DIALOG.textviewer("Translatarr Statistics", stats_msg)
-        else:
-            notify(f"Success! Cost: ${cost:.4f}")
+
+        # 2. Handle Simple Notification (Top Right)
+        if use_notifications:
+            notify(f"Complete! Cost: ${cost:.4f}", title=f"Translated to {trg_name}")
+            
+        # If both are OFF, the code simply finishes here—Silent Mode achieved.
 
     except Exception as e:
         log(f"Process Error: {e}")
@@ -219,3 +224,4 @@ if __name__ == '__main__':
         monitor.check_for_subs()
         if monitor.waitForAbort(10): break
     log("Translatarr service stopped.")
+
