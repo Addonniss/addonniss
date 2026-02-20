@@ -78,6 +78,7 @@ def process_subtitles(original_path):
     save_dir = ADDON.getSetting('sub_folder')
     base_name = os.path.basename(original_path)
     
+    # Clean filename of existing codes like .en.srt to prevent .en.it.srt
     clean_name = re.sub(r'\.[a-z]{2}\.srt$', '', base_name, flags=re.IGNORECASE)
     clean_name = re.sub(r'\.srt$', '', clean_name, flags=re.IGNORECASE) + trg_ext
     save_path = os.path.join(save_dir, clean_name)
@@ -141,9 +142,15 @@ def process_subtitles(original_path):
         xbmc.Player().setSubtitles(save_path)
         if not use_notifications: pDialog.close()
 
+        # RESTORED STATS LOGIC
         if ADDON.getSettingBool('show_stats'):
-            stats_msg = f"Target: {trg_name}\nFile: {clean_name}\nLines: {len(all_translated)}"
-            DIALOG.textviewer("Translatarr Stats", stats_msg)
+            stats_msg = (
+                f"Target Language: {trg_name}\n"
+                f"File Saved: {clean_name}\n"
+                f"Lines Processed: {len(all_translated)}\n"
+                f"Model Used: {get_model_string()}"
+            )
+            DIALOG.textviewer("Translatarr Success Stats", stats_msg)
         else:
             notify(f"Completed: {trg_name}")
 
@@ -159,7 +166,6 @@ class GeminiMonitor(xbmc.Monitor):
     def check_for_subs(self):
         if not xbmc.Player().isPlaying(): return
         
-        # 1. IDENTIFY THE MOVIE CURRENTLY PLAYING
         try:
             playing_file = xbmc.Player().getPlayingFile()
             video_name = os.path.splitext(os.path.basename(playing_file))[0]
@@ -174,13 +180,11 @@ class GeminiMonitor(xbmc.Monitor):
 
         _, files = xbmcvfs.listdir(custom_dir)
         
-        # 2. FILTER: Only files that match the playing video AND aren't the target language
         valid_files = [f for f in files if video_name.lower() in f.lower() 
                        and f.lower().endswith('.srt') 
                        and target_ext not in f.lower()]
         
         if valid_files:
-            # 3. PRIORITY: Prefer English files if multiple sources match this movie
             en_files = [f for f in valid_files if ".en." in f.lower() or ".eng." in f.lower()]
             
             if en_files:
@@ -202,7 +206,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and "service.py" in sys.argv[0]:
         ADDON.openSettings()
     
-    log("Service started with Media-Matching logic.")
+    log("Service started with Stats Pop-up restored.")
     monitor = GeminiMonitor()
     while not monitor.abortRequested():
         monitor.check_for_subs()
