@@ -36,6 +36,7 @@ def process_subtitles(original_path):
 
         all_translated = []
         cum_in = cum_out = idx = 0
+        # Recommended: 100-150 for Paid Tier to avoid 429 RPM limits
         chunk_size = max(10, min(int(ADDON.getSetting('chunk_size') or 50), 150))
         total_lines = len(texts)
         total_chunks = math.ceil(total_lines / chunk_size)
@@ -52,15 +53,9 @@ def process_subtitles(original_path):
             
             progress.update(percent, os.path.basename(original_path), clean_name, chunk_num, total_chunks, idx, total_lines)
 
-            # --- SMART RETRY LOGIC FOR 429 ERRORS ---
-            res = None
-            for attempt in range(3): # Try 3 times
-                res, in_t, out_t = translator.translate_batch(texts[idx:idx + curr_size], curr_size)
-                if res:
-                    break
-                else:
-                    log(f"Attempt {attempt+1} failed (Likely 429). Retrying in 5s...")
-                    time.sleep(5) # Wait for rate limit to reset
+            # --- CLEANER CALL ---
+            # Retries are now handled internally by translator.py (1:1 with Bazarr logic)
+            res, in_t, out_t = translator.translate_batch(texts[idx:idx + curr_size], curr_size)
 
             if res:
                 all_translated.extend(res)
@@ -68,8 +63,9 @@ def process_subtitles(original_path):
                 cum_out += out_t
                 idx += curr_size
             else:
+                # If it still fails after translator's internal 3 retries:
                 progress.close()
-                ui.notify("API Limit Reached (429). Try larger chunks.")
+                ui.notify("Translation failed after retries. Check Logs.")
                 return 
 
         file_manager.write_srt(save_path, timestamps, all_translated)
@@ -89,6 +85,8 @@ def process_subtitles(original_path):
 
     except Exception as e:
         log(f"Process Error: {e}")
+
+# ... (GeminiMonitor and Main block remain the same) ...
 
 class GeminiMonitor(xbmc.Monitor):
     def __init__(self):
@@ -141,3 +139,4 @@ if __name__ == '__main__':
     while not monitor.abortRequested():
         monitor.check_for_subs()
         if monitor.waitForAbort(10): break
+
