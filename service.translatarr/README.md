@@ -12,7 +12,7 @@ This project began as a fork of [service.kodilive.translator.ai](https://github.
 
 1. **Get your Key:** Visit [Google AI Studio](https://aistudio.google.com/) and click "Get API Key". It’s free and takes 30 seconds.
 2. **Configure:** Open Translatarr settings in Kodi. Paste your API Key and select your Target Language (e.g., Romanian).
-3. **Play a Movie:** Start a movie and download an English subtitle using any Kodi subtitle addon. Translatarr will automatically detect it and start the translation!
+3. **Play a Movie:** Start a movie and download any subtitle using any Kodi subtitle addon. Translatarr will automatically detect it and start the translation!
 
 ---
 
@@ -64,4 +64,5 @@ To get the best results, you can fine-tune Translatarr in the settings menu. Her
 If you enjoy using Translatarr and want to help keep the development going, feel free to support me here:
 
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Donate-yellow.svg?style=for-the-badge&logo=buy-me-a-coffee)](https://www.buymeacoffee.com/addonniss)
+
 
