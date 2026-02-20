@@ -52,7 +52,7 @@ def process_subtitles(original_path):
             curr_size = min(chunk_size, total_lines - idx)
             percent = int((idx / total_lines) * 100)
             
-            progress.update(percent, clean_name, chunk_num, total_chunks, idx, total_lines)
+            progress.update(percent, os.path.basename(original_path), clean_name, chunk_num, total_chunks, idx, total_lines)
 
             res, in_t, out_t = translator.translate_batch(texts[idx:idx + curr_size], curr_size)
             
@@ -76,7 +76,9 @@ def process_subtitles(original_path):
         trg_name, _ = get_lang_params(ADDON.getSetting('target_lang'))
         
         if ADDON.getSettingBool('show_stats'):
-            ui.show_stats_box(trg_name, cost, (cum_in + cum_out))
+            src_file_name = os.path.basename(original_path)
+            ui.show_stats_box(src_file_name, clean_name, trg_name, cost, (cum_in + cum_out), chunk_num, chunk_size)
+
         
         if use_notifications:
             ui.notify(f"Complete! Cost: ${cost:.4f}", title=f"Translated to {trg_name}")
@@ -147,3 +149,4 @@ if __name__ == '__main__':
         monitor.check_for_subs()
         if monitor.waitForAbort(10): break
     log("Translatarr service stopped.")
+
