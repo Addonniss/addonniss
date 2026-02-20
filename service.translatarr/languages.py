@@ -25,7 +25,9 @@ LANGUAGES = {
     "21": ("Norwegian", "no"),
     "22": ("Hebrew", "he"),
     "23": ("Hindi", "hi"),
-    "24": ("Korean", "ko")
+    "24": ("Korean", "ko"),
+    "25": ("Thai", "th")
+
 }
 
 def get_lang_params(index):
