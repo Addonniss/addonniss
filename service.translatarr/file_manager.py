@@ -60,8 +60,14 @@ def parse_srt(content):
 
 def write_srt(path, timestamps, translated_texts):
     nl = "\n"
-    final_srt = [f"{t[0]}{nl}{t[1]}{nl}{txt.replace(' [BR] ', nl)}{nl}" for t, txt in zip(timestamps, translated_texts)]
+    # We add .strip() to each text block after replacing [BR]
+    # This removes any accidental empty lines at the start or end of the sub
+    final_srt = [
+        f"{t[0]}{nl}{t[1]}{nl}{txt.replace(' [BR] ', nl).strip()}{nl}" 
+        for t, txt in zip(timestamps, translated_texts)
+    ]
     
     with xbmcvfs.File(path, 'w') as f:
-        # Final join with native newlines
+        # We join with a double newline to maintain the standard SRT block separation
         f.write(nl.join(final_srt))
+
