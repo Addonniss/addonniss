@@ -120,10 +120,13 @@ def process_subtitles(original_path):
             percent = int((idx / total_lines) * 100)
             
             if not use_notifications:
-                line1 = f"[B]File:[/B] [COLOR gray]{base_name}[/COLOR]"
-                line2 = f"[B]Action:[/B] [COLOR springgreen]Chunk {chunk_num} of {total_chunks}[/COLOR] ({curr_size} lines)"
-                line3 = f"[B]Status:[/B] [COLOR lightblue]{idx:,} / {total_lines:,} lines completed[/COLOR]"
-                pDialog.update(percent, line1, line2, line3)
+                # FIXED: Combine into a single message string for modern Kodi versions
+                progress_msg = (
+                    f"[B]File:[/B] [COLOR gray]{base_name}[/COLOR]\n"
+                    f"[B]Action:[/B] [COLOR springgreen]Chunk {chunk_num} of {total_chunks}[/COLOR] ({curr_size} lines)\n"
+                    f"[B]Status:[/B] [COLOR lightblue]{idx:,} / {total_lines:,} lines completed[/COLOR]"
+                )
+                pDialog.update(percent, progress_msg)
 
             res, in_t, out_t = translate_text_only(texts[idx:idx + curr_size], curr_size)
             if res:
@@ -142,7 +145,6 @@ def process_subtitles(original_path):
         xbmc.Player().setSubtitles(save_path)
         if not use_notifications: pDialog.close()
 
-        # Calculation from gemini_v2.py
         cost = ((cum_in / 1_000_000) * 0.075) + ((cum_out / 1_000_000) * 0.30)
 
         if ADDON.getSettingBool('show_stats'):
@@ -189,13 +191,11 @@ class GeminiMonitor(xbmc.Monitor):
 
         _, files = xbmcvfs.listdir(custom_dir)
         
-        # Filter for files matching the movie name
         valid_files = [f for f in files if video_name.lower() in f.lower() 
                        and f.lower().endswith('.srt') 
                        and target_ext not in f.lower()]
         
         if valid_files:
-            # English Priority
             en_files = [f for f in valid_files if ".en." in f.lower() or ".eng." in f.lower()]
             
             if en_files:
