@@ -6,12 +6,22 @@ ADDON = xbmcaddon.Addon('service.translatarr')
 
 def sanitize_filename(filename):
     """
-    Removes characters that are illegal in Windows filenames.
-    Forbidden: < > : " / \ | ? *
+    Aggressively cleans filenames for Windows OS.
     """
-    # Replace illegal characters with an underscore
+    # 1. Remove illegal characters: < > : " / \ | ? *
     sanitized = re.sub(r'[<>:"/\\|?*]', '_', filename)
-    # Windows doesn't like files ending in a space or a period
+    
+    # 2. Check for Windows Reserved Names (CON, PRN, AUX, NUL, COM1-9, LPT1-9)
+    # We just prepend an underscore if it matches
+    name_part = os.path.splitext(sanitized)[0].upper()
+    reserved = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 
+                'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 
+                'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9']
+    
+    if name_part in reserved:
+        sanitized = "_" + sanitized
+
+    # 3. Windows hates trailing periods or spaces
     return sanitized.strip('. ')
 
 def get_target_path(original_path, video_name):
@@ -30,26 +40,28 @@ def get_target_path(original_path, video_name):
         if not clean_name.endswith(f'.{trg_iso}.srt'):
             clean_name = re.sub(r'\.srt$', f'.{trg_iso}.srt', clean_name, flags=re.IGNORECASE)
     
-    # 2. Windows-Proofing: Sanitize the final filename
+    # 2. Windows-Proofing
     clean_name = sanitize_filename(clean_name)
+    
+    # 3. Use validatePath to fix slashes for the specific OS (Windows vs Linux)
+    full_path = xbmcvfs.validatePath(os.path.join(save_dir, clean_name))
             
-    return os.path.join(save_dir, clean_name), clean_name
+    return full_path, clean_name
 
 def parse_srt(content):
+    # Ensure line endings are normalized to avoid regex failure on Windows CRLF
     content = content.replace('\r\n', '\n').replace('\r', '\n')
-    # Exact Bazarr Regex
     blocks = re.findall(r'(\d+)\n(\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3})\n(.*?)(?=\n\n|\n$|$)', content, re.DOTALL)
     if not blocks: return None, None
     
     timestamps = [(b[0], b[1]) for b in blocks]
-    # Use [BR] exactly like Bazarr
     texts = [b[2].replace('\n', ' [BR] ') for b in blocks]
     return timestamps, texts
 
 def write_srt(path, timestamps, translated_texts):
     nl = "\n"
-    # Recompose exactly like Bazarr
     final_srt = [f"{t[0]}{nl}{t[1]}{nl}{txt.replace(' [BR] ', nl)}{nl}" for t, txt in zip(timestamps, translated_texts)]
     
     with xbmcvfs.File(path, 'w') as f:
+        # Final join with native newlines
         f.write(nl.join(final_srt))
