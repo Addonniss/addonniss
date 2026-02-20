@@ -11,8 +11,6 @@ def log(msg):
 def notify(msg, title="Translatarr", duration=3000):
     DIALOG.notification(title, msg, xbmcgui.NOTIFICATION_INFO, duration)
 
-# ... [get_model_string and translate_text_only remain exactly as you pasted] ...
-
 def get_model_string():
     model_index = ADDON.getSetting('model') or "0"
     mapping = {"0": "gemini-2.0-flash", "1": "gemini-1.5-flash", "2": "gemini-2.5-flash"}
@@ -45,23 +43,35 @@ def translate_text_only(text_list, expected_count):
         return None, 0, 0
 
 def process_subtitles(original_path):
+    _, src_iso = get_lang_params(ADDON.getSetting('source_lang'))
     trg_name, trg_iso = get_lang_params(ADDON.getSetting('target_lang'))
     if trg_iso == "auto": trg_name, trg_iso = "Romanian", "ro"
-    trg_ext = f".{trg_iso}.srt"
-    if trg_ext in original_path.lower(): return
+    
     save_dir = ADDON.getSetting('sub_folder')
     base_name = os.path.basename(original_path)
-    clean_name = re.sub(r'\.[a-z]{2}\.srt$', '', base_name, flags=re.IGNORECASE)
-    clean_name = re.sub(r'\.srt$', '', clean_name, flags=re.IGNORECASE) + trg_ext
+
+    # --- DYNAMIC EXTENSION SWAP ---
+    # 1. If source is defined (e.g. 'spa'), replace '.spa.srt' with '.tr.srt'
+    if src_iso != "auto" and f".{src_iso}.srt" in base_name.lower():
+        clean_name = re.sub(rf'\.{src_iso}\.srt$', f'.{trg_iso}.srt', base_name, flags=re.IGNORECASE)
+    else:
+        # 2. Fallback: replace '.eng.srt' or '.en.srt' or just '.srt'
+        clean_name = re.sub(r'\.(en|eng)\.srt$', f'.{trg_iso}.srt', base_name, flags=re.IGNORECASE)
+        if not clean_name.endswith(f'.{trg_iso}.srt'):
+            clean_name = re.sub(r'\.srt$', f'.{trg_iso}.srt', clean_name, flags=re.IGNORECASE)
+            
     save_path = os.path.join(save_dir, clean_name)
+
     if xbmcvfs.exists(save_path):
         xbmc.Player().setSubtitles(save_path)
         return
+
     use_notifications = ADDON.getSettingBool('notify_mode')
     if not use_notifications:
         pDialog = xbmcgui.DialogProgress()
         pDialog.create('[B][COLOR gold]Translatarr AI[/COLOR][/B]', 'Initializing...')
     else: notify(f"Translating: {clean_name}")
+    
     try:
         with xbmcvfs.File(original_path, 'r') as f: content = f.read()
         content = content.replace('\r\n', '\n').replace('\r', '\n')
@@ -79,7 +89,7 @@ def process_subtitles(original_path):
                 return
             chunk_num += 1; curr_size = min(chunk_size, total_lines - idx); percent = int((idx / total_lines) * 100)
             if not use_notifications:
-                progress_msg = f"[B]File:[/B] {base_name}\n[B]Action:[/B] Chunk {chunk_num} of {total_chunks}\n[B]Status:[/B] {idx:,} / {total_lines:,} lines"
+                progress_msg = f"[B]File:[/B] {clean_name}\n[B]Action:[/B] Chunk {chunk_num} of {total_chunks}\n[B]Status:[/B] {idx:,} / {total_lines:,} lines"
                 pDialog.update(percent, progress_msg)
             res, in_t, out_t = translate_text_only(texts[idx:idx + curr_size], curr_size)
             if res:
@@ -91,6 +101,8 @@ def process_subtitles(original_path):
         with xbmcvfs.File(save_path, 'w') as f: f.write("\n".join(final_srt))
         xbmc.Player().setSubtitles(save_path)
         if not use_notifications: pDialog.close()
+        
+        # Calculate cost based on current Gemini pricing
         cost = ((cum_in / 1_000_000) * 0.075) + ((cum_out / 1_000_000) * 0.30)
         if ADDON.getSettingBool('show_stats'):
             stats_msg = f"Target: {trg_name}\nCost: ${cost:.4f}\nTokens: {cum_in+cum_out}"
@@ -108,60 +120,65 @@ class GeminiMonitor(xbmc.Monitor):
     def check_for_subs(self):
         if not xbmc.Player().isPlaying(): return
         
-        try:
-            playing_file = xbmc.Player().getPlayingFile()
-            video_name = os.path.splitext(os.path.basename(playing_file))[0]
-            # TRACE 1: What is the video name we are looking for?
-            log(f"TRACE: Currently playing video name identified as: {video_name}")
-        except: return
-
-        custom_dir = ADDON.getSetting('sub_folder')
-        if not custom_dir or not xbmcvfs.exists(custom_dir):
-            log("TRACE: Subtitle folder not found or setting empty.")
-            return
-
+        _, src_iso = get_lang_params(ADDON.getSetting('source_lang'))
         _, trg_iso = get_lang_params(ADDON.getSetting('target_lang'))
         if trg_iso == "auto": trg_iso = "ro"
         target_ext = f".{trg_iso}.srt"
 
+        try:
+            playing_file = xbmc.Player().getPlayingFile()
+            video_name = os.path.splitext(os.path.basename(playing_file))[0]
+        except: return
+
+        custom_dir = ADDON.getSetting('sub_folder')
+        if not custom_dir or not xbmcvfs.exists(custom_dir): return
+
         _, files = xbmcvfs.listdir(custom_dir)
         
-        # TRACE 2: How many files in the folder total?
-        log(f"TRACE: Folder contains {len(files)} files.")
-
-        valid_files = [f for f in files if video_name.lower() in f.lower() 
-                       and f.lower().endswith('.srt') 
-                       and target_ext not in f.lower()]
+        valid_files = []
+        for f in files:
+            f_low = f.lower()
+            if video_name.lower() in f_low and f_low.endswith('.srt'):
+                # Ignore the target we are trying to create
+                if target_ext in f_low: continue
+                
+                # Filter: If it has a language tag that isn't the one we want (src_iso) or English, skip it.
+                # This prevents using a .hu.srt as a source when we want a .tr.srt
+                is_foreign_translation = False
+                match = re.search(r'\.([a-z]{2,3})\.srt$', f_low)
+                if match:
+                    lang_found = match.group(1)
+                    # We allow English fallbacks and the user-defined source ISO
+                    if lang_found not in ['en', 'eng', src_iso]:
+                        is_foreign_translation = True
+                
+                if not is_foreign_translation:
+                    valid_files.append(f)
         
-        # TRACE 3: Did we find any candidate SRTs matching the video?
-        log(f"TRACE: Found {len(valid_files)} matching candidate SRTs (excluding target {target_ext}).")
-
         if valid_files:
-            en_files = [f for f in valid_files if ".en." in f.lower() or ".eng." in f.lower()]
+            # 1. Prio: User defined source language
+            prio_files = [f for f in valid_files if f".{src_iso}." in f.lower()] if src_iso != "auto" else []
+            # 2. Prio: English
+            if not prio_files:
+                prio_files = [f for f in valid_files if ".en." in f.lower() or ".eng." in f.lower()]
             
-            if en_files:
-                en_files.sort(key=lambda x: xbmcvfs.Stat(os.path.join(custom_dir, x)).st_mtime(), reverse=True)
-                newest_path = os.path.join(custom_dir, en_files[0])
-                log(f"TRACE: Selected English file as priority: {en_files[0]}")
+            if prio_files:
+                prio_files.sort(key=lambda x: xbmcvfs.Stat(os.path.join(custom_dir, x)).st_mtime(), reverse=True)
+                newest_path = os.path.join(custom_dir, prio_files[0])
             else:
                 full_paths = [os.path.join(custom_dir, f) for f in valid_files]
                 full_paths.sort(key=lambda x: xbmcvfs.Stat(x).st_mtime(), reverse=True)
                 newest_path = full_paths[0]
-                log(f"TRACE: No .en/.eng file found. Selected newest srt: {os.path.basename(newest_path)}")
             
             if newest_path != self.last_processed:
                 stat = xbmcvfs.Stat(newest_path)
                 mtime_diff = time.time() - stat.st_mtime()
                 
-                # TRACE 4: Check constraints
-                log(f"TRACE: File check: {os.path.basename(newest_path)} | Size: {stat.st_size()} bytes | Age: {int(mtime_diff)} seconds ago")
-
-                if stat.st_size() > 500 and (mtime_diff < 180):
+                # Check constraints (Size > 500 bytes and Age < 5 mins)
+                if stat.st_size() > 500 and (mtime_diff < 300):
                     log(f"TRACE: TRIGGERING TRANSLATION for: {newest_path}")
                     self.last_processed = newest_path
                     process_subtitles(newest_path)
-                else:
-                    log(f"TRACE: SKIPPED. Size > 500: {stat.st_size() > 500} | Age < 180s: {mtime_diff < 180}")
 
 if __name__ == '__main__':
     log("Translatarr service started.")
