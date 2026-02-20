@@ -77,8 +77,19 @@ def process_subtitles(original_path):
         
         if ADDON.getSettingBool('show_stats'):
             src_file_name = os.path.basename(original_path)
-            ui.show_stats_box(src_file_name, clean_name, trg_name, cost, (cum_in + cum_out), chunk_num, chunk_size)
-
+            # Get model name from translator module
+            model_name = translator.get_model_string()
+    
+            ui.show_stats_box(
+                src_file_name, 
+                clean_name, 
+                trg_name, 
+                cost, 
+                (cum_in + cum_out), 
+                chunk_num, 
+                chunk_size,
+                model_name
+            )
         
         if use_notifications:
             ui.notify(f"Complete! Cost: ${cost:.4f}", title=f"Translated to {trg_name}")
@@ -149,4 +160,5 @@ if __name__ == '__main__':
         monitor.check_for_subs()
         if monitor.waitForAbort(10): break
     log("Translatarr service stopped.")
+
 
