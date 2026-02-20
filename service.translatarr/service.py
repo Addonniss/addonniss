@@ -25,19 +25,19 @@ def translate_text_only(text_list, expected_count):
     except:
         temp_val = 0.15
 
-    # Fetch names from modular language file
     src_name, _ = get_lang_params(ADDON.getSetting('source_lang'))
     trg_name, trg_iso = get_lang_params(ADDON.getSetting('target_lang'))
 
-    # Safety: Ensure AI doesn't get 'Auto-Detect' as a target instruction
     if trg_iso == "auto":
         trg_name = "Romanian"
+
+    source_instruction = src_name if src_name != "Auto-Detect" else "the detected original language"
 
     input_text = "\n".join([f"L{i:03}: {text}" for i, text in enumerate(text_list)])
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
     
     prompt = (
-        f"Translate the following subtitles from {src_name} to {trg_name}. "
+        f"Translate the following subtitles from {source_instruction} to {trg_name}. "
         "Keep the same number of lines. Preserve the 'Lxxx:' prefix at the start of each line. "
         "The output must contain exactly the same number of lines as the input."
     )
@@ -66,15 +66,10 @@ def translate_text_only(text_list, expected_count):
         return None
 
 def process_subtitles(original_path):
-    # 1. Fetch parameters first
     trg_name, trg_iso = get_lang_params(ADDON.getSetting('target_lang'))
 
-    # 2. NOW run the Safety Check
     if trg_iso == "auto":
-        log("Target language set to Auto-Detect. Defaulting to Romanian.")
-        trg_name = "Romanian"
-        trg_iso = "ro"
-        notify("Target cannot be Auto-Detect. Defaulting to Romanian.")
+        trg_name, trg_iso = "Romanian", "ro"
 
     trg_ext = f".{trg_iso}.srt"
 
@@ -163,16 +158,38 @@ class GeminiMonitor(xbmc.Monitor):
 
     def check_for_subs(self):
         if not xbmc.Player().isPlaying(): return
+        
+        # 1. IDENTIFY THE MOVIE CURRENTLY PLAYING
+        try:
+            playing_file = xbmc.Player().getPlayingFile()
+            video_name = os.path.splitext(os.path.basename(playing_file))[0]
+        except: return
+
         custom_dir = ADDON.getSetting('sub_folder')
         if not custom_dir or not xbmcvfs.exists(custom_dir): return
 
+        _, trg_iso = get_lang_params(ADDON.getSetting('target_lang'))
+        if trg_iso == "auto": trg_iso = "ro"
+        target_ext = f".{trg_iso}.srt"
+
         _, files = xbmcvfs.listdir(custom_dir)
-        valid_files = [f for f in files if f.lower().endswith('.srt') and not re.search(r'\.[a-z]{2}\.srt$', f.lower())]
+        
+        # 2. FILTER: Only files that match the playing video AND aren't the target language
+        valid_files = [f for f in files if video_name.lower() in f.lower() 
+                       and f.lower().endswith('.srt') 
+                       and target_ext not in f.lower()]
         
         if valid_files:
-            full_paths = [os.path.join(custom_dir, f) for f in valid_files]
-            full_paths.sort(key=lambda x: xbmcvfs.Stat(x).st_mtime(), reverse=True)
-            newest_path = full_paths[0]
+            # 3. PRIORITY: Prefer English files if multiple sources match this movie
+            en_files = [f for f in valid_files if ".en." in f.lower() or ".eng." in f.lower()]
+            
+            if en_files:
+                en_files.sort(key=lambda x: xbmcvfs.Stat(os.path.join(custom_dir, x)).st_mtime(), reverse=True)
+                newest_path = os.path.join(custom_dir, en_files[0])
+            else:
+                full_paths = [os.path.join(custom_dir, f) for f in valid_files]
+                full_paths.sort(key=lambda x: xbmcvfs.Stat(x).st_mtime(), reverse=True)
+                newest_path = full_paths[0]
             
             if newest_path != self.last_processed:
                 stat = xbmcvfs.Stat(newest_path)
@@ -185,7 +202,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and "service.py" in sys.argv[0]:
         ADDON.openSettings()
     
-    log("Service started with Multi-Language support.")
+    log("Service started with Media-Matching logic.")
     monitor = GeminiMonitor()
     while not monitor.abortRequested():
         monitor.check_for_subs()
