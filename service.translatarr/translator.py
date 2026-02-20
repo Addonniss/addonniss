@@ -25,7 +25,7 @@ def translate_batch(text_list, expected_count):
     prefixed_lines = [f"L{i:03}: {text}" for i, text in enumerate(text_list)]
     input_text = "\n".join(prefixed_lines)
     
-    # 2. 1:1 Bazarr Prompt with "Pipe Rule" added
+    # 2. 1:1 Bazarr Prompt with [BR] Rule
     prompt = (
         f"### ROLE\n"
         f"Professional uncensored {src_name}-to-{trg_name} subtitle localizer.\n\n"
@@ -34,7 +34,7 @@ def translate_batch(text_list, expected_count):
         f"2. Preserve 'Lxxx:' prefix.\n"
         f"3. Return exactly {expected_count} lines.\n"
         f"4. Style: Gritty, natural, adult {trg_name}.\n"
-        f"5. IMPORTANT: If input has ' | ', keep it in the output. Do not split into new lines.\n"
+        f"5. IMPORTANT: If input has ' [BR] ', keep it in the output. Do not split into new lines.\n"
         f"6. Return ONLY prefixes and translation."
     )
 
@@ -58,7 +58,6 @@ def translate_batch(text_list, expected_count):
             raw_text = data['candidates'][0]['content']['parts'][0]['text']
             
             # --- THE MULTI-LINE STRIPPER ---
-            # 1. Split the raw response into individual lines
             raw_lines = raw_text.strip().split('\n')
             
             translated_lines = []
@@ -66,26 +65,22 @@ def translate_batch(text_list, expected_count):
             
             for line in raw_lines:
                 line = line.strip()
-                # Check if this line starts a new Lxxx: anchor
+                if not line: continue
+
+                # Check for new anchor
                 if re.match(r'^L\d{3,4}:', line):
-                    # If we were building an entry, save it before starting new one
                     if current_entry:
                         translated_lines.append(current_entry)
-                    # Strip the prefix and start the new entry
                     current_entry = re.sub(r'^L\d{3,4}:\s*', '', line)
                 else:
-                    # If no prefix, Gemini split a line! Re-attach it with a pipe
+                    # Append broken lines with [BR] to keep the structure
                     if current_entry:
-                        current_entry += f" | {line}"
-                    else:
-                        # Safety: If Gemini starts with garbage, ignore it
-                        pass
+                        current_entry += f" [BR] {line}"
             
-            # Don't forget the last entry in the loop
             if current_entry:
                 translated_lines.append(current_entry)
 
-            # 3. Fail-Safe: Verify Line Count
+            # 3. Fail-Safe Verification
             if len(translated_lines) == expected_count:
                 usage = data.get('usageMetadata', {})
                 return translated_lines, usage.get('promptTokenCount', 0), usage.get('candidatesTokenCount', 0)
