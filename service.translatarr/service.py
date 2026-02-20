@@ -36,36 +36,43 @@ def process_subtitles(original_path):
 
         all_translated = []
         cum_in = cum_out = idx = 0
-        # Recommended: 100-150 for Paid Tier to avoid 429 RPM limits
-        chunk_size = max(10, min(int(ADDON.getSetting('chunk_size') or 50), 150))
+        initial_chunk = max(10, min(int(ADDON.getSetting('chunk_size') or 100), 150))
         total_lines = len(texts)
-        total_chunks = math.ceil(total_lines / chunk_size)
-        chunk_num = 0
 
-        while idx < len(texts):
+        while idx < total_lines:
             if progress.is_canceled() or not xbmc.Player().isPlaying():
                 progress.close()
                 return
 
-            chunk_num += 1
-            curr_size = min(chunk_size, total_lines - idx)
-            percent = int((idx / total_lines) * 100)
-            
-            progress.update(percent, os.path.basename(original_path), clean_name, chunk_num, total_chunks, idx, total_lines)
+            success = False
+            # --- ADAPTIVE CHUNKING (Bazarr Style) ---
+            for size in [initial_chunk, 50, 25]:
+                curr_size = min(size, total_lines - idx)
+                percent = int((idx / total_lines) * 100)
+                
+                # We calculate current chunk number based on index for the UI
+                current_chunk_display = (len(all_translated) // initial_chunk) + 1
+                total_chunks_est = math.ceil(total_lines / initial_chunk)
+                
+                progress.update(percent, os.path.basename(original_path), clean_name, current_chunk_display, total_chunks_est, idx, total_lines)
 
-            # --- CLEANER CALL ---
-            # Retries are now handled internally by translator.py (1:1 with Bazarr logic)
-            res, in_t, out_t = translator.translate_batch(texts[idx:idx + curr_size], curr_size)
+                res, in_t, out_t = translator.translate_batch(texts[idx:idx + curr_size], curr_size)
 
-            if res:
-                all_translated.extend(res)
-                cum_in += in_t
-                cum_out += out_t
-                idx += curr_size
-            else:
-                # If it still fails after translator's internal 3 retries:
+                if res:
+                    all_translated.extend(res)
+                    cum_in += in_t
+                    cum_out += out_t
+                    idx += curr_size
+                    success = True
+                    time.sleep(1) # Breathe
+                    break
+                else:
+                    log(f"🔄 Shrinking chunk at index {idx} to {size}...")
+                    time.sleep(2)
+
+            if not success:
                 progress.close()
-                ui.notify("Translation failed after retries. Check Logs.")
+                ui.notify("Critical Failure: API rejected all chunk sizes.")
                 return 
 
         file_manager.write_srt(save_path, timestamps, all_translated)
@@ -78,15 +85,13 @@ def process_subtitles(original_path):
         if ADDON.getSettingBool('show_stats'):
             src_file_name = os.path.basename(original_path)
             model_name = translator.get_model_string()
-            ui.show_stats_box(src_file_name, clean_name, trg_name, cost, (cum_in + cum_out), chunk_num, chunk_size, model_name)
+            ui.show_stats_box(src_file_name, clean_name, trg_name, cost, (cum_in + cum_out), (idx//initial_chunk), initial_chunk, model_name)
         
         if use_notifications:
             ui.notify(f"Complete! Cost: ${cost:.4f}", title=f"Translated to {trg_name}")
 
     except Exception as e:
         log(f"Process Error: {e}")
-
-# ... (GeminiMonitor and Main block remain the same) ...
 
 class GeminiMonitor(xbmc.Monitor):
     def __init__(self):
@@ -139,4 +144,3 @@ if __name__ == '__main__':
     while not monitor.abortRequested():
         monitor.check_for_subs()
         if monitor.waitForAbort(10): break
-
