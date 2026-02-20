@@ -5,17 +5,18 @@ import shutil
 import re
 
 def get_version(xml_path):
-    """Fetch version exactly as text to avoid 1.0.0 becoming 1.0"""
+    """Deep search for the version string as raw text."""
     try:
         with open(xml_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-            # This regex captures exactly what is between the quotes
-            match = re.search(r'version=["\']([^"\']+)["\']', content)
-            if match:
-                return str(match.group(1)).strip()
+            for line in f:
+                if '<addon' in line and 'version=' in line:
+                    # Regex to grab exactly what's inside version="..."
+                    match = re.search(r'version=["\']([^"\']+)["\']', line)
+                    if match:
+                        return match.group(1).strip()
     except Exception as e:
-        print(f"Error reading XML: {e}")
-    return "1.0.0"
+        print(f"Error: {e}")
+    return "1.0.0" # Fallback
 
 def create_repo():
     service_id = 'service.translatarr'
@@ -35,11 +36,9 @@ def create_repo():
         if not os.path.exists(xml_path):
             continue
 
-        # AUTOMATIC DETECTION (STRICT TEXT)
-        version = get_version(xml_path)
-        print(f"Processing {addon_id} at version: {version}")
+        v = get_version(xml_path)
+        print(f"Robot found version: {v} for {addon_id}")
 
-        # Add to master XML
         with open(xml_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
             xml_content += "".join(lines[1:]) + "\n"
@@ -47,10 +46,8 @@ def create_repo():
         target_dir = os.path.join(zips_path, addon_id)
         os.makedirs(target_dir)
         
-        zip_name = f"{addon_id}-{version}.zip"
-        zip_path = os.path.join(target_dir, zip_name)
-        
-        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as z:
+        zip_name = f"{addon_id}-{v}.zip"
+        with zipfile.ZipFile(os.path.join(target_dir, zip_name), 'w', zipfile.ZIP_DEFLATED) as z:
             if addon_id == service_id:
                 for root, _, files in os.walk(service_id):
                     for file in files:
@@ -58,13 +55,11 @@ def create_repo():
                         z.write(fp, os.path.join(service_id, os.path.relpath(fp, service_id)))
             else:
                 z.write('addon.xml', os.path.join(repo_id, 'addon.xml'))
-                if os.path.exists('icon.png'):
-                    z.write('icon.png', os.path.join(repo_id, 'icon.png'))
+                if os.path.exists('icon.png'): z.write('icon.png', os.path.join(repo_id, 'icon.png'))
 
     xml_content += u'</addons>\n'
     with open(os.path.join(zips_path, 'addons.xml'), 'w', encoding='utf-8') as f:
         f.write(xml_content)
-    
     md5 = hashlib.md5(xml_content.encode('utf-8')).hexdigest()
     with open(os.path.join(zips_path, 'addons.xml.md5'), 'w') as f:
         f.write(md5)
