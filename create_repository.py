@@ -7,7 +7,7 @@ def create_repo():
     service_id = 'service.translatarr'
     repo_id = 'repository.addonniss'
     # FORCE THE VERSION STRING - NO CALCULATION
-    VERSION = "1.0.1" 
+    VERSION = "1.0.0" 
     
     zips_path = 'zips'
     if os.path.exists(zips_path):
