@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import xbmc, xbmcaddon, xbmcvfs, xbmcgui, os, requests, json, re, time
+import xbmc, xbmcaddon, xbmcvfs, xbmcgui, os, requests, json, re, time, math
 from languages import get_lang_params
 
 ADDON = xbmcaddon.Addon('service.translatarr')
@@ -27,10 +27,6 @@ def translate_text_only(text_list, expected_count):
 
     src_name, _ = get_lang_params(ADDON.getSetting('source_lang'))
     trg_name, trg_iso = get_lang_params(ADDON.getSetting('target_lang'))
-
-    if trg_iso == "auto":
-        trg_name = "Romanian"
-
     source_instruction = src_name if src_name != "Auto-Detect" else "the detected original language"
 
     input_text = "\n".join([f"L{i:03}: {text}" for i, text in enumerate(text_list)])
@@ -50,35 +46,33 @@ def translate_text_only(text_list, expected_count):
         r = requests.post(url, json=payload, timeout=30)
         res_json = r.json()
         
-        if 'candidates' not in res_json: return None
+        if 'candidates' not in res_json: return None, 0, 0
             
         raw_text = res_json['candidates'][0]['content']['parts'][0]['text']
-        
+        usage = res_json.get('usageMetadata', {})
+        in_tokens = usage.get('promptTokenCount', 0)
+        out_tokens = usage.get('candidatesTokenCount', 0)
+
         translated = []
         lines = raw_text.strip().split('\n')
         for line in lines:
             clean_line = re.sub(r'^.*?:\s*', '', line.strip())
             translated.append(clean_line)
             
-        return translated[:expected_count] if len(translated) >= expected_count else None
+        return translated[:expected_count], in_tokens, out_tokens
     except Exception as e:
         log(f"API Request failed: {e}")
-        return None
+        return None, 0, 0
 
 def process_subtitles(original_path):
     trg_name, trg_iso = get_lang_params(ADDON.getSetting('target_lang'))
-
-    if trg_iso == "auto":
-        trg_name, trg_iso = "Romanian", "ro"
+    if trg_iso == "auto": trg_name, trg_iso = "Romanian", "ro"
 
     trg_ext = f".{trg_iso}.srt"
-
     if trg_ext in original_path.lower(): return
     
     save_dir = ADDON.getSetting('sub_folder')
     base_name = os.path.basename(original_path)
-    
-    # Clean filename of existing codes like .en.srt to prevent .en.it.srt
     clean_name = re.sub(r'\.[a-z]{2}\.srt$', '', base_name, flags=re.IGNORECASE)
     clean_name = re.sub(r'\.srt$', '', clean_name, flags=re.IGNORECASE) + trg_ext
     save_path = os.path.join(save_dir, clean_name)
@@ -91,9 +85,9 @@ def process_subtitles(original_path):
     
     if not use_notifications:
         pDialog = xbmcgui.DialogProgress()
-        pDialog.create('Translatarr', f'Translating to {trg_name}...')
+        pDialog.create('[B][COLOR gold]Translatarr AI[/COLOR][/B]', 'Initializing...')
     else:
-        notify(f"Translating to {trg_name}: {clean_name}")
+        notify(f"Translating: {clean_name}")
 
     try:
         with xbmcvfs.File(original_path, 'r') as f: content = f.read()
@@ -105,31 +99,37 @@ def process_subtitles(original_path):
         timestamps = [(b[0], b[1]) for b in blocks]
         texts = [b[2].replace('\n', ' | ') for b in blocks]
         all_translated = []
-        idx = 0
+        cum_in = cum_out = idx = 0
 
         try:
             chunk_size = int(ADDON.getSetting('chunk_size') or 50)
             chunk_size = max(10, min(chunk_size, 150))
         except: chunk_size = 50
 
+        total_lines = len(texts)
+        total_chunks = math.ceil(total_lines / chunk_size)
+        chunk_num = 0
+
         while idx < len(texts):
             if (not use_notifications and pDialog.iscanceled()) or not xbmc.Player().isPlaying():
                 if not use_notifications: pDialog.close()
                 return
             
-            percent = int((idx / len(texts)) * 100)
-            status_msg = f"Progress: {percent}% ({idx}/{len(texts)})"
+            chunk_num += 1
+            curr_size = min(chunk_size, total_lines - idx)
+            percent = int((idx / total_lines) * 100)
             
             if not use_notifications:
-                pDialog.update(percent, status_msg)
-            else:
-                if idx % (chunk_size * 2) == 0:
-                    notify(status_msg)
+                line1 = f"[B]File:[/B] [COLOR gray]{base_name}[/COLOR]"
+                line2 = f"[B]Action:[/B] [COLOR springgreen]Chunk {chunk_num} of {total_chunks}[/COLOR] ({curr_size} lines)"
+                line3 = f"[B]Status:[/B] [COLOR lightblue]{idx:,} / {total_lines:,} lines completed[/COLOR]"
+                pDialog.update(percent, line1, line2, line3)
 
-            curr_size = min(chunk_size, len(texts) - idx)
-            res = translate_text_only(texts[idx:idx + curr_size], curr_size)
+            res, in_t, out_t = translate_text_only(texts[idx:idx + curr_size], curr_size)
             if res:
                 all_translated.extend(res)
+                cum_in += in_t
+                cum_out += out_t
                 idx += curr_size
             else:
                 if not use_notifications: pDialog.close()
@@ -142,17 +142,26 @@ def process_subtitles(original_path):
         xbmc.Player().setSubtitles(save_path)
         if not use_notifications: pDialog.close()
 
-        # RESTORED STATS LOGIC
+        # Calculation from gemini_v2.py
+        cost = ((cum_in / 1_000_000) * 0.075) + ((cum_out / 1_000_000) * 0.30)
+
         if ADDON.getSettingBool('show_stats'):
             stats_msg = (
-                f"Target Language: {trg_name}\n"
-                f"File Saved: {clean_name}\n"
-                f"Lines Processed: {len(all_translated)}\n"
-                f"Model Used: {get_model_string()}"
+                "[B][COLOR gold]TRANSLATARR SUCCESS[/COLOR][/B]\n"
+                "------------------------------------------------------------\n"
+                f"[B]File:[/B]  [COLOR lightgray]{clean_name}[/COLOR]\n"
+                f"[B]Target:[/B] [COLOR lightblue]{trg_name}[/COLOR]\n"
+                f"[B]Model:[/B]  [COLOR lightblue]{get_model_string()}[/COLOR]\n\n"
+                "[B][COLOR orange]BILLING & USAGE[/COLOR][/B]\n"
+                "------------------------------------------------------------\n"
+                f"[B]• Input Tokens:[/B]    [COLOR springgreen]{cum_in:,}[/COLOR]\n"
+                f"[B]• Output Tokens:[/B]   [COLOR springgreen]{cum_out:,}[/COLOR]\n"
+                f"[B][COLOR gold]• Estimated Cost:[/COLOR][/B]  [B][COLOR gold]${cost:.4f}[/COLOR][/B]\n\n"
+                "[I][COLOR gray]Subtitle applied automatically.[/COLOR][/I]"
             )
-            DIALOG.textviewer("Translatarr Success Stats", stats_msg)
+            DIALOG.textviewer("Translatarr Statistics", stats_msg)
         else:
-            notify(f"Completed: {trg_name}")
+            notify(f"Success! Cost: ${cost:.4f}")
 
     except Exception as e:
         log(f"Process Error: {e}")
@@ -180,11 +189,13 @@ class GeminiMonitor(xbmc.Monitor):
 
         _, files = xbmcvfs.listdir(custom_dir)
         
+        # Filter for files matching the movie name
         valid_files = [f for f in files if video_name.lower() in f.lower() 
                        and f.lower().endswith('.srt') 
                        and target_ext not in f.lower()]
         
         if valid_files:
+            # English Priority
             en_files = [f for f in valid_files if ".en." in f.lower() or ".eng." in f.lower()]
             
             if en_files:
@@ -202,13 +213,9 @@ class GeminiMonitor(xbmc.Monitor):
                     process_subtitles(newest_path)
 
 if __name__ == '__main__':
-    import sys
-    if len(sys.argv) > 1 and "service.py" in sys.argv[0]:
-        ADDON.openSettings()
-    
-    log("Service started with Stats Pop-up restored.")
+    log("Translatarr service started.")
     monitor = GeminiMonitor()
     while not monitor.abortRequested():
         monitor.check_for_subs()
         if monitor.waitForAbort(10): break
-    log("Service stopped.")
+    log("Translatarr service stopped.")
