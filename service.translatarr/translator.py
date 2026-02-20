@@ -67,29 +67,48 @@ def translate_batch(text_list, expected_count):
                 log(f"❌ API Error: {json.dumps(data)}")
                 attempts += 1; time.sleep(2); continue
 
+            # ... (after getting raw_text from Gemini)
             raw_text = data['candidates'][0]['content']['parts'][0]['text']
             
-            # --- THE IRON-CLAD STRIPPER ---
-            # Use MULTILINE regex to hunt down prefixes regardless of indentation
-            # ^[ \t]*L\d{3,4}:[ \t]* matches "L000: ", " L000: ", etc. at start of any line.
-            cleaned_text = re.sub(r'^[ \t]*L\d{3,4}:[ \t]*', '', raw_text, flags=re.MULTILINE)
+            # 1. Split into raw lines first
+            raw_lines = raw_text.strip().split('\n')
             
-            # Split into lines and filter out empty ones
-            translated_lines = [l.strip() for l in cleaned_text.strip().split('\n') if l.strip()]
+            translated_lines = []
+            for line in raw_lines:
+                line = line.strip()
+                if not line: continue
+                
+                # 2. Aggressive Prefix Removal
+                # This kills "L000:", "L000", "L000 - ", etc.
+                clean_line = re.sub(r'^[ \t]*L\d{1,4}[:\-\s]*', '', line).strip()
+                
+                # 3. Only add if it's not a hallucinated line from Gemini
+                # (Sometimes Gemini adds "Here is your translation:")
+                if clean_line and not clean_line.lower().startswith(("here is", "translation:", "###")):
+                    translated_lines.append(clean_line)
 
-            # 3. CRITICAL CHECK: Line Parity
+            # 4. THE PARITY FIX: If Gemini missed the last tag but gave us the right lines
             if len(translated_lines) == expected_count:
+                log(f"✅ Success: Received {expected_count} clean lines.")
                 usage = data.get('usageMetadata', {})
                 return translated_lines, usage.get('promptTokenCount', 0), usage.get('candidatesTokenCount', 0)
             
-            log(f"⚠️ Count Mismatch: Expected {expected_count}, got {len(translated_lines)}. Retrying...")
+            # 5. EMERGENCY FALLBACK: If count is wrong, try to split by the Lxxx markers 
+            # instead of by newlines (in case Gemini merged lines)
+            if len(translated_lines) != expected_count:
+                log(f"⚠️ Count Mismatch ({len(translated_lines)}/{expected_count}). Trying Anchor-Split...")
+                # Split by the pattern L000: but keep the text
+                anchor_split = re.split(r'L\d{3,4}:', raw_text)
+                # Remove the first element (usually empty or intro text)
+                anchor_split = [l.strip() for l in anchor_split if l.strip()]
+                
+                if len(anchor_split) == expected_count:
+                    log("✅ Anchor-Split saved the batch!")
+                    return anchor_split, 0, 0 # Usage data lost in fallback but file saved
+
+            log(f"❌ Batch Failed: Expected {expected_count}, got {len(translated_lines)}.")
             attempts += 1
             time.sleep(2)
-            
-        except Exception as e:
-            log(f"❌ Translator Exception: {e}")
-            attempts += 1
-            time.sleep(5)
             
     return None, 0, 0
 
