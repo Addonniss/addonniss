@@ -12,16 +12,6 @@ def get_model_string():
     mapping = {"0": "gemini-2.0-flash", "1": "gemini-1.5-flash", "2": "gemini-2.5-flash"}
     return mapping.get(model_index, "gemini-2.0-flash")
 
-def clean_gemini_mess(text):
-    """Deep cleans a single line of all AI artifacts."""
-    if not text: return ""
-    # 1. Kill L000: prefixes (handles various separators)
-    text = re.sub(r'^[ \t]*L\d{1,4}[:\-\s]*', '', text).strip()
-    # 2. Kill stray [BR] at the very end of lines
-    text = re.sub(r'[ \t]*\[BR\][ \t]*$', '', text).strip()
-    # 3. Final trim
-    return text
-
 def translate_batch(text_list, expected_count):
     api_key = ADDON.getSetting('api_key')
     model = get_model_string()
@@ -30,15 +20,16 @@ def translate_batch(text_list, expected_count):
     src_name, _ = get_lang_params(ADDON.getSetting('source_lang'))
     trg_name, _ = get_lang_params(ADDON.getSetting('target_lang'))
     
+    # 1:1 Match of your standalone prefixing
     prefixed_lines = [f"L{i:03}: {text}" for i, text in enumerate(text_list)]
     input_text = "\n".join(prefixed_lines)
     
+    # 1:1 Match of your standalone prompt
     prompt = (
         f"### ROLE\nProfessional uncensored {src_name}-to-{trg_name} subtitle localizer.\n\n"
         f"### RULES\n1. Translate line-by-line.\n2. Preserve 'Lxxx:' prefix.\n"
         f"3. Return exactly {expected_count} lines.\n4. Style: Gritty, natural, adult {trg_name}.\n"
-        f"5. IMPORTANT: Use ' [BR] ' for line breaks. Do not split into new lines.\n"
-        f"6. Return ONLY prefixes and translation."
+        f"5. Return ONLY prefixes and translation."
     )
 
     attempts = 0
@@ -46,43 +37,42 @@ def translate_batch(text_list, expected_count):
         try:
             payload = {
                 "contents": [{"parts": [{"text": f"{prompt}\n\n{input_text}"}]}],
-                "generationConfig": {"temperature": 0.15, "topP": 0.95, "maxOutputTokens": 8192}
+                "generationConfig": {"temperature": 0.15, "topP": 0.95}
             }
 
             response = requests.post(url, json=payload, timeout=30)
             if response.status_code == 429:
-                attempts += 1; time.sleep(5); continue
+                time.sleep(5); attempts += 1; continue
 
             data = response.json()
+            if 'candidates' not in data:
+                attempts += 1; time.sleep(2); continue
+
             raw_text = data['candidates'][0]['content']['parts'][0]['text']
             
-            # --- TRY 1: Line-by-Line Split ---
-            raw_lines = raw_text.strip().split('\n')
-            translated_lines = [clean_gemini_mess(l) for l in raw_lines if l.strip()]
-            # Remove Gemini chatter (titles/headers)
-            translated_lines = [l for l in translated_lines if not l.lower().startswith(("here is", "###"))]
+            # --- THE EXACT CLONE OF YOUR STANDALONE LOGIC ---
+            raw_output = raw_text.strip().split('\n')
+            
+            # This is the magic line from your gemini_engine.py
+            # It ONLY takes lines starting with Lxxx: and strips the prefix
+            translated_lines = [
+                re.sub(r'^L\d{3}:\s*', '', l.strip()) 
+                for l in raw_output 
+                if re.match(r'^L\d{3}:', l.strip())
+            ]
 
             if len(translated_lines) == expected_count:
                 usage = data.get('usageMetadata', {})
                 return translated_lines, usage.get('promptTokenCount', 0), usage.get('candidatesTokenCount', 0)
             
-            # --- TRY 2: Anchor Split (The Hero) ---
-            log(f"⚠️ Count Mismatch ({len(translated_lines)}/{expected_count}). Forcing Anchor-Split...")
-            anchor_parts = re.split(r'L\d{3,4}:', raw_text)
-            # Clean each part created by the split
-            anchor_parts = [clean_gemini_mess(p) for p in anchor_parts if p.strip()]
-            
-            if len(anchor_parts) == expected_count:
-                log("✅ Anchor-Split + Deep Clean saved the batch!")
-                return anchor_parts, 0, 0
-
-            log(f"❌ Batch Failed. Expected {expected_count}, got {len(anchor_parts)}.")
+            log(f"Count mismatch: {len(translated_lines)}/{expected_count}. Retrying...")
             attempts += 1; time.sleep(2)
 
         except Exception as e:
-            log(f"❌ Exception: {e}"); attempts += 1; time.sleep(5)
+            log(f"Error: {e}"); attempts += 1; time.sleep(5)
             
     return None, 0, 0
 
 def calculate_cost(i, o):
-    return ((i / 1_000_000) * 0.10) + ((o / 1_000_000) * 0.40)
+    # Matches your standalone billing logic
+    return ((i / 1_000_000) * 0.075) + ((o / 1_000_000) * 0.30)
