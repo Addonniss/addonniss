@@ -1,78 +1,288 @@
-# -*- coding: utf-8 -*- test dev
-import requests, json, time, re, xbmcaddon, xbmc
-from languages import get_lang_params
+# -*- coding: utf-8 -*-
+import requests
+import re
+import xbmc
+import xbmcaddon
 
 ADDON = xbmcaddon.Addon('service.translatarr')
 
-def log(msg):
-    xbmc.log(f"[Gemini-Translator] {msg}", xbmc.LOGINFO)
 
-def get_model_string():
-    model_index = ADDON.getSetting('model') or "0"
-    mapping = {"0": "gemini-2.0-flash", "1": "gemini-1.5-flash", "2": "gemini-2.5-flash"}
-    return mapping.get(model_index, "gemini-2.0-flash")
+# ----------------------------------------------------------
+# Logging
+# ----------------------------------------------------------
+
+def log(msg):
+    xbmc.log(f"[Translatarr] {msg}", xbmc.LOGINFO)
+
+
+# ----------------------------------------------------------
+# Base
+# ----------------------------------------------------------
+
+class BaseTranslator:
+    def translate_batch(self, text_list, expected_count):
+        raise NotImplementedError
+
+    def calculate_cost(self, input_tokens, output_tokens):
+        raise NotImplementedError
+
+    def get_model_string(self):
+        raise NotImplementedError
+
+
+# ==========================================================
+# GEMINI
+# ==========================================================
+
+class GeminiTranslator(BaseTranslator):
+
+    PRICING = {
+        "gemini-2.0-flash": (0.0000005, 0.0000015),
+        "gemini-1.5-flash": (0.0000005, 0.0000015),
+        "gemini-2.5-flash": (0.0000007, 0.0000020),
+    }
+
+    def __init__(self):
+        self.api_key = ADDON.getSetting('api_key')
+        self.model_idx = ADDON.getSetting('model') or "0"
+        self.temperature = self._get_temperature()
+
+        model_map = {
+            "0": "gemini-2.0-flash",
+            "1": "gemini-1.5-flash",
+            "2": "gemini-2.5-flash"
+        }
+
+        self.model = model_map.get(self.model_idx, "gemini-2.0-flash")
+
+    def _get_temperature(self):
+        try:
+            return float(ADDON.getSetting('temp') or 0.15)
+        except:
+            return 0.15
+
+    # --------------------------
+    # Translation
+    # --------------------------
+
+    def translate_batch(self, text_list, expected_count):
+
+        if not self.api_key:
+            return None, 0, 0
+
+        from languages import get_lang_params
+        src_name, _ = get_lang_params(ADDON.getSetting('source_lang'))
+        trg_name, _ = get_lang_params(ADDON.getSetting('target_lang'))
+
+        if src_name.lower() != "auto-detect":
+            lang_instruction = f"Translate from {src_name} to {trg_name}."
+        else:
+            lang_instruction = f"Detect the source language and translate to {trg_name}."
+
+        prefixed = [f"L{i:03}: {t}" for i, t in enumerate(text_list)]
+        input_text = "\n".join(prefixed)
+
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+
+        payload = {
+            "contents": [{
+                "parts": [{
+                    "text": (
+                        "You are a professional subtitle localizer.\n"
+                        f"{lang_instruction}\n"
+                        "Rules:\n"
+                        "1. Translate strictly line-by-line.\n"
+                        "2. Preserve 'Lxxx:' anchors exactly.\n"
+                        f"3. Return exactly {expected_count} lines.\n"
+                        "4. Return ONLY prefixed translated lines.\n\n"
+                        f"{input_text}"
+                    )
+                }]
+            }],
+            "generationConfig": {
+                "temperature": self.temperature
+            }
+        }
+
+        try:
+            r = requests.post(url, json=payload, timeout=30)
+            if r.status_code != 200:
+                return None, 0, 0
+
+            data = r.json()
+            raw = data['candidates'][0]['content']['parts'][0]['text'].strip()
+
+            translated = self._scrub(raw, expected_count)
+            if not translated:
+                return None, 0, 0
+
+            usage = data.get("usageMetadata", {})
+            in_t = usage.get("promptTokenCount", 0)
+            out_t = usage.get("candidatesTokenCount", 0)
+
+            return translated, in_t, out_t
+
+        except:
+            return None, 0, 0
+
+    def _scrub(self, raw_text, expected):
+        lines = raw_text.split("\n")
+        cleaned = []
+        for line in lines:
+            if re.match(r'^L\d{3}:\s*', line.strip()):
+                clean = re.sub(r'^L\d{3}:\s*', '', line.strip())
+                cleaned.append(clean)
+        return cleaned if len(cleaned) == expected else None
+
+    # --------------------------
+    # Cost
+    # --------------------------
+
+    def calculate_cost(self, input_tokens, output_tokens):
+        in_price, out_price = self.PRICING.get(self.model, (0, 0))
+        return (input_tokens * in_price) + (output_tokens * out_price)
+
+    def get_model_string(self):
+        return f"Gemini ({self.model})"
+
+
+# ==========================================================
+# OPENAI
+# ==========================================================
+
+class OpenAITranslator(BaseTranslator):
+
+    PRICING = {
+        "gpt-4o-mini": (0.00000015, 0.00000060),
+        "gpt-4o": (0.000005, 0.000015),
+        "gpt-5-mini": (0.00000025,0.0000020),
+    }
+
+    def __init__(self):
+        self.api_key = ADDON.getSetting('openai_api_key')
+        self.model_idx = ADDON.getSetting('openai_model') or "0"
+        self.temperature = self._get_temperature()
+
+        model_map = {
+            "0": "gpt-4o-mini",
+            "1": "gpt-4o",
+            "2": "gpt-5-mini"
+        }
+
+        self.model = model_map.get(self.model_idx, "gpt-4o-mini")
+
+    def _get_temperature(self):
+        try:
+            return float(ADDON.getSetting('temp') or 0.15)
+        except:
+            return 0.15
+
+    # --------------------------
+    # Translation
+    # --------------------------
+
+    def translate_batch(self, text_list, expected_count):
+
+        if not self.api_key:
+            return None, 0, 0
+
+        from languages import get_lang_params
+        src_name, _ = get_lang_params(ADDON.getSetting('source_lang'))
+        trg_name, _ = get_lang_params(ADDON.getSetting('target_lang'))
+
+        if src_name.lower() != "auto-detect":
+            lang_instruction = f"Translate from {src_name} to {trg_name}."
+        else:
+            lang_instruction = f"Detect the source language and translate to {trg_name}."
+
+        prefixed = [f"L{i:03}: {t}" for i, t in enumerate(text_list)]
+        input_text = "\n".join(prefixed)
+
+        url = "https://api.openai.com/v1/chat/completions"
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "model": self.model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a professional subtitle localizer.\n"
+                        f"{lang_instruction}\n"
+                        "Rules:\n"
+                        "1. Translate strictly line-by-line.\n"
+                        "2. Preserve 'Lxxx:' anchors exactly.\n"
+                        f"3. Return exactly {expected_count} lines.\n"
+                        "4. Return ONLY prefixed translated lines."
+                    )
+                },
+                {"role": "user", "content": input_text}
+            ],
+            "temperature": self.temperature
+        }
+
+        try:
+            r = requests.post(url, headers=headers, json=payload, timeout=30)
+            if r.status_code != 200:
+                return None, 0, 0
+
+            data = r.json()
+            raw = data['choices'][0]['message']['content'].strip()
+
+            translated = self._scrub(raw, expected_count)
+            if not translated:
+                return None, 0, 0
+
+            usage = data.get("usage", {})
+            in_t = usage.get("prompt_tokens", 0)
+            out_t = usage.get("completion_tokens", 0)
+
+            return translated, in_t, out_t
+
+        except:
+            return None, 0, 0
+
+    def _scrub(self, raw_text, expected):
+        lines = raw_text.split("\n")
+        cleaned = []
+        for line in lines:
+            if re.match(r'^L\d{3}:\s*', line.strip()):
+                clean = re.sub(r'^L\d{3}:\s*', '', line.strip())
+                cleaned.append(clean)
+        return cleaned if len(cleaned) == expected else None
+
+    # --------------------------
+    # Cost
+    # --------------------------
+
+    def calculate_cost(self, input_tokens, output_tokens):
+        in_price, out_price = self.PRICING.get(self.model, (0, 0))
+        return (input_tokens * in_price) + (output_tokens * out_price)
+
+    def get_model_string(self):
+        return f"OpenAI ({self.model})"
+
+
+# ==========================================================
+# PUBLIC API (Used by service.py)
+# ==========================================================
+
+def _get_translator():
+    provider = ADDON.getSetting('provider')  # 0=Gemini 1=OpenAI
+    return OpenAITranslator() if provider == "1" else GeminiTranslator()
+
 
 def translate_batch(text_list, expected_count):
-    api_key = ADDON.getSetting('api_key')
-    model = get_model_string()
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-    
-    src_name, _ = get_lang_params(ADDON.getSetting('source_lang'))
-    trg_name, _ = get_lang_params(ADDON.getSetting('target_lang'))
-    
-    # 1:1 Match of your standalone prefixing
-    prefixed_lines = [f"L{i:03}: {text}" for i, text in enumerate(text_list)]
-    input_text = "\n".join(prefixed_lines)
-    
-    # 1:1 Match of your standalone prompt
-    prompt = (
-        f"### ROLE\nProfessional uncensored {src_name}-to-{trg_name} subtitle localizer.\n\n"
-        f"### RULES\n1. Translate line-by-line.\n2. Preserve 'Lxxx:' prefix.\n"
-        f"3. Return exactly {expected_count} lines.\n4. Style: Gritty, natural, adult {trg_name}.\n"
-        f"5. Return ONLY prefixes and translation."
-    )
+    return _get_translator().translate_batch(text_list, expected_count)
 
-    attempts = 0
-    while attempts < 3:
-        try:
-            payload = {
-                "contents": [{"parts": [{"text": f"{prompt}\n\n{input_text}"}]}],
-                "generationConfig": {"temperature": 0.15, "topP": 0.95}
-            }
 
-            response = requests.post(url, json=payload, timeout=30)
-            if response.status_code == 429:
-                time.sleep(5); attempts += 1; continue
+def calculate_cost(input_tokens, output_tokens):
+    return _get_translator().calculate_cost(input_tokens, output_tokens)
 
-            data = response.json()
-            if 'candidates' not in data:
-                attempts += 1; time.sleep(2); continue
 
-            raw_text = data['candidates'][0]['content']['parts'][0]['text']
-            
-            # --- THE EXACT CLONE OF YOUR STANDALONE LOGIC ---
-            raw_output = raw_text.strip().split('\n')
-            
-            # This is the magic line from your gemini_engine.py
-            # It ONLY takes lines starting with Lxxx: and strips the prefix
-            translated_lines = [
-                re.sub(r'^L\d{3}:\s*', '', l.strip()) 
-                for l in raw_output 
-                if re.match(r'^L\d{3}:', l.strip())
-            ]
-
-            if len(translated_lines) == expected_count:
-                usage = data.get('usageMetadata', {})
-                return translated_lines, usage.get('promptTokenCount', 0), usage.get('candidatesTokenCount', 0)
-            
-            log(f"Count mismatch: {len(translated_lines)}/{expected_count}. Retrying...")
-            attempts += 1; time.sleep(2)
-
-        except Exception as e:
-            log(f"Error: {e}"); attempts += 1; time.sleep(5)
-            
-    return None, 0, 0
-
-def calculate_cost(i, o):
-    # Matches your standalone billing logic
-    return ((i / 1_000_000) * 0.075) + ((o / 1_000_000) * 0.30)
+def get_model_string():
+    return _get_translator().get_model_string()
