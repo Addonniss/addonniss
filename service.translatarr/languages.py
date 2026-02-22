@@ -27,7 +27,8 @@ LANGUAGES = {
     "23": ("Hindi", "hi"),
     "24": ("Korean", "ko"),
     "25": ("Thai", "th"),
-    "26": ("Vietnamese", "vi")
+    "26": ("Vietnamese", "vi"),
+    "27": ("Slovenian", "sl")
 
 }
 
