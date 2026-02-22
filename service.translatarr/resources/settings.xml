@@ -1,21 +1,89 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
     <category label="Translatarr Config">
-        <setting id="api_key" type="text" label="Gemini API Key" default="" />
-        <setting id="model" type="enum" label="Model AI" values="Gemini 2.0 Flash|Gemini 1.5 Flash|Gemini 2.5 Flash" default="0" />
-        
-        <setting id="source_lang" type="enum" label="Source Language" values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Auto-Detect|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Slovenian" default="10" />
-        <setting id="target_lang" type="enum" label="Target Language" values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Auto-Detect|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Slovenian" default="0" />
-        
-        <setting id="temp" type="text" label="Temperature" default="0.15" />
-        <setting id="chunk_size" type="text" label="Lines per Chunk" default="50" />
-        <setting id="sub_folder" type="folder" label="Save Folder" default="/storage/emulated/0/Download/sub/" />
-        <setting id="show_stats" type="bool" label="Show Statistics" default="true" />
-        <setting id="notify_mode" type="bool" label="Simple Notifications" default="true" />
+
+        <setting label="AI Provider" type="lsep" />
+        <setting id="provider"
+                 type="enum"
+                 label="Active Engine"
+                 values="Gemini|OpenAI"
+                 default="0" />
+
+        <!-- Gemini -->
+        <setting label="Gemini Settings"
+                 type="lsep"
+                 visible="eq(-2,0)" />
+
+        <setting id="api_key"
+                 type="text"
+                 label="Gemini API Key"
+                 default=""
+                 visible="eq(-3,0)" />
+
+        <setting id="model"
+                 type="enum"
+                 label="Gemini Model"
+                 values="Gemini 2.0 Flash|Gemini 1.5 Flash|Gemini 2.5 Flash"
+                 default="0"
+                 visible="eq(-4,0)" />
+
+        <!-- OpenAI -->
+        <setting label="OpenAI Settings"
+                 type="lsep"
+                 visible="eq(-6,1)" />
+
+        <setting id="openai_api_key"
+                 type="text"
+                 label="OpenAI API Key"
+                 default=""
+                 visible="eq(-7,1)" />
+
+        <setting id="openai_model"
+                 type="enum"
+                 label="OpenAI Model"
+                 values="gpt-4o-mini|gpt-4o"
+                 default="0"
+                 visible="eq(-8,1)" />
+
+        <!-- Translation -->
+        <setting label="Translation Config" type="lsep" />
+
+        <setting id="source_lang"
+                 type="enum"
+                 label="Source Language"
+                 values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Auto-Detect|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Soovenian"
+                 default="10" />
+
+        <setting id="target_lang"
+                 type="enum"
+                 label="Target Language"
+                 values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Slovenian"
+                 default="0" />
+
+        <setting id="temp"
+                 type="number"
+                 label="Temperature"
+                 default="0.15" />
+
+        <setting id="chunk_size"
+                 type="number"
+                 label="Lines per Chunk"
+                 default="50" />
+
+        <setting id="sub_folder"
+                 type="folder"
+                 label="Save Folder"
+                 default="/storage/emulated/0/Download/sub/" />
+
+        <setting id="show_stats"
+                 type="bool"
+                 label="Show Statistics"
+                 default="true" />
+
+        <setting id="notify_mode"
+                 type="bool"
+                 label="Simple Notifications"
+                 default="true" />
+
     </category>
 </settings>
-
-
-
-
-
