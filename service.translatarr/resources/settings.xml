@@ -2,6 +2,7 @@
 <settings>
     <category label="Translatarr Config">
 
+        <!-- AI Provider -->
         <setting label="AI Provider" type="lsep" />
         <setting id="provider"
                  type="enum"
@@ -9,8 +10,8 @@
                  values="Gemini|OpenAI"
                  default="0" />
 
-        <!-- Gemini -->
-        <setting label="Gemini Settings" type="lsep" />
+        <!-- Gemini Settings -->
+        <setting label="Gemini Settings" type="lsep" showif="provider:0" />
         <setting id="api_key"
                  type="text"
                  label="Gemini API Key"
@@ -23,8 +24,8 @@
                  default="0"
                  showif="provider:0" />
 
-        <!-- OpenAI -->
-        <setting label="OpenAI Settings" type="lsep" />
+        <!-- OpenAI Settings -->
+        <setting label="OpenAI Settings" type="lsep" showif="provider:1" />
         <setting id="openai_api_key"
                  type="text"
                  label="OpenAI API Key"
@@ -37,7 +38,7 @@
                  default="0"
                  showif="provider:1" />
 
-        <!-- Translation -->
+        <!-- Translation Config -->
         <setting label="Translation Config" type="lsep" />
 
         <setting id="source_lang"
