@@ -12,7 +12,6 @@ import ui
 import translator
 import file_manager
 
-
 # ----------------------------------------------------------
 # Addon & logging
 # ----------------------------------------------------------
@@ -21,6 +20,18 @@ ADDON_ID = 'service.translatarr'
 
 def log(msg):
     xbmc.log(f"[Translatarr] {msg}", xbmc.LOGINFO)
+
+
+# ----------------------------------------------------------
+# Safe dynamic settings helpers (Kodi 20+ compliant)
+# ----------------------------------------------------------
+def get_setting_bool(key):
+    return xbmcaddon.Addon(ADDON_ID).getSettingBool(key)
+
+
+def get_setting(key, default=None):
+    val = xbmcaddon.Addon(ADDON_ID).getSetting(key)
+    return val if val else default
 
 
 # ----------------------------------------------------------
@@ -41,14 +52,15 @@ def process_subtitles(original_path):
             return
 
         # ----------------------------
-        # Read settings ONCE per translation
+        # Settings once per translation
         # ----------------------------
         use_notifications = addon.getSettingBool('notify_mode')
         show_stats = addon.getSettingBool('show_stats')
         initial_chunk = max(10, min(int(addon.getSetting('chunk_size') or 100), 150))
 
+        # Translation progress
         model_name = translator.get_model_string()
-        progress = ui.TranslationProgress(model_name, use_notifications=use_notifications)
+        progress = ui.TranslationProgress(model_name)
 
         with xbmcvfs.File(original_path, 'r') as f:
             content = f.read()
@@ -77,7 +89,6 @@ def process_subtitles(original_path):
 
             # Adaptive chunking
             for size in [initial_chunk, 50, 25]:
-
                 curr_size = min(size, total_lines - idx)
                 percent = int((idx / total_lines) * 100)
                 current_chunk_display = math.ceil(idx / initial_chunk) + 1
@@ -255,6 +266,5 @@ if __name__ == '__main__':
 
     while not monitor.abortRequested():
         monitor.check_for_subs()
-
         if monitor.waitForAbort(5):
             break
