@@ -13,34 +13,34 @@
         <!-- Gemini Settings -->
         <setting label="Gemini Settings"
                  type="lsep"
-                 visible="eq(-1,0)" />
+                 visible="eq(-2,0)" />
         <setting id="api_key"
                  type="text"
                  label="Gemini API Key"
                  default=""
-                 visible="eq(-2,0)" />
+                 visible="eq(-3,0)" />
         <setting id="model"
                  type="enum"
                  label="Gemini Model"
                  values="Gemini 2.0 Flash|Gemini 1.5 Flash|Gemini 2.5 Flash"
                  default="0"
-                 visible="eq(-3,0)" />
+                 visible="eq(-4,0)" />
 
         <!-- OpenAI Settings -->
         <setting label="OpenAI Settings"
                  type="lsep"
-                 visible="eq(-4,1)" />
+                 visible="eq(-6,1)" />
         <setting id="openai_api_key"
                  type="text"
                  label="OpenAI API Key"
                  default=""
-                 visible="eq(-5,1)" />
+                 visible="eq(-7,1)" />
         <setting id="openai_model"
                  type="enum"
                  label="OpenAI Model"
                  values="gpt-4o-mini|gpt-4o|gpt-5-mini"
                  default="0"
-                 visible="eq(-6,1)" />
+                 visible="eq(-8,1)" />
 
         <!-- Translation -->
         <setting label="Translation Config" type="lsep" />
@@ -84,3 +84,4 @@
 
     </category>
 </settings>
+
