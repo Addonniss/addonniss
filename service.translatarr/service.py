@@ -12,56 +12,42 @@ import ui
 import translator
 import file_manager
 
-# ----------------------------------------------------------
-# Addon & logging
-# ----------------------------------------------------------
-ADDON_ID = 'service.translatarr'
+ADDON = xbmcaddon.Addon('service.translatarr')
 
+
+# ----------------------------------------------------------
+# Logging
+# ----------------------------------------------------------
 
 def log(msg):
     xbmc.log(f"[Translatarr] {msg}", xbmc.LOGINFO)
 
 
 # ----------------------------------------------------------
-# Safe dynamic settings helpers (Kodi 20+ compliant)
-# ----------------------------------------------------------
-def get_setting_bool(key):
-    return xbmcaddon.Addon(ADDON_ID).getSettingBool(key)
-
-
-def get_setting(key, default=None):
-    val = xbmcaddon.Addon(ADDON_ID).getSetting(key)
-    return val if val else default
-
-
-# ----------------------------------------------------------
 # Subtitle Processing
 # ----------------------------------------------------------
+
 def process_subtitles(original_path):
     try:
-        addon = xbmcaddon.Addon(ADDON_ID)
-
         playing_file = xbmc.Player().getPlayingFile()
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
 
         save_path, clean_name = file_manager.get_target_path(original_path, video_name)
 
-        # Skip if already translated
+        # Already translated
         if xbmcvfs.exists(save_path):
             xbmc.Player().setSubtitles(save_path)
             return
 
-        # ----------------------------
-        # Settings once per translation
-        # ----------------------------
-        use_notifications = addon.getSettingBool('notify_mode')
-        show_stats = addon.getSettingBool('show_stats')
-        initial_chunk = max(10, min(int(addon.getSetting('chunk_size') or 100), 150))
+        # Settings
+        use_notifications = ADDON.getSettingBool('notify_mode')
+        show_stats = ADDON.getSettingBool('show_stats')
+        initial_chunk = max(10, min(int(ADDON.getSetting('chunk_size') or 100), 150))
 
-        # Translation progress
         model_name = translator.get_model_string()
-        progress = ui.TranslationProgress(model_name)
+        progress = ui.TranslationProgress(model_name, title="Translatarr")
 
+        # Read subtitles
         with xbmcvfs.File(original_path, 'r') as f:
             content = f.read()
 
@@ -72,7 +58,6 @@ def process_subtitles(original_path):
 
         total_lines = len(texts)
         total_chunks_est = math.ceil(total_lines / initial_chunk)
-
         all_translated = []
         cum_in = 0
         cum_out = 0
@@ -86,7 +71,6 @@ def process_subtitles(original_path):
                 return
 
             success = False
-
             # Adaptive chunking
             for size in [initial_chunk, 50, 25]:
                 curr_size = min(size, total_lines - idx)
@@ -125,7 +109,7 @@ def process_subtitles(original_path):
                 ui.notify("Critical Failure: API rejected all chunk sizes.")
                 return
 
-        # Final 100%
+        # Ensure 100% milestone
         progress.update(
             100,
             os.path.basename(original_path),
@@ -136,18 +120,16 @@ def process_subtitles(original_path):
             total_lines
         )
 
-        # Write translated file
+        # Write and activate
         file_manager.write_srt(save_path, timestamps, all_translated)
         xbmc.Player().setSubtitles(save_path)
         progress.close()
 
+        # Stats
         total_time = time.time() - start_time
         cost = translator.calculate_cost(cum_in, cum_out)
-        trg_name, _ = get_lang_params(addon.getSetting('target_lang'))
+        trg_name, _ = get_lang_params(ADDON.getSetting('target_lang'))
 
-        # ----------------------------
-        # Stats popup
-        # ----------------------------
         if show_stats:
             ui.show_stats_box(
                 os.path.basename(original_path),
@@ -161,12 +143,9 @@ def process_subtitles(original_path):
                 total_time
             )
 
-        # ----------------------------
-        # Simple notification
-        # ----------------------------
         if use_notifications:
             ui.notify(
-                f"✔ Done in {int(total_time)}s | ${cost:.4f}",
+                f"✔ Done in {ui.format_time(total_time)} | ${cost:.4f}",
                 title=f"{model_name} → {trg_name}"
             )
 
@@ -177,6 +156,7 @@ def process_subtitles(original_path):
 # ----------------------------------------------------------
 # Monitor
 # ----------------------------------------------------------
+
 class TranslatarrMonitor(xbmc.Monitor):
 
     def __init__(self):
@@ -188,10 +168,8 @@ class TranslatarrMonitor(xbmc.Monitor):
         if not xbmc.Player().isPlaying():
             return
 
-        addon = xbmcaddon.Addon(ADDON_ID)
-
-        _, src_iso = get_lang_params(addon.getSetting('source_lang'))
-        _, trg_iso = get_lang_params(addon.getSetting('target_lang'))
+        _, src_iso = get_lang_params(ADDON.getSetting('source_lang'))
+        _, trg_iso = get_lang_params(ADDON.getSetting('target_lang'))
 
         if trg_iso == "auto":
             trg_iso = "ro"
@@ -204,7 +182,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         except:
             return
 
-        custom_dir = addon.getSetting('sub_folder')
+        custom_dir = ADDON.getSetting('sub_folder')
         if not custom_dir or not xbmcvfs.exists(custom_dir):
             return
 
@@ -213,57 +191,52 @@ class TranslatarrMonitor(xbmc.Monitor):
 
         for f in files:
             f_low = f.lower()
-
             if video_name.lower() in f_low and f_low.endswith('.srt'):
-
-                # Skip already translated target language
                 if target_ext in f_low:
                     continue
-
                 match = re.search(r'\.([a-z]{2,3})\.srt$', f_low)
                 if match:
                     lang = match.group(1)
                     if lang not in ['en', 'eng', src_iso]:
                         continue
-
                 valid_files.append(f)
 
         if not valid_files:
             return
 
-        # Sort newest first
-        valid_files.sort(
-            key=lambda x: xbmcvfs.Stat(os.path.join(custom_dir, x)).st_mtime(),
-            reverse=True
-        )
+        # Prioritize source-language first
+        prio = [f for f in valid_files if f".{src_iso}." in f.lower()] if src_iso != "auto" else []
+        if not prio:
+            prio = [f for f in valid_files if ".en." in f.lower() or ".eng." in f.lower()]
+        src_list = prio if prio else valid_files
 
-        newest_path = os.path.join(custom_dir, valid_files[0])
+        # Sort newest first
+        src_list.sort(key=lambda x: xbmcvfs.Stat(os.path.join(custom_dir, x)).st_mtime(), reverse=True)
+
+        newest_path = os.path.join(custom_dir, src_list[0])
         stat = xbmcvfs.Stat(newest_path)
 
-        # Skip tiny/incomplete files
+        # Skip tiny files or already translated
         if stat.st_size() < 500:
             return
-
-        # Skip if translation already exists
         save_path, _ = file_manager.get_target_path(newest_path, video_name)
         if xbmcvfs.exists(save_path):
             return
-
-        # Prevent immediate re-trigger
         if newest_path == self.last_processed:
             return
 
-        self.last_processed = newest_path
-        process_subtitles(newest_path)
+        # Only translate recent files (e.g., downloaded < 5 min ago)
+        if (time.time() - stat.st_mtime()) < 300:
+            self.last_processed = newest_path
+            process_subtitles(newest_path)
 
 
 # ----------------------------------------------------------
 # Entry
 # ----------------------------------------------------------
+
 if __name__ == '__main__':
-
     monitor = TranslatarrMonitor()
-
     while not monitor.abortRequested():
         monitor.check_for_subs()
         if monitor.waitForAbort(5):
