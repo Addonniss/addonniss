@@ -24,18 +24,6 @@ def log(msg):
 
 
 # ----------------------------------------------------------
-# Safe dynamic settings helpers (Kodi 20+ compliant)
-# ----------------------------------------------------------
-def get_setting_bool(key):
-    return xbmcaddon.Addon(ADDON_ID).getSettingBool(key)
-
-
-def get_setting(key, default=None):
-    val = xbmcaddon.Addon(ADDON_ID).getSetting(key)
-    return val if val else default
-
-
-# ----------------------------------------------------------
 # Subtitle Processing
 # ----------------------------------------------------------
 def process_subtitles(original_path):
@@ -47,13 +35,13 @@ def process_subtitles(original_path):
 
         save_path, clean_name = file_manager.get_target_path(original_path, video_name)
 
-        # Already translated
+        # Skip if already translated
         if xbmcvfs.exists(save_path):
             xbmc.Player().setSubtitles(save_path)
             return
 
         # ----------------------------
-        # Read settings once (consistent for whole translation)
+        # Read settings ONCE per translation
         # ----------------------------
         use_notifications = addon.getSettingBool('notify_mode')
         show_stats = addon.getSettingBool('show_stats')
@@ -126,7 +114,7 @@ def process_subtitles(original_path):
                 ui.notify("Critical Failure: API rejected all chunk sizes.")
                 return
 
-        # Ensure 100%
+        # Final 100%
         progress.update(
             100,
             os.path.basename(original_path),
@@ -137,7 +125,7 @@ def process_subtitles(original_path):
             total_lines
         )
 
-        # Write and activate
+        # Write translated file
         file_manager.write_srt(save_path, timestamps, all_translated)
         xbmc.Player().setSubtitles(save_path)
         progress.close()
@@ -217,6 +205,7 @@ class TranslatarrMonitor(xbmc.Monitor):
 
             if video_name.lower() in f_low and f_low.endswith('.srt'):
 
+                # Skip already translated target language
                 if target_ext in f_low:
                     continue
 
@@ -231,29 +220,28 @@ class TranslatarrMonitor(xbmc.Monitor):
         if not valid_files:
             return
 
+        # Sort newest first
         valid_files.sort(
             key=lambda x: xbmcvfs.Stat(os.path.join(custom_dir, x)).st_mtime(),
             reverse=True
         )
 
         newest_path = os.path.join(custom_dir, valid_files[0])
-
         stat = xbmcvfs.Stat(newest_path)
 
-        # Only process reasonably sized files
+        # Skip tiny/incomplete files
         if stat.st_size() < 500:
             return
 
-        # If translated file already exists, skip
+        # Skip if translation already exists
         save_path, _ = file_manager.get_target_path(newest_path, video_name)
         if xbmcvfs.exists(save_path):
             return
 
-        # Only prevent immediate double-trigger (same loop tick)
+        # Prevent immediate re-trigger
         if newest_path == self.last_processed:
             return
 
-        # Mark as last processed ONLY after confirming it needs translation
         self.last_processed = newest_path
         process_subtitles(newest_path)
 
@@ -270,6 +258,3 @@ if __name__ == '__main__':
 
         if monitor.waitForAbort(5):
             break
-
-
-
