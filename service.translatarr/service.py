@@ -26,7 +26,6 @@ def log(msg):
 # Subtitle Processing
 # ----------------------------------------------------------
 def process_subtitles(original_path, monitor):
-
     try:
         if not xbmc.Player().isPlaying():
             return
