@@ -1,68 +1,254 @@
-# 🎬 Translatarr: AI-Powered Subtitle Translator
+# 🎬 Translatarr: AI-Powered Subtitle Translator for Kodi
 
-Any Language to Your Language translation addon.
+Translate Any Subtitle → Into Your Language  
+Powered by Gemini or OpenAI
 
-This project began as a fork of [service.kodilive.translator.ai](https://github.com/Kirek66/service.kodilive.translator.ai) but has since evolved using my own logic for translation and only Gemini as AI.
+Translatarr is an intelligent Kodi background service that automatically translates subtitles using modern AI models like Google Gemini and OpenAI GPT-4o.
 
-**Translatarr** is a smart Kodi service that uses Google's Gemini AI to provide high-quality, natural-sounding translations for your movies and TV shows. Unlike traditional translators that work word-for-word, Translatarr understands context, slang, and emotion, giving you subtitles that feel like they were written by a human.
+Unlike traditional word-by-word translators, Translatarr understands:
 
----
+- Context  
+- Slang  
+- Emotion  
+- Tone  
+- Cultural nuance  
 
-## ⚡ Quick Start (Get running in 3 steps)
-
-1. **Get your Key:** Visit [Google AI Studio](https://aistudio.google.com/) and click "Get API Key". It’s free and takes 30 seconds.
-2. **Configure:** Open Translatarr settings in Kodi. Paste your API Key and select your Target Language (e.g., Romanian).
-3. **Play a Movie:** Start a movie and download any subtitle using any Kodi subtitle addon. Translatarr will automatically detect it and start the translation!
-
----
-
-## ⚙️ Configuration Guide
-
-To get the best results, you can fine-tune Translatarr in the settings menu. Here is what each parameter does:
-
-### 1. Gemini API Key
-* **What it is:** Your personal "password" to use Google's AI.
-* **Pro Tip:** Copy and paste the key directly to avoid typos. If the key is wrong, the addon will stay silent.
-
-### 2. Model AI
-* **Options:** Gemini 2.0 Flash, 1.5 Flash, etc.
-* **Recommendation:** Gemini 2.0 Flash is the fastest and most cost-effective "brain" available right now.
-
-### 3. Source & Target Language
-* **Source:** The language the original subtitles are in. Use "Auto-Detect" if you aren't sure.
-* **Target:** Always ensure the Target Language is set to a specific language (e.g., Romanian). Setting the Target to "Auto-Detect" will cause the translation to fail or return the original text.
-* **Files:** Translatarr will save files with the correct language code (e.g., `.ro.srt` for Romanian, `.fr.srt` for French).
-
-### 4. Temperature
-* **What it is:** The "Creativity" setting.
-* **Lower (0.15):** Keeps the translation very accurate and literal. Recommended for subtitles.
-* **Higher (0.7+):** Allows the AI to use more creative phrasing and slang.
-
-### 5. Lines per Chunk
-* **What it is:** How many lines are translated at once.
-* **Recommended:** 50 or 100. Larger chunks are faster, but smaller chunks (50) are more reliable for very long movies.
-
-### 6. Save Folder
-* **Description:** The location where your new subtitles are saved.
-* **Important:** This should be a folder that Kodi has permission to read/write, like your Downloads or Media folder.
-
-### 7. Notification Modes
-* **Show Statistics:** Pops up a summary box at the end showing how many lines were translated.
-* **Simple Notifications:** Only shows a small percentage bar at the top of the screen so it doesn't interrupt your viewing.
+Result: subtitles that feel human-written.
 
 ---
 
-## 🛠 Troubleshooting
+## 🚀 What’s New
 
-* **No translation appears:** Check your API key and ensure the "Save Folder" path is correct in settings.
-* **Translation stops midway:** This usually happens if the AI hits a "Safety Filter" (common in movies with heavy profanity). Try lowering the Temperature.
-* **Artifacts:** If you see strange characters, ensure you are using the latest version of the addon which includes the "Language-Blind" cleaning logic.
+✔ Gemini AND OpenAI support  
+✔ Automatic adaptive chunk resizing (Bazarr-style)  
+✔ Token usage tracking  
+✔ Real cost calculation per movie  
+✔ Model selection  
+✔ Smart subtitle detection  
+✔ Professional line-locking system  
 
 ---
 
-## ☕ Support the Project
-If you enjoy using Translatarr and want to help keep the development going, feel free to support me here:
+# ⚡ Quick Start (3 Steps)
 
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Donate-yellow.svg?style=for-the-badge&logo=buy-me-a-coffee)](https://www.buymeacoffee.com/addonniss)
+## 1️⃣ Get an API Key
+
+Choose your AI provider:
+
+🔹 Google Gemini  
+https://aistudio.google.com/
+
+🔹 OpenAI  
+https://platform.openai.com/api-keys
+
+---
+
+## 2️⃣ Configure Translatarr
+
+Kodi → Addons → Services → Translatarr → Settings
+
+- Select Provider (Gemini or OpenAI)
+- Paste API Key
+- Choose Model
+- Choose Target Language
+
+---
+
+## 3️⃣ Play a Movie 🎥
+
+Download any subtitle using any Kodi subtitle addon.
+
+Translatarr will:
+
+- Detect the subtitle
+- Translate it automatically
+- Save it as .ro.srt, .fr.srt, etc.
+- Activate it instantly
+
+No manual steps required.
+
+---
+
+# ⚙️ Full Configuration Guide
+
+## 🧠 Provider
+
+Choose your AI backend:
+
+Gemini  
+Fast and very cost-effective.
+
+OpenAI  
+Higher linguistic refinement (especially GPT-4o).
+
+---
+
+## 🤖 Model AI Options
+
+### 🔹 Gemini Models
+
+- Gemini 2.0 Flash (recommended)  
+  Best overall balance of speed, cost, and subtitle quality. Fast, stable, and ideal for most movies and TV shows.
+
+- Gemini 1.5 Flash  
+  Lightweight and reliable model. Slightly older generation, very stable, good for conservative or low-cost usage.
+
+- Gemini 2.5 Flash  
+  Newer-generation model with improved contextual understanding and better nuance handling. Slightly more expensive, but stronger with slang and complex dialogue.
 
 
+### 🔹 OpenAI Models
+
+- gpt-4o-mini (cheap + fast)  
+  Budget-friendly and very fast. Great for bulk subtitle translation with solid quality at minimal cost.
+
+- gpt-5-mini  
+  Next-generation balanced model. Smarter contextual understanding than 4o-mini, improved nuance and dialogue flow, while remaining cost-efficient.
+
+- gpt-4o (premium quality)  
+  Highest refinement and linguistic precision. Best choice for maximum naturalness, emotional tone accuracy, and complex scripts.
+
+---
+
+## 🌍 Source & Target Language
+
+Source:
+Use Auto-Detect unless you know the exact language.
+
+Target:
+Must be a specific language (not Auto).
+
+Generated files follow ISO codes:
+MovieName.ro.srt
+MovieName.fr.srt
+MovieName.es.srt
+
+---
+
+## 🌡 Temperature
+
+Controls creativity:
+
+0.15  → Accurate & stable (recommended)  
+0.5   → Slightly more natural  
+0.7+  → More creative / risky  
+
+For subtitles, 0.15 is ideal.
+
+---
+
+## 📦 Lines Per Chunk
+
+How many subtitle lines are sent per API request.
+
+Recommended:
+- 50  → safer
+- 100 → faster
+- 150 → aggressive
+
+Smart Adaptive Mode:
+If a chunk fails, Translatarr automatically retries with:
+
+Initial → 50 → 25
+
+No manual retry needed.
+
+---
+
+## 📁 Save Folder
+
+Folder where translated subtitles are written.
+
+Must be writable by Kodi.
+
+---
+
+## 🔔 Notification Modes
+
+Show Statistics:
+Displays:
+- Model used
+- Total tokens
+- Estimated cost
+- Total chunks
+- Lines translated
+
+Simple Notifications:
+Minimal progress bar only.
+
+---
+
+# 💰 Cost Transparency
+
+Translatarr calculates real API cost per movie.
+
+Example:
+
+Model: gpt-4o-mini  
+Total Tokens: 52,000  
+Cost: $0.0124  
+
+This is calculated from official token pricing.
+
+You always know what you spend.
+
+---
+
+# 🛠 How It Works (Technical Overview)
+
+1. Subtitle detected  
+2. Parsed into timestamps + text  
+3. Text split into chunks  
+4. Each chunk is:
+   - Line-anchored (L000 format)
+   - Strictly validated
+   - Scrubbed for artifacts  
+5. AI response validated  
+6. Written back into new SRT  
+7. Activated instantly  
+
+Line count must match exactly or chunk is retried automatically.
+
+---
+
+# 🛠 Troubleshooting
+
+No translation appears:
+- Check API key
+- Check provider selected
+- Verify save folder exists
+
+Translation stops midway:
+Adaptive chunking retries smaller sizes automatically.
+If still failing:
+- Lower chunk size
+- Lower temperature
+
+Cost seems high:
+Use:
+- Gemini 2.0 Flash
+- gpt-4o-mini
+
+---
+
+# 🏗 Architecture
+
+service.py  
+    ↓  
+translator.py  
+    ↓  
+GeminiTranslator / OpenAITranslator  
+
+Clean provider abstraction.
+Single translation core.
+Production-safe batching.
+
+---
+
+# ☕ Support the Project
+
+If you enjoy Translatarr and want to support development:
+
+https://www.buymeacoffee.com/addonniss
+
+---
