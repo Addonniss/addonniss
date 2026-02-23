@@ -120,12 +120,11 @@ class GeminiTranslator(BaseTranslator):
         input_text = "\n".join(prefixed)
 
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
-
+        
+        style_block = build_style_instruction(trg_name)
         payload = {
             "contents": [{
                 "parts": [{
-                    style_block = build_style_instruction(trg_name)
-
                     "text": (
                         "You are a professional subtitle localizer.\n"
                         f"{lang_instruction}\n\n"
@@ -246,13 +245,11 @@ class OpenAITranslator(BaseTranslator):
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
-
+        
+        style_block = build_style_instruction(trg_name)
         payload = {
             "model": self.model,
             "messages": [
-                
-                style_block = build_style_instruction(trg_name)
-                
                 {
                     "role": "system",
                     "content": (
