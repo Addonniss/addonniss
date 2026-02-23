@@ -10,7 +10,6 @@ DIALOG = xbmcgui.Dialog()
 # -----------------------------------
 # Notifications
 # -----------------------------------
-
 def notify(msg, title="Translatarr", duration=3000):
     DIALOG.notification(title, msg, xbmcgui.NOTIFICATION_INFO, duration)
 
@@ -18,7 +17,6 @@ def notify(msg, title="Translatarr", duration=3000):
 # -----------------------------------
 # Helper: Format Time
 # -----------------------------------
-
 def format_time(seconds):
     seconds = int(seconds)
     mins, secs = divmod(seconds, 60)
@@ -34,10 +32,9 @@ def format_time(seconds):
 # -----------------------------------
 # Statistics Popup
 # -----------------------------------
-
 def show_stats_box(src_file, trg_file, trg_name,
                    cost, tokens, chunks, chunk_size,
-                   model_name):
+                   model_name, total_time):
 
     try:
         show_statistics = ADDON.getSettingBool("show_stats")
@@ -61,7 +58,8 @@ def show_stats_box(src_file, trg_file, trg_name,
         f"[B]Source:[/B] {src_file}\n"
         f"[B]Target:[/B] {trg_file}\n"
         f"[B]Language:[/B] {trg_name}\n"
-        f"[B]Model:[/B]  [COLOR {model_color}]{model_name}[/COLOR]\n\n"
+        f"[B]Model:[/B]  [COLOR {model_color}]{model_name}[/COLOR]\n"
+        f"[B]Time:[/B] {format_time(total_time)}\n\n"
         "[B]USAGE DETAILS[/B]\n"
         "------------------------------------------------------------\n"
         f"• Total Tokens:   {tokens:,}\n"
@@ -75,7 +73,6 @@ def show_stats_box(src_file, trg_file, trg_name,
 # -----------------------------------
 # Progress Handler (Milestone + ETA)
 # -----------------------------------
-
 class TranslationProgress:
 
     def __init__(self, model_name="", title="Translatarr"):
@@ -111,9 +108,6 @@ class TranslationProgress:
         else:
             notify(f"[{self.provider}] Translation Started...", title=self.title)
 
-
-    # -----------------------------------
-
     def update(self, percent, src_name, trg_name,
                chunk_num, total_chunks,
                lines_done, total_lines):
@@ -133,7 +127,6 @@ class TranslationProgress:
         # Notification Mode
         # -----------------------------------
         if self.use_notifications:
-
             for milestone in sorted(self.milestones):
                 if percent >= milestone and milestone not in self.triggered:
                     notify(
@@ -142,7 +135,6 @@ class TranslationProgress:
                         duration=3000
                     )
                     self.triggered.add(milestone)
-
             return
 
         # -----------------------------------
@@ -160,19 +152,12 @@ class TranslationProgress:
                 f"{line1}\n{line2}\n{line3}\n{line4}\n{line5}"
             )
 
-
-    # -----------------------------------
-
     def is_canceled(self):
         if self.use_notifications or self.pDialog is None:
             return False
         return self.pDialog.iscanceled()
 
-
-    # -----------------------------------
-
     def close(self):
-
         total_time = format_time(time.time() - self.start_time)
 
         if self.use_notifications:
