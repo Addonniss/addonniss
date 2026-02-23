@@ -14,6 +14,42 @@ ADDON = xbmcaddon.Addon('service.translatarr')
 def log(msg):
     xbmc.log(f"[Translatarr] {msg}", xbmc.LOGINFO)
 
+# ----------------------------------------------------------
+# Style Builder
+# ----------------------------------------------------------
+
+def build_style_instruction(trg_name):
+    style_mode = ADDON.getSetting('translation_style') or "0"
+
+    # 0 = Family-Friendly (default)
+    # 1 = Natural
+    # 2 = Gritty / Adult
+
+    if style_mode == "2":
+        return (
+            "STYLE REQUIREMENT:\n"
+            f"- Tone: gritty, raw, adult {trg_name}.\n"
+            "- Preserve profanity and strong language.\n"
+            "- Do NOT soften insults.\n"
+            "- Maintain emotional intensity.\n"
+        )
+
+    elif style_mode == "1":
+        return (
+            "STYLE REQUIREMENT:\n"
+            f"- Tone: natural conversational {trg_name}.\n"
+            "- Sound realistic and fluid.\n"
+            "- Avoid overly literal translation.\n"
+        )
+
+    # Default = Family-Friendly
+    return (
+        "STYLE REQUIREMENT:\n"
+        f"- Tone: clean, neutral, broadcast-safe {trg_name}.\n"
+        "- Avoid profanity.\n"
+        "- Replace strong insults with mild alternatives.\n"
+        "- Keep dialogue suitable for general audiences.\n"
+    )
 
 # ----------------------------------------------------------
 # Base
