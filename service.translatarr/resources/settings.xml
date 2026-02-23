@@ -52,7 +52,7 @@
         <setting id="translation_style"
                  type="enum"
                  label="Translation Style"
-                 values="Family-Friendly|Natural|Cinema Mode|Gritty Adult"
+                 values="Family-Friendly|Natural|Gritty / Adult"
                  default="0" />
         
         <setting id="temp"
@@ -82,4 +82,5 @@
 
     </category>
 </settings>
+
 
