@@ -244,7 +244,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         stat = xbmcvfs.Stat(newest_path)
 
         # Faster trigger window (10 seconds instead of 300)
-        if stat.st_size() > 500 and (time.time() - stat.st_mtime() < 10):
+        if stat.st_size() > 500 and (time.time() - stat.st_mtime() < 300):
             self.last_processed = newest_path
             process_subtitles(newest_path)
 
@@ -261,3 +261,4 @@ if __name__ == '__main__':
 
         if monitor.waitForAbort(5):
             break
+
