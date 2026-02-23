@@ -61,8 +61,8 @@
                  default="0" />
 
         <setting id="temp"
-                 type="number"
-                 label="Temperature"
+                 type="text"
+                 label="Temperature (0.0 - 1.0)"
                  default="0.15" />
 
         <setting id="chunk_size"
@@ -87,4 +87,5 @@
 
     </category>
 </settings>
+
 
