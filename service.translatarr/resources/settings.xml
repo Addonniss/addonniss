@@ -49,6 +49,12 @@
                  values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Slovenian"
                  default="0" />
 
+        <setting id="translation_style"
+                 type="enum"
+                 label="Translation Style"
+                 values="Family-Friendly|Natural|Cinema Mode|Gritty Adult"
+                 default="0" />
+        
         <setting id="temp"
                  type="text"
                  label="Temperature (0.0 - 1.0)"
@@ -76,3 +82,4 @@
 
     </category>
 </settings>
+
