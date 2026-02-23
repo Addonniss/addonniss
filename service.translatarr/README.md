@@ -180,17 +180,41 @@ Minimal progress bar only.
 
 # 💰 Cost Transparency
 
-Translatarr calculates real API cost per movie.
+Translatarr calculates the real API cost per movie based on official token pricing.
 
-Example:
+You always know exactly what you spend.
+
+---
+
+Example (OpenAI – gpt-4o-mini)
 
 Model: gpt-4o-mini  
 Total Tokens: 52,000  
-Cost: $0.0124  
+Estimated Cost: $0.0124  
 
-This is calculated from official token pricing.
+Fast and extremely affordable for full-length movies.
 
-You always know what you spend.
+---
+
+Example (Gemini – Gemini 2.0 Flash)
+
+Model: Gemini 2.0 Flash  
+Total Tokens: 52,000  
+Estimated Cost: $0.0080  
+
+Very cost-efficient and ideal for everyday subtitle translation.
+
+---
+
+Cost depends on:
+- Model selected
+- Total tokens used
+- Subtitle length
+
+Tip:
+For lowest cost per movie, use:
+- Gemini 2.0 Flash
+- gpt-4o-mini
 
 ---
 
@@ -252,3 +276,4 @@ If you enjoy Translatarr and want to support development:
 https://www.buymeacoffee.com/addonniss
 
 ---
+
