@@ -8,7 +8,6 @@ import math
 import re
 
 from languages import get_lang_params
-
 import ui
 import translator
 import file_manager
@@ -40,17 +39,16 @@ def process_subtitles(original_path):
             xbmc.Player().setSubtitles(save_path)
             return
 
-        use_notifications = ADDON.getSettingBool('notify_mode')
-        progress = ui.TranslationProgress(use_notifications)
-
-        if use_notifications:
-            ui.notify(f"Translating: {clean_name}")
+        # ✅ NEW: model-based progress
+        model_name = translator.get_model_string()
+        progress = ui.TranslationProgress(model_name)
 
         with xbmcvfs.File(original_path, 'r') as f:
             content = f.read()
 
         timestamps, texts = file_manager.parse_srt(content)
         if not timestamps:
+            progress.close()
             return
 
         all_translated = []
@@ -60,6 +58,9 @@ def process_subtitles(original_path):
 
         initial_chunk = max(10, min(int(ADDON.getSetting('chunk_size') or 100), 150))
         total_lines = len(texts)
+        total_chunks_est = math.ceil(total_lines / initial_chunk)
+
+        start_time = time.time()
 
         while idx < total_lines:
 
@@ -73,10 +74,10 @@ def process_subtitles(original_path):
             for size in [initial_chunk, 50, 25]:
 
                 curr_size = min(size, total_lines - idx)
-                percent = int((idx / total_lines) * 100)
 
-                current_chunk_display = (len(all_translated) // initial_chunk) + 1
-                total_chunks_est = math.ceil(total_lines / initial_chunk)
+                # ✅ Accurate milestone math
+                percent = int((idx / total_lines) * 100)
+                current_chunk_display = math.ceil(idx / initial_chunk) + 1
 
                 progress.update(
                     percent,
@@ -110,35 +111,42 @@ def process_subtitles(original_path):
                 ui.notify("Critical Failure: API rejected all chunk sizes.")
                 return
 
+        # Ensure 100% milestone fires
+        progress.update(
+            100,
+            os.path.basename(original_path),
+            clean_name,
+            total_chunks_est,
+            total_chunks_est,
+            total_lines,
+            total_lines
+        )
+
         # Write and activate
         file_manager.write_srt(save_path, timestamps, all_translated)
         xbmc.Player().setSubtitles(save_path)
+
         progress.close()
 
+        # --------------------------------------------------
         # Stats
+        # --------------------------------------------------
+
         cost = translator.calculate_cost(cum_in, cum_out)
         trg_name, _ = get_lang_params(ADDON.getSetting('target_lang'))
 
-        if ADDON.getSettingBool('show_stats'):
-            src_file_name = os.path.basename(original_path)
-            model_name = translator.get_model_string()
+        src_file_name = os.path.basename(original_path)
 
-            ui.show_stats_box(
-                src_file_name,
-                clean_name,
-                trg_name,
-                cost,
-                (cum_in + cum_out),
-                (idx // initial_chunk),
-                initial_chunk,
-                model_name
-            )
-
-        if use_notifications:
-            ui.notify(
-                f"Complete! Cost: ${cost:.4f}",
-                title=f"Translated to {trg_name}"
-            )
+        ui.show_stats_box(
+            src_file_name,
+            clean_name,
+            trg_name,
+            cost,
+            (cum_in + cum_out),
+            total_chunks_est,
+            initial_chunk,
+            model_name
+        )
 
     except Exception as e:
         log(f"Process Error: {e}")
