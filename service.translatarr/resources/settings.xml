@@ -11,16 +11,28 @@
 
         <!-- Gemini -->
         <setting label="Gemini Settings" type="lsep" />
-        <setting id="api_key" type="text" label="Gemini API Key" default="" visible="eq(provider,0)" />
-        <setting id="model" type="enum" label="Gemini Model"
+        <setting id="api_key"
+                 type="text"
+                 label="Gemini API Key"
+                 default=""
+                 visible="eq(provider,0)" />
+        <setting id="model"
+                 type="enum"
+                 label="Gemini Model"
                  values="Gemini 2.0 Flash|Gemini 1.5 Flash|Gemini 2.5 Flash"
                  default="0"
                  visible="eq(provider,0)" />
 
         <!-- OpenAI -->
         <setting label="OpenAI Settings" type="lsep" />
-        <setting id="openai_api_key" type="text" label="OpenAI API Key" default="" visible="eq(provider,1)" />
-        <setting id="openai_model" type="enum" label="OpenAI Model"
+        <setting id="openai_api_key"
+                 type="text"
+                 label="OpenAI API Key"
+                 default=""
+                 visible="eq(provider,1)" />
+        <setting id="openai_model"
+                 type="enum"
+                 label="OpenAI Model"
                  values="gpt-4o-mini|gpt-4o|gpt-5-mini"
                  default="0"
                  visible="eq(provider,1)" />
@@ -68,6 +80,7 @@
 
     </category>
 </settings>
+
 
 
 
