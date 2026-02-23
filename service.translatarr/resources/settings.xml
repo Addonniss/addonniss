@@ -18,14 +18,14 @@
                  type="text"
                  label="Gemini API Key"
                  default=""
-                 visible="eq(-3,0)" />
+                 visible="eq(-2,0)" />
 
         <setting id="model"
                  type="enum"
                  label="Gemini Model"
                  values="Gemini 2.0 Flash|Gemini 1.5 Flash|Gemini 2.5 Flash"
                  default="0"
-                 visible="eq(-4,0)" />
+                 visible="eq(-3,0)" />
 
         <!-- OpenAI -->
         <setting label="OpenAI Settings"
@@ -87,3 +87,4 @@
 
     </category>
 </settings>
+
