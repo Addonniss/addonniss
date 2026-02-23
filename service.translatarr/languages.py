@@ -28,7 +28,8 @@ LANGUAGES = {
     "24": ("Korean", "ko"),
     "25": ("Thai", "th"),
     "26": ("Vietnamese", "vi"),
-    "27": ("Slovenian", "sl")
+    "27": ("Slovenian", "sl"),
+    "28": ("Croatian", "hr")
 
 }
 
