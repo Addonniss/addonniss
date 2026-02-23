@@ -11,36 +11,28 @@
                  default="0" />
 
         <!-- Gemini Settings -->
-        <setting label="Gemini Settings"
-                 type="lsep"
-                 visible="eq(-2,0)" />
+        <setting label="Gemini Settings" type="lsep" />
         <setting id="api_key"
                  type="text"
                  label="Gemini API Key"
-                 default=""
-                 visible="eq(-3,0)" />
+                 default="" />
         <setting id="model"
                  type="enum"
                  label="Gemini Model"
                  values="Gemini 2.0 Flash|Gemini 1.5 Flash|Gemini 2.5 Flash"
-                 default="0"
-                 visible="eq(-4,0)" />
+                 default="0" />
 
         <!-- OpenAI Settings -->
-        <setting label="OpenAI Settings"
-                 type="lsep"
-                 visible="eq(-6,1)" />
+        <setting label="OpenAI Settings" type="lsep" />
         <setting id="openai_api_key"
                  type="text"
                  label="OpenAI API Key"
-                 default=""
-                 visible="eq(-7,1)" />
+                 default="" />
         <setting id="openai_model"
                  type="enum"
                  label="OpenAI Model"
                  values="gpt-4o-mini|gpt-4o|gpt-5-mini"
-                 default="0"
-                 visible="eq(-8,1)" />
+                 default="0" />
 
         <!-- Translation -->
         <setting label="Translation Config" type="lsep" />
@@ -84,4 +76,3 @@
 
     </category>
 </settings>
-
