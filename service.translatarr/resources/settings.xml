@@ -2,7 +2,6 @@
 <settings>
     <category label="Translatarr Config">
 
-        <!-- AI Provider -->
         <setting label="AI Provider" type="lsep" />
         <setting id="provider"
                  type="enum"
@@ -10,41 +9,49 @@
                  values="Gemini|OpenAI"
                  default="0" />
 
-        <!-- Gemini Settings -->
-        <setting label="Gemini Settings" type="lsep" showif="provider:0" />
+        <!-- Gemini -->
+        <setting label="Gemini Settings"
+                 type="lsep"
+                 visible="eq(-1,0)" />
+
         <setting id="api_key"
                  type="text"
                  label="Gemini API Key"
                  default=""
-                 showif="provider:0" />
+                 visible="eq(-3,0)" />
+
         <setting id="model"
                  type="enum"
                  label="Gemini Model"
                  values="Gemini 2.0 Flash|Gemini 1.5 Flash|Gemini 2.5 Flash"
                  default="0"
-                 showif="provider:0" />
+                 visible="eq(-4,0)" />
 
-        <!-- OpenAI Settings -->
-        <setting label="OpenAI Settings" type="lsep" showif="provider:1" />
+        <!-- OpenAI -->
+        <setting label="OpenAI Settings"
+                 type="lsep"
+                 visible="eq(-4,1)" />
+
         <setting id="openai_api_key"
                  type="text"
                  label="OpenAI API Key"
                  default=""
-                 showif="provider:1" />
+                 visible="eq(-5,1)" />
+
         <setting id="openai_model"
                  type="enum"
                  label="OpenAI Model"
                  values="gpt-4o-mini|gpt-4o|gpt-5-mini"
                  default="0"
-                 showif="provider:1" />
+                 visible="eq(-6,1)" />
 
-        <!-- Translation Config -->
+        <!-- Translation -->
         <setting label="Translation Config" type="lsep" />
 
         <setting id="source_lang"
                  type="enum"
                  label="Source Language"
-                 values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Auto-Detect|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Slovenian"
+                 values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Auto-Detect|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Soovenian"
                  default="10" />
 
         <setting id="target_lang"
