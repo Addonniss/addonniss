@@ -250,18 +250,24 @@ class OpenAITranslator(BaseTranslator):
         payload = {
             "model": self.model,
             "messages": [
+                
+                style_block = build_style_instruction(trg_name)
+                
                 {
                     "role": "system",
                     "content": (
                         "You are a professional subtitle localizer.\n"
-                        f"{lang_instruction}\n"
-                        "Rules:\n"
+                        f"{lang_instruction}\n\n"
+                        "STRICT RULES (MANDATORY):\n"
                         "1. Translate strictly line-by-line.\n"
-                        "2. Preserve 'Lxxx:' anchors exactly.\n"
-                        f"3. Return exactly {expected_count} lines.\n"
-                        "4. Return ONLY prefixed translated lines."
+                        "2. Preserve 'Lxxx:' anchors EXACTLY.\n"
+                        f"3. Return EXACTLY {expected_count} lines.\n"
+                        "4. Return ONLY prefixed translated lines.\n"
+                        "5. Do NOT add commentary.\n\n"
+                        f"{style_block}"
                     )
                 },
+                
                 {"role": "user", "content": input_text}
             ],
             "temperature": self.temperature
