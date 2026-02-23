@@ -57,7 +57,8 @@ class GeminiTranslator(BaseTranslator):
 
     def _get_temperature(self):
         try:
-            return float(ADDON.getSetting('temp') or 0.15)
+            temp = float(ADDON.getSetting('temp') or 0.15)
+            return max(0.0, min(temp, 1.0))
         except:
             return 0.15
 
@@ -173,7 +174,8 @@ class OpenAITranslator(BaseTranslator):
 
     def _get_temperature(self):
         try:
-            return float(ADDON.getSetting('temp') or 0.15)
+            temp = float(ADDON.getSetting('temp') or 0.15)
+            return max(0.0, min(temp, 1.0))
         except:
             return 0.15
 
