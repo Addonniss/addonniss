@@ -20,7 +20,7 @@ Result: subtitles that feel human-written.
 ## 🚀 What’s New
 
 ✔ Gemini AND OpenAI support  
-✔ Automatic adaptive chunk resizing
+✔ Automatic adaptive chunk resizing  
 ✔ Token usage tracking  
 ✔ Real cost calculation per movie per model selection   
 
@@ -242,4 +242,5 @@ If you enjoy Translatarr and want to support development:
 https://www.buymeacoffee.com/addonniss
 
 ---
+
 
