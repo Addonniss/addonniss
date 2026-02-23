@@ -18,7 +18,7 @@ import file_manager
 # ----------------------------------------------------------
 ADDON_ID = 'service.translatarr'
 ADDON = xbmcaddon.Addon(ADDON_ID)
-ADDON._settings = None  # Force reload cached settings
+
 
 def log(msg):
     xbmc.log(f"[Translatarr] {msg}", xbmc.LOGINFO)
@@ -42,6 +42,9 @@ def get_setting(key, default=None):
 # ----------------------------------------------------------
 def process_subtitles(original_path):
     try:
+        # ✅ Reload Addon to pick up latest settings
+        ADDON = xbmcaddon.Addon('service.translatarr')
+
         playing_file = xbmc.Player().getPlayingFile()
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
 
@@ -52,17 +55,16 @@ def process_subtitles(original_path):
             xbmc.Player().setSubtitles(save_path)
             return
 
-        # ----------------------
-        # Load dynamic settings
-        # ----------------------
-        use_notifications = get_setting_bool('notify_mode')
-        show_stats = get_setting_bool('show_stats')
-        chunk_size_setting = get_setting('chunk_size', 50)
-        initial_chunk = max(10, min(int(chunk_size_setting), 150))
+        # ----------------------------
+        # Read settings once
+        # ----------------------------
+        use_notifications = ADDON.getSettingBool('notify_mode')
+        show_stats = ADDON.getSettingBool('show_stats')
+        initial_chunk = max(10, min(int(ADDON.getSetting('chunk_size') or 100), 150))
 
-        # Model-based progress
+        # ✅ Model name for progress bar
         model_name = translator.get_model_string()
-        progress = ui.TranslationProgress(model_name, use_notifications)
+        progress = ui.TranslationProgress(model_name, use_notifications=use_notifications)
 
         with xbmcvfs.File(original_path, 'r') as f:
             content = f.read()
@@ -74,6 +76,7 @@ def process_subtitles(original_path):
 
         total_lines = len(texts)
         total_chunks_est = math.ceil(total_lines / initial_chunk)
+
         all_translated = []
         cum_in = 0
         cum_out = 0
@@ -88,11 +91,10 @@ def process_subtitles(original_path):
 
             success = False
 
-            # Adaptive chunking
+            # --- Adaptive Chunking ---
             for size in [initial_chunk, 50, 25]:
-                curr_size = min(size, total_lines - idx)
 
-                # Accurate milestone math
+                curr_size = min(size, total_lines - idx)
                 percent = int((idx / total_lines) * 100)
                 current_chunk_display = math.ceil(idx / initial_chunk) + 1
 
@@ -128,7 +130,7 @@ def process_subtitles(original_path):
                 ui.notify("Critical Failure: API rejected all chunk sizes.")
                 return
 
-        # Ensure 100% milestone fires
+        # Final 100% milestone
         progress.update(
             100,
             os.path.basename(original_path),
@@ -144,12 +146,12 @@ def process_subtitles(original_path):
         xbmc.Player().setSubtitles(save_path)
         progress.close()
 
-        # ----------------------
+        # ----------------------------
         # Show stats if enabled
-        # ----------------------
+        # ----------------------------
         if show_stats:
             cost = translator.calculate_cost(cum_in, cum_out)
-            trg_name, _ = get_lang_params(get_setting('target_lang', 'English'))
+            trg_name, _ = get_lang_params(ADDON.getSetting('target_lang'))
             src_file_name = os.path.basename(original_path)
 
             ui.show_stats_box(
@@ -166,7 +168,7 @@ def process_subtitles(original_path):
         # Notify completion
         if use_notifications:
             cost = translator.calculate_cost(cum_in, cum_out)
-            trg_name, _ = get_lang_params(get_setting('target_lang', 'English'))
+            trg_name, _ = get_lang_params(ADDON.getSetting('target_lang'))
             ui.notify(
                 f"Complete! Cost: ${cost:.4f}",
                 title=f"Translated to {trg_name}"
@@ -266,3 +268,4 @@ if __name__ == '__main__':
         monitor.check_for_subs()
         if monitor.waitForAbort(10):
             break
+
