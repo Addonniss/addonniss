@@ -124,14 +124,18 @@ class GeminiTranslator(BaseTranslator):
         payload = {
             "contents": [{
                 "parts": [{
+                    style_block = build_style_instruction(trg_name)
+
                     "text": (
                         "You are a professional subtitle localizer.\n"
-                        f"{lang_instruction}\n"
-                        "Rules:\n"
+                        f"{lang_instruction}\n\n"
+                        "STRICT RULES (MANDATORY):\n"
                         "1. Translate strictly line-by-line.\n"
-                        "2. Preserve 'Lxxx:' anchors exactly.\n"
-                        f"3. Return exactly {expected_count} lines.\n"
-                        "4. Return ONLY prefixed translated lines.\n\n"
+                        "2. Preserve 'Lxxx:' anchors EXACTLY.\n"
+                        f"3. Return EXACTLY {expected_count} lines.\n"
+                        "4. Return ONLY prefixed translated lines.\n"
+                        "5. Do NOT add commentary.\n\n"
+                        f"{style_block}\n"
                         f"{input_text}"
                     )
                 }]
