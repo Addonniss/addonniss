@@ -41,7 +41,7 @@
         <setting id="openai_model"
                  type="enum"
                  label="OpenAI Model"
-                 values="gpt-4o-mini|gpt-4o"
+                 values="gpt-4o-mini|gpt-4o|gpt-5-mini"
                  default="0"
                  visible="eq(-8,1)" />
 
@@ -87,3 +87,4 @@
 
     </category>
 </settings>
+
