@@ -45,7 +45,7 @@ https://platform.openai.com/api-keys
 
 ## 2️⃣ Configure Translatarr
 
-Kodi → Addons → Services → Translatarr → Settings
+Kodi → Addons → Programs → Translatarr → Settings
 
 - Select Provider (Gemini or OpenAI)
 - Paste API Key
@@ -218,23 +218,6 @@ For lowest cost per movie, use:
 
 ---
 
-# 🛠 How It Works (Technical Overview)
-
-1. Subtitle detected  
-2. Parsed into timestamps + text  
-3. Text split into chunks  
-4. Each chunk is:
-   - Line-anchored (L000 format)
-   - Strictly validated
-   - Scrubbed for artifacts  
-5. AI response validated  
-6. Written back into new SRT  
-7. Activated instantly  
-
-Line count must match exactly or chunk is retried automatically.
-
----
-
 # 🛠 Troubleshooting
 
 No translation appears:
@@ -255,20 +238,6 @@ Use:
 
 ---
 
-# 🏗 Architecture
-
-service.py  
-    ↓  
-translator.py  
-    ↓  
-GeminiTranslator / OpenAITranslator  
-
-Clean provider abstraction.
-Single translation core.
-Production-safe batching.
-
----
-
 # ☕ Support the Project
 
 If you enjoy Translatarr and want to support development:
@@ -276,4 +245,3 @@ If you enjoy Translatarr and want to support development:
 https://www.buymeacoffee.com/addonniss
 
 ---
-
