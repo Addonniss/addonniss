@@ -240,22 +240,22 @@ class TranslatarrMonitor(xbmc.Monitor):
 
         stat = xbmcvfs.Stat(newest_path)
 
-# Only process reasonably sized files
-if stat.st_size() < 500:
-    return
+        # Only process reasonably sized files
+        if stat.st_size() < 500:
+            return
 
-# If translated file already exists, skip
-save_path, _ = file_manager.get_target_path(newest_path, video_name)
-if xbmcvfs.exists(save_path):
-    return
+        # If translated file already exists, skip
+        save_path, _ = file_manager.get_target_path(newest_path, video_name)
+        if xbmcvfs.exists(save_path):
+            return
 
-# Only prevent immediate double-trigger (same loop tick)
-if newest_path == self.last_processed:
-    return
+        # Only prevent immediate double-trigger (same loop tick)
+        if newest_path == self.last_processed:
+            return
 
-# Mark as last processed ONLY after confirming it needs translation
-self.last_processed = newest_path
-process_subtitles(newest_path)
+        # Mark as last processed ONLY after confirming it needs translation
+        self.last_processed = newest_path
+        process_subtitles(newest_path)
 
 
 # ----------------------------------------------------------
@@ -270,5 +270,6 @@ if __name__ == '__main__':
 
         if monitor.waitForAbort(5):
             break
+
 
 
