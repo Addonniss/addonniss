@@ -11,6 +11,7 @@ DIALOG = xbmcgui.Dialog()
 # Notifications
 # -----------------------------------
 def notify(msg, title="Translatarr", duration=3000):
+    """Display a simple notification."""
     DIALOG.notification(title, msg, xbmcgui.NOTIFICATION_INFO, duration)
 
 
@@ -18,6 +19,7 @@ def notify(msg, title="Translatarr", duration=3000):
 # Helper: Format Time
 # -----------------------------------
 def format_time(seconds):
+    """Convert seconds to human-readable H:M:S format."""
     seconds = int(seconds)
     mins, secs = divmod(seconds, 60)
     hrs, mins = divmod(mins, 60)
@@ -35,7 +37,9 @@ def format_time(seconds):
 def show_stats_box(src_file, trg_file, trg_name,
                    cost, tokens, chunks, chunk_size,
                    model_name, total_time):
-
+    """
+    Display statistics popup with translation details.
+    """
     try:
         show_statistics = ADDON.getSettingBool("show_stats")
     except:
@@ -74,9 +78,7 @@ def show_stats_box(src_file, trg_file, trg_name,
 # Progress Handler (Milestone + ETA)
 # -----------------------------------
 class TranslationProgress:
-
     def __init__(self, model_name="", title="Translatarr"):
-
         try:
             self.use_notifications = ADDON.getSettingBool("notify_mode")
         except:
@@ -111,7 +113,7 @@ class TranslationProgress:
     def update(self, percent, src_name, trg_name,
                chunk_num, total_chunks,
                lines_done, total_lines):
-
+        """Update the progress dialog or milestone notifications."""
         percent = int(percent)
         elapsed = time.time() - self.start_time
 
@@ -153,11 +155,13 @@ class TranslationProgress:
             )
 
     def is_canceled(self):
+        """Check if the user canceled the dialog."""
         if self.use_notifications or self.pDialog is None:
             return False
         return self.pDialog.iscanceled()
 
     def close(self):
+        """Close the progress dialog or show final notification."""
         total_time = format_time(time.time() - self.start_time)
 
         if self.use_notifications:
