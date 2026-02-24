@@ -80,8 +80,11 @@
                  label="Simple Notifications"
                  default="true" />
 
+        <!-- Debug Mode -->
+        <setting id="debug_mode"
+                 type="bool"
+                 label="Enable Debug Mode"
+                 default="false" />
+
     </category>
 </settings>
-
-
-
