@@ -20,40 +20,6 @@
         </assets>
     </extension>
 </addon>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <addon id="repository.addonniss"
        name="Addonniss Repository"
        version="1.0.1"
@@ -75,5 +41,4 @@
     </extension>
 
 </addon>
-
 </addons>
