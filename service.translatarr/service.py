@@ -29,7 +29,6 @@ def log(msg, level='info', force=False):
     if force or DEBUG or level != 'debug':
         xbmc.log(f"[Translatarr] {msg}", getattr(xbmc, f"LOG{level.upper()}"))
 
-
 # ----------------------------------------------------------
 # CHANGELOG POPUP SUPPORT
 # ----------------------------------------------------------
@@ -44,7 +43,6 @@ def show_changelog():
         content = "No changelog available."
 
     xbmcgui.Dialog().textviewer("Translatarr - Change Log", content)
-
 
 # ----------------------------------------------------------
 # Subtitle Processing
@@ -63,7 +61,6 @@ def process_subtitles(original_path, monitor):
         save_path, clean_name = file_manager.get_target_path(original_path, video_name)
         log(f"Target SRT: {save_path}")
 
-        # Skip if already translated
         if xbmcvfs.exists(save_path):
             log("Translated file already exists. Setting subtitles...")
             xbmc.Player().setSubtitles(save_path)
@@ -104,9 +101,10 @@ def process_subtitles(original_path, monitor):
         cum_out = 0
         idx = 0
         start_time = time.time()
+        min_chunk = 5  # minimum safe chunk size
 
         # -----------------------------------
-        # TRANSLATION LOOP
+        # TRANSLATION LOOP WITH ADAPTIVE RETRIES
         # -----------------------------------
         while idx < total_lines:
 
@@ -116,14 +114,16 @@ def process_subtitles(original_path, monitor):
                 return
 
             success = False
+            chunk_size = initial_chunk
+            retries = 0
+            max_retries = 3
 
-            for size in [initial_chunk, 50, 25]:
-
-                curr_size = min(size, total_lines - idx)
+            while retries < max_retries and not success:
+                curr_size = min(chunk_size, total_lines - idx)
                 percent = int((idx / total_lines) * 100)
                 current_chunk_display = math.ceil(idx / initial_chunk) + 1
 
-                log(f"Translating chunk {current_chunk_display}/{total_chunks_est} ({curr_size} lines)", level='debug')
+                log(f"Translating chunk {current_chunk_display}/{total_chunks_est} ({curr_size} lines), attempt {retries+1}", level='debug')
 
                 progress.update(
                     percent,
@@ -147,10 +147,10 @@ def process_subtitles(original_path, monitor):
                     cum_out += out_t
                     idx += curr_size
                     success = True
-                    time.sleep(1)
-                    break
                 else:
-                    log(f"Chunk failed at index {idx}, retrying smaller...", level='debug')
+                    retries += 1
+                    chunk_size = max(chunk_size // 2, min_chunk)
+                    log(f"Chunk failed, reducing size to {chunk_size} lines for next attempt.", level='debug')
                     time.sleep(2)
 
             if not success:
