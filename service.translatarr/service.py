@@ -285,12 +285,8 @@ class TranslatarrMonitor(xbmc.Monitor):
             log(f"Target file already exists: {save_path}")
             return
 
-        if newest_path == self.last_processed:
-            log(f"File already processed: {newest_path}")
-            return
-
-        self.last_processed = newest_path
-        log(f"Processing new subtitle: {newest_path}")
+        log(f"Processing : {newest_path}")
+        self.last_processed == newest_path 
         process_subtitles(newest_path, self)
 
 
@@ -304,3 +300,4 @@ if __name__ == '__main__':
     while not monitor.abortRequested():
         monitor.check_for_subs()
         monitor.waitForAbort(5)
+
