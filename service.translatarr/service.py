@@ -26,8 +26,12 @@ def log(msg):
 # Subtitle Processing
 # ----------------------------------------------------------
 def process_subtitles(original_path, monitor):
+
     try:
+        log(f"process_subtitles() called for: {original_path}")
+
         if not xbmc.Player().isPlaying():
+            log("No video playing, exiting.")
             return
 
         playing_file = xbmc.Player().getPlayingFile()
@@ -35,13 +39,16 @@ def process_subtitles(original_path, monitor):
 
         save_path, clean_name = file_manager.get_target_path(original_path, video_name)
 
+        log(f"Target SRT: {save_path}")
+
         # Skip if already translated
         if xbmcvfs.exists(save_path):
+            log("Translated file already exists. Setting subtitles...")
             xbmc.Player().setSubtitles(save_path)
             return
 
         # -----------------------------------
-        # SETTINGS (LIVE — from monitor)
+        # SETTINGS
         # -----------------------------------
         use_notifications = monitor.use_notifications
         show_stats = monitor.show_stats
@@ -49,6 +56,7 @@ def process_subtitles(original_path, monitor):
         target_lang = monitor.target_lang
 
         model_name = translator.get_model_string()
+        log(f"Using model: {model_name}, target_lang: {target_lang}")
 
         progress = ui.TranslationProgress(
             model_name=model_name,
@@ -61,11 +69,13 @@ def process_subtitles(original_path, monitor):
         timestamps, texts = file_manager.parse_srt(content)
 
         if not timestamps:
+            log("SRT parsing failed. Exiting.")
             progress.close()
             return
 
         total_lines = len(texts)
         total_chunks_est = math.ceil(total_lines / initial_chunk)
+        log(f"Total lines: {total_lines}, estimated chunks: {total_chunks_est}")
 
         all_translated = []
         cum_in = 0
@@ -79,6 +89,7 @@ def process_subtitles(original_path, monitor):
         while idx < total_lines:
 
             if progress.is_canceled() or not xbmc.Player().isPlaying():
+                log("Translation canceled or video stopped.")
                 progress.close()
                 return
 
@@ -88,8 +99,9 @@ def process_subtitles(original_path, monitor):
 
                 curr_size = min(size, total_lines - idx)
                 percent = int((idx / total_lines) * 100)
-
                 current_chunk_display = math.ceil(idx / initial_chunk) + 1
+
+                log(f"Translating chunk {current_chunk_display}/{total_chunks_est} ({curr_size} lines)")
 
                 progress.update(
                     percent,
@@ -107,6 +119,7 @@ def process_subtitles(original_path, monitor):
                 )
 
                 if res:
+                    log(f"Chunk translated successfully ({curr_size} lines).")
                     all_translated.extend(res)
                     cum_in += in_t
                     cum_out += out_t
@@ -120,6 +133,7 @@ def process_subtitles(original_path, monitor):
 
             if not success:
                 progress.close()
+                log("Critical failure: API rejected all chunk sizes.")
                 ui.notify("Critical failure: API rejected all chunk sizes.")
                 return
 
@@ -143,6 +157,8 @@ def process_subtitles(original_path, monitor):
         total_time = time.time() - start_time
         cost = translator.calculate_cost(cum_in, cum_out)
         trg_name, _ = get_lang_params(target_lang)
+
+        log(f"Translation complete: {clean_name}, cost: ${cost:.4f}")
 
         # -----------------------------------
         # STATS BOX
@@ -171,6 +187,7 @@ def process_subtitles(original_path, monitor):
 
     except Exception as e:
         log(f"Processing error: {e}")
+        ui.notify(f"Error: {e}", title="Translatarr Error")
 
 
 # ----------------------------------------------------------
@@ -187,11 +204,13 @@ class TranslatarrMonitor(xbmc.Monitor):
     # Load settings dynamically
     # -----------------------------------
     def reload_settings(self):
+        log("Reloading settings...")
         self.use_notifications = ADDON.getSettingBool('notify_mode')
         self.show_stats = ADDON.getSettingBool('show_stats')
         self.chunk_size = int(ADDON.getSetting('chunk_size') or 100)
         self.source_lang = ADDON.getSetting('source_lang')
         self.target_lang = ADDON.getSetting('target_lang')
+        log(f"Settings: notify={self.use_notifications}, show_stats={self.show_stats}, chunk_size={self.chunk_size}")
 
     # -----------------------------------
     # Auto-called when user changes settings
@@ -205,52 +224,51 @@ class TranslatarrMonitor(xbmc.Monitor):
     # -----------------------------------
     def check_for_subs(self):
 
+        log("Running check_for_subs()")
         if not xbmc.Player().isPlaying():
+            log("No video playing. Skipping subtitle check.")
             return
 
         _, src_iso = get_lang_params(self.source_lang)
         _, trg_iso = get_lang_params(self.target_lang)
-
         if trg_iso == "auto":
             trg_iso = "ro"
 
         target_ext = f".{trg_iso}.srt"
 
+        custom_dir = ADDON.getSetting('sub_folder')
+        if not custom_dir or not xbmcvfs.exists(custom_dir):
+            log(f"Custom folder invalid or not exists: {custom_dir}")
+            return
+
+        _, files = xbmcvfs.listdir(custom_dir)
+        log(f"Found {len(files)} files in {custom_dir}")
+
         try:
             playing_file = xbmc.Player().getPlayingFile()
             video_name = os.path.splitext(os.path.basename(playing_file))[0]
         except:
+            log("Failed to get currently playing file.")
             return
-
-        custom_dir = ADDON.getSetting('sub_folder')
-
-        if not custom_dir or not xbmcvfs.exists(custom_dir):
-            return
-
-        _, files = xbmcvfs.listdir(custom_dir)
 
         valid_files = []
 
         for f in files:
             f_low = f.lower()
-
             if video_name.lower() in f_low and f_low.endswith('.srt'):
-
                 if target_ext in f_low:
                     continue
-
                 match = re.search(r'\.([a-z]{2,3})\.srt$', f_low)
                 if match:
                     lang = match.group(1)
                     if lang not in ['en', 'eng', src_iso]:
                         continue
-
                 valid_files.append(f)
 
         if not valid_files:
+            log("No new valid subtitle files found.")
             return
 
-        # Sort by newest modified
         valid_files.sort(
             key=lambda x: xbmcvfs.Stat(os.path.join(custom_dir, x)).st_mtime(),
             reverse=True
@@ -258,21 +276,21 @@ class TranslatarrMonitor(xbmc.Monitor):
 
         newest_path = os.path.join(custom_dir, valid_files[0])
         stat = xbmcvfs.Stat(newest_path)
-
-        # Avoid tiny/incomplete downloads
         if stat.st_size() < 500:
+            log(f"File too small or incomplete: {newest_path}")
             return
 
         save_path, _ = file_manager.get_target_path(newest_path, video_name)
-
         if xbmcvfs.exists(save_path):
+            log(f"Target file already exists: {save_path}")
             return
 
         if newest_path == self.last_processed:
+            log(f"File already processed: {newest_path}")
             return
 
         self.last_processed = newest_path
-
+        log(f"Processing new subtitle: {newest_path}")
         process_subtitles(newest_path, self)
 
 
@@ -284,8 +302,5 @@ if __name__ == '__main__':
     monitor = TranslatarrMonitor()
 
     while not monitor.abortRequested():
-
         monitor.check_for_subs()
-
-        if monitor.waitForAbort(5):
-            break
+        monitor.waitForAbort(5)
