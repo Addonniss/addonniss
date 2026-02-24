@@ -1,62 +1,176 @@
 # -*- coding: utf-8 -*-
-import xbmcgui, xbmcaddon
+import xbmcgui
+import xbmcaddon
+import time
 
 ADDON = xbmcaddon.Addon('service.translatarr')
 DIALOG = xbmcgui.Dialog()
 
+
+# -----------------------------------
+# Notifications
+# -----------------------------------
 def notify(msg, title="Translatarr", duration=3000):
-    # Standard 3-second pop-up
+    """Display a simple notification."""
     DIALOG.notification(title, msg, xbmcgui.NOTIFICATION_INFO, duration)
 
-def show_stats_box(src_file, trg_file, trg_name, cost, tokens, chunks, chunk_size, model_name):
+
+# -----------------------------------
+# Helper: Format Time
+# -----------------------------------
+def format_time(seconds):
+    """Convert seconds to human-readable H:M:S format."""
+    seconds = int(seconds)
+    mins, secs = divmod(seconds, 60)
+    hrs, mins = divmod(mins, 60)
+
+    if hrs > 0:
+        return f"{hrs}h {mins}m {secs}s"
+    if mins > 0:
+        return f"{mins}m {secs}s"
+    return f"{secs}s"
+
+
+# -----------------------------------
+# Statistics Popup
+# -----------------------------------
+def show_stats_box(src_file, trg_file, trg_name,
+                   cost, tokens, chunks, chunk_size,
+                   model_name, total_time):
+    """
+    Display statistics popup with translation details.
+    """
+    try:
+        show_statistics = ADDON.getSettingBool("show_stats")
+    except:
+        show_statistics = True
+
+    if not show_statistics:
+        return
+
+    if "gemini" in model_name.lower():
+        model_color = "mediumpurple"
+        provider_badge = "[Gemini]"
+    else:
+        model_color = "deepskyblue"
+        provider_badge = "[OpenAI]"
+
     stats_msg = (
         "[B][COLOR gold]TRANSLATARR SUCCESS[/COLOR][/B]\n"
         "------------------------------------------------------------\n"
-        f"[B]Source:[/B] [COLOR lightgray]{src_file}[/COLOR]\n"
-        f"[B]Target:[/B] [COLOR lightgray]{trg_file}[/COLOR]\n"
-        f"[B]Lang:[/B]   [COLOR lightblue]{trg_name}[/COLOR]\n"
-        f"[B]Model:[/B]  [COLOR lightblue]{model_name}[/COLOR]\n\n"
-        "[B][COLOR orange]USAGE DETAILS[/COLOR][/B]\n"
+        f"[B]Provider:[/B] {provider_badge}\n"
+        f"[B]Source:[/B] {src_file}\n"
+        f"[B]Target:[/B] {trg_file}\n"
+        f"[B]Language:[/B] {trg_name}\n"
+        f"[B]Model:[/B]  [COLOR {model_color}]{model_name}[/COLOR]\n"
+        f"[B]Time:[/B] {format_time(total_time)}\n\n"
+        "[B]USAGE DETAILS[/B]\n"
         "------------------------------------------------------------\n"
-        f"[B]• Total Tokens:[/B]   [COLOR springgreen]{tokens:,}[/COLOR]\n"
-        f"[B]• Total Chunks:[/B]   [COLOR springgreen]{chunks} (Size: {chunk_size})[/COLOR]\n"
-        f"[B][COLOR gold]• Estimated Cost:[/COLOR][/B] [B][COLOR gold]${cost:.4f}[/COLOR][/B]"
+        f"• Total Tokens:   {tokens:,}\n"
+        f"• Total Chunks:   {chunks} (Size: {chunk_size})\n"
+        f"• Estimated Cost: ${cost:.4f}"
     )
+
     DIALOG.textviewer("Translatarr Statistics", stats_msg, usemono=False)
 
+
+# -----------------------------------
+# Progress Handler (Milestone + ETA)
+# -----------------------------------
 class TranslationProgress:
-    def __init__(self, use_notifications, title='[B][COLOR gold]Translatarr[/COLOR][/B]'):
-        self.use_notifications = use_notifications
+    def __init__(self, model_name="", title="Translatarr"):
+        try:
+            self.use_notifications = ADDON.getSettingBool("notify_mode")
+        except:
+            self.use_notifications = True
+
         self.title = title
+        self.model_name = model_name.lower()
+
+        # Provider badge
+        if "gemini" in self.model_name:
+            self.provider = "Gemini"
+        elif "openai" in self.model_name or "gpt" in self.model_name:
+            self.provider = "OpenAI"
+        else:
+            self.provider = "AI"
+
+        # Timing
+        self.start_time = time.time()
+
+        # Milestones
+        self.milestones = {10, 25, 50, 75, 90, 100}
+        self.triggered = set()
+
         self.pDialog = None
+
         if not self.use_notifications:
             self.pDialog = xbmcgui.DialogProgress()
-            self.pDialog.create(title, 'Initializing...')
+            self.pDialog.create(title, "Initializing...")
         else:
-            # For Stealth mode, we notify once at the start
-            notify("Background Translation Started...")
+            notify(f"[{self.provider}] Translation Started...", title=self.title)
 
-    def update(self, percent, src_name, trg_name, chunk_num, total_chunks, lines_done, total_lines):
-        # Update every 2 chunks in Stealth mode
+    def update(self, percent, src_name, trg_name,
+               chunk_num, total_chunks,
+               lines_done, total_lines):
+        """Update the progress dialog or milestone notifications."""
+        percent = int(percent)
+        elapsed = time.time() - self.start_time
+
+        # Estimate remaining time
+        if percent > 0:
+            estimated_total = elapsed / (percent / 100.0)
+            remaining = estimated_total - elapsed
+            eta = format_time(remaining)
+        else:
+            eta = "Calculating..."
+
+        # -----------------------------------
+        # Notification Mode
+        # -----------------------------------
         if self.use_notifications:
-            if chunk_num % 2 == 0 or chunk_num == total_chunks:
-                msg = f"Progress: {percent}% ({chunk_num}/{total_chunks} chunks)"
-                notify(msg, title=self.title, duration=2000)
+            for milestone in sorted(self.milestones):
+                if percent >= milestone and milestone not in self.triggered:
+                    notify(
+                        f"[{self.provider}] {milestone}% • ETA {eta}",
+                        title=self.title,
+                        duration=3000
+                    )
+                    self.triggered.add(milestone)
             return
-        
-        # Standard Pro Mode update
+
+        # -----------------------------------
+        # Dialog Mode
+        # -----------------------------------
         if self.pDialog:
-            line1 = f"[COLOR gold]Source:[/COLOR] {src_name}"
-            line2 = f"[COLOR gold]Target:[/COLOR] {trg_name}"
-            line3 = f"Chunk [B]{chunk_num}/{total_chunks}[/B] • {lines_done:,}/{total_lines:,} lines"
-            self.pDialog.update(percent, f"{line1}\n{line2}\n{line3}")
+            line1 = f"Provider: {self.provider}"
+            line2 = f"Chunk {chunk_num}/{total_chunks}"
+            line3 = f"{lines_done:,}/{total_lines:,} lines"
+            line4 = f"{percent}% complete"
+            line5 = f"ETA: {eta}"
+
+            self.pDialog.update(
+                percent,
+                f"{line1}\n{line2}\n{line3}\n{line4}\n{line5}"
+            )
 
     def is_canceled(self):
+        """Check if the user canceled the dialog."""
         if self.use_notifications or self.pDialog is None:
             return False
         return self.pDialog.iscanceled()
 
     def close(self):
+        """Close the progress dialog or show final notification."""
+        total_time = format_time(time.time() - self.start_time)
+
+        if self.use_notifications:
+            notify(
+                f"[{self.provider}] Completed in {total_time}",
+                title=self.title,
+                duration=4000
+            )
+
         if self.pDialog:
             self.pDialog.close()
             self.pDialog = None

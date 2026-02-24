@@ -1,21 +1,87 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
     <category label="Translatarr Config">
-        <setting id="api_key" type="text" label="Gemini API Key" default="" />
-        <setting id="model" type="enum" label="Model AI" values="Gemini 2.0 Flash|Gemini 1.5 Flash|Gemini 2.5 Flash" default="0" />
+
+        <!-- AI Provider -->
+        <setting label="AI Provider" type="lsep" />
+        <setting id="provider"
+                 type="enum"
+                 label="Active Engine"
+                 values="Gemini|OpenAI"
+                 default="0" />
+
+        <!-- Gemini Settings -->
+        <setting label="Gemini Settings" type="lsep" />
+        <setting id="api_key"
+                 type="text"
+                 label="Gemini API Key"
+                 default="" />
+        <setting id="model"
+                 type="enum"
+                 label="Gemini Model"
+                 values="Gemini 2.0 Flash|Gemini 1.5 Flash|Gemini 2.5 Flash"
+                 default="0" />
+
+        <!-- OpenAI Settings -->
+        <setting label="OpenAI Settings" type="lsep" />
+        <setting id="openai_api_key"
+                 type="text"
+                 label="OpenAI API Key"
+                 default="" />
+        <setting id="openai_model"
+                 type="enum"
+                 label="OpenAI Model"
+                 values="gpt-4o-mini|gpt-4o|gpt-5-mini"
+                 default="0" />
+
+        <!-- Translation -->
+        <setting label="Translation Config" type="lsep" />
+
+        <setting id="source_lang"
+                 type="enum"
+                 label="Source Language"
+                 values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Auto-Detect|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Slovenian|Croatian"
+                 default="10" />
+
+        <setting id="target_lang"
+                 type="enum"
+                 label="Target Language"
+                 values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Slovenian|Croatian"
+                 default="0" />
+
+        <setting id="translation_style"
+                 type="enum"
+                 label="Translation Style"
+                 values="Family-Friendly|Natural|Gritty / Adult"
+                 default="0" />
         
-        <setting id="source_lang" type="enum" label="Source Language" values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Auto-Detect|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Slovenian" default="10" />
-        <setting id="target_lang" type="enum" label="Target Language" values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Auto-Detect|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Slovenian" default="0" />
-        
-        <setting id="temp" type="text" label="Temperature" default="0.15" />
-        <setting id="chunk_size" type="text" label="Lines per Chunk" default="50" />
-        <setting id="sub_folder" type="folder" label="Save Folder" default="/storage/emulated/0/Download/sub/" />
-        <setting id="show_stats" type="bool" label="Show Statistics" default="true" />
-        <setting id="notify_mode" type="bool" label="Simple Notifications" default="true" />
+        <setting id="temp"
+                 type="text"
+                 label="Temperature (0.0 - 1.0)"
+                 default="0.15" />
+
+        <setting id="chunk_size"
+                 type="number"
+                 label="Lines per Chunk"
+                 default="50" />
+
+        <setting id="sub_folder"
+                 type="folder"
+                 label="Save Folder"
+                 default="/storage/emulated/0/Download/sub/" />
+
+        <setting id="show_stats"
+                 type="bool"
+                 label="Show Statistics"
+                 default="true" />
+
+        <setting id="notify_mode"
+                 type="bool"
+                 label="Simple Notifications"
+                 default="true" />
+
     </category>
 </settings>
-
-
 
 
 
