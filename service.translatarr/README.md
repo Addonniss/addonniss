@@ -1,11 +1,16 @@
-# 🎬 Translatarr: AI-Powered Subtitle Translator for Kodi
+# 🎬 Translatarr  
+## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
-Powered by Gemini or OpenAI
+Powered by Google Gemini or OpenAI
 
-Translatarr is an intelligent Kodi background service that automatically translates subtitles using modern AI models like Google Gemini and OpenAI GPT-4o.
+---
 
-Unlike traditional word-by-word translators, Translatarr understands:
+## 🧠 What Is Translatarr?
+
+Translatarr is a background Kodi service that automatically translates subtitles using modern AI models.
+
+Unlike traditional word-by-word translators, it understands:
 
 - Context  
 - Slang  
@@ -13,16 +18,21 @@ Unlike traditional word-by-word translators, Translatarr understands:
 - Tone  
 - Cultural nuance  
 
-Result: subtitles that feel human-written.
+Result: subtitles that feel natural and human-written.
 
 ---
 
-## 🚀 What’s New
+# 🚀 What’s New
 
 ✔ Gemini AND OpenAI support  
 ✔ Automatic adaptive chunk resizing  
 ✔ Token usage tracking  
-✔ Real cost calculation per movie per model selection   
+✔ Real cost calculation per movie per model selection  
+✔ Translation Style control  
+✔ Real-time settings reload (no Kodi restart required)  
+✔ Very fast subtitle detection & translation start  
+
+Translation now begins almost immediately after a subtitle appears in your configured folder.
 
 ---
 
@@ -38,31 +48,220 @@ https://aistudio.google.com/
 🔹 OpenAI  
 https://platform.openai.com/api-keys
 
+Create an API key and copy it.
+
 ---
 
 ## 2️⃣ Configure Translatarr
 
-Kodi → Addons → Programs → Translatarr → Settings
+Kodi → Add-ons → Programs → Translatarr → Settings
 
-- Select Provider (Gemini or OpenAI)
-- Paste API Key
-- Choose Model
-- Choose Target Language
+Set:
+
+- Provider (Gemini or OpenAI)
+- API Key
+- Model
+- Target Language
+- Subtitle Folder (IMPORTANT – see below)
 
 ---
 
 ## 3️⃣ Play a Movie 🎥
 
-Download any subtitle using any Kodi subtitle addon.
+1. Start playing a movie.
+2. Download subtitles using any Kodi subtitle addon  
+   OR manually place an `.srt` file in your configured subtitle folder.
 
 Translatarr will:
 
-- Detect the subtitle
-- Translate it automatically
-- Save it as .ro.srt, .fr.srt, etc.
+- Detect the subtitle automatically
+- Translate it
+- Save a new file (e.g. `.ro.srt`, `.fr.srt`)
 - Activate it instantly
 
-No manual steps required.
+No manual switching required.
+
+---
+
+# 📁 Subtitle Folder (IMPORTANT)
+
+This is the most important setup step.
+
+Translatarr monitors a specific folder and automatically processes any new subtitle that appears there.
+
+If this folder is not configured correctly, translation will not start.
+
+---
+
+## ✅ How To Set It Properly
+
+### Step 1 — Create a Folder
+
+Create a folder anywhere Kodi can access.
+
+Examples:
+
+**Android**
+```
+/storage/emulated/0/Download/sub
+```
+
+**Windows**
+```
+C:\KodiSubtitles
+```
+
+**Linux**
+```
+/home/username/subtitles
+```
+
+The folder must:
+- Exist  
+- Be writable  
+- Be accessible by Kodi  
+
+---
+
+### Step 2 — Configure Kodi (Very Important)
+
+Go to:
+
+Kodi Settings → Player Settings → Subtitles
+
+Set:
+
+- **Subtitle storage location** → `Custom location`
+- **Custom subtitle folder** → Select the folder path you created
+
+Both settings must point to the same folder.
+
+This ensures subtitle addons download `.srt` files directly into the monitored folder.
+
+---
+
+### Step 3 — Set It Inside Translatarr
+
+Kodi → Add-ons → Programs → Translatarr → Settings
+
+Set:
+
+📁 Subtitle Folder → Select the SAME folder
+
+Now both:
+- Kodi subtitle system  
+- Translatarr  
+
+are using the exact same location.
+
+That’s the key.
+
+---
+
+## 📥 How Subtitles Enter the Folder
+
+There are two ways:
+
+### 1️⃣ Automatic (Recommended)
+
+Use a subtitle addon while playing a movie.
+
+The downloaded `.srt` file will appear in the folder → Translatarr detects it immediately → Translation starts.
+
+---
+
+### 2️⃣ Manual
+
+You can manually copy an `.srt` file into the folder.
+
+As soon as the file appears (and matches the playing movie name), translation starts.
+
+---
+
+## 📝 Important Naming Rule
+
+The subtitle file must match the movie filename.
+
+Example:
+
+Movie:
+```
+The.Dutchman.2025.mkv
+```
+
+Subtitle:
+```
+The.Dutchman.2025.eng.srt
+```
+
+Translatarr will generate:
+```
+The.Dutchman.2025.ro.srt
+```
+
+---
+
+# 🎭 Translation Style
+
+Translatarr allows you to control how subtitles are adapted stylistically.
+
+This does NOT affect translation accuracy.  
+It controls tone, profanity handling, and dialogue intensity.
+
+Default mode: **Family-Friendly**
+
+---
+
+## 🔹 0 — Family-Friendly (Default)
+
+Clean, neutral, broadcast-safe translation.
+
+- Avoids profanity  
+- Replaces strong insults with mild alternatives  
+- Keeps dialogue suitable for general audiences  
+- Safe for watching with children or family  
+
+Best for:
+- Home viewing  
+- Family environments  
+- General audiences  
+
+---
+
+## 🔹 1 — Natural
+
+Conversational and realistic tone.
+
+- Sounds fluid and natural  
+- Avoids overly literal translation  
+- Keeps dialogue authentic  
+- Balanced realism  
+
+Best for:
+- Everyday viewing  
+- TV shows  
+- Mixed audiences  
+
+---
+
+## 🔹 2 — Gritty / Adult
+
+Raw and unfiltered.
+
+- Preserves profanity  
+- Keeps strong insults intact  
+- Maintains emotional intensity  
+- No softening of harsh dialogue  
+
+Best for:
+- Crime dramas  
+- Action films  
+- Mature content  
+
+---
+
+⚠ Translation Style does not significantly increase cost.  
+It only modifies the AI instruction prompt sent to the model.
 
 ---
 
@@ -109,16 +308,17 @@ Higher linguistic refinement (especially GPT-4o).
 
 ## 🌍 Source & Target Language
 
-Source:
+Source:  
 Use Auto-Detect unless you know the exact language.
 
-Target:
+Target:  
 Must be a specific language (not Auto).
 
 Generated files follow ISO codes:
-MovieName.ro.srt
-MovieName.fr.srt
-MovieName.es.srt
+
+- MovieName.ro.srt  
+- MovieName.fr.srt  
+- MovieName.es.srt  
 
 ---
 
@@ -139,11 +339,11 @@ For subtitles, 0.15 is ideal.
 How many subtitle lines are sent per API request.
 
 Recommended:
-- 50  → safer
-- 100 → faster
-- 150 → aggressive
+- 50  → safer  
+- 100 → faster  
+- 150 → aggressive  
 
-Smart Adaptive Mode:
+Smart Adaptive Mode:  
 If a chunk fails, Translatarr automatically retries with:
 
 Initial → 50 → 25
@@ -152,26 +352,20 @@ No manual retry needed.
 
 ---
 
-## 📁 Save Folder
-
-Folder where translated subtitles are written.
-
-Must be writable by Kodi.
-
----
-
 ## 🔔 Notification Modes
 
-Show Statistics:
+Show Statistics:  
 Displays:
-- Model used
-- Total tokens
-- Estimated cost
-- Total chunks
-- Lines translated
+- Model used  
+- Total tokens  
+- Estimated cost  
+- Total chunks  
+- Lines translated  
 
-Simple Notifications:
+Simple Notifications:  
 Minimal progress bar only.
+
+You can enable one or both.
 
 ---
 
@@ -204,34 +398,36 @@ Very cost-efficient and ideal for everyday subtitle translation.
 ---
 
 Cost depends on:
-- Model selected
-- Total tokens used
-- Subtitle length
+- Model selected  
+- Total tokens used  
+- Subtitle length  
 
-Tip:
+Tip:  
 For lowest cost per movie, use:
-- Gemini 2.0 Flash
-- gpt-4o-mini
+- Gemini 2.0 Flash  
+- gpt-4o-mini  
 
 ---
 
 # 🛠 Troubleshooting
 
 No translation appears:
-- Check API key
-- Check provider selected
-- Verify save folder exists
+- Check API key  
+- Check provider selected  
+- Verify subtitle folder exists  
+- Verify Kodi subtitle location matches Translatarr folder  
+- Make sure a video is playing  
 
 Translation stops midway:
-Adaptive chunking retries smaller sizes automatically.
+Adaptive chunking retries smaller sizes automatically.  
 If still failing:
-- Lower chunk size
-- Lower temperature
+- Lower chunk size  
+- Lower temperature  
 
 Cost seems high:
 Use:
-- Gemini 2.0 Flash
-- gpt-4o-mini
+- Gemini 2.0 Flash  
+- gpt-4o-mini  
 
 ---
 
@@ -240,7 +436,3 @@ Use:
 If you enjoy Translatarr and want to support development:
 
 https://www.buymeacoffee.com/addonniss
-
----
-
-
