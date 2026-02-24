@@ -343,10 +343,11 @@ Recommended:
 - 100 → faster  
 - 150 → aggressive  
 
-Smart Adaptive Mode:  
-If a chunk fails, Translatarr automatically retries with:
+**Adaptive chunk behavior (new in v2.0.1):**  
+- Starts with the user-defined chunk size  
+- If the API rejects it, automatically divides by 2 and retries 3 times
 
-Initial → 50 → 25
+This prevents "all chunks rejected" errors, especially for free-tier API users
 
 No manual retry needed.
 
@@ -436,3 +437,4 @@ Use:
 If you enjoy Translatarr and want to support development:
 
 https://www.buymeacoffee.com/addonniss
+
