@@ -9,7 +9,7 @@ Welcome to the official **Addonniss Repository**! This repository hosts AI-power
 ### 1. Download the Repository
 Click the link below to download the latest repository zip file to your device:
 
-👉 **[Download Addonniss Repo v1.0.1](https://github.com/Addonniss/repository.addonniss/raw/main/zips/repository.addonniss/repository.addonniss-1.0.1.zip)**
+👉 **[Download Addonniss Repo v1.0.1](https://addonniss.github.io/repository.addonniss/zips/repository.addonniss/repository.addonniss-1.0.1.zip)**
 
 ---
 
