@@ -19,7 +19,7 @@ Click the link below to download the latest repository zip file to your device:
 3. Enable **Unknown sources** (if not already on).
 4. Go back to the **Add-ons** menu and click the **Box Icon** (Add-on Browser).
 5. Select **Install from zip file**.
-6. Locate and select the `repository.addonniss-1.0.0.zip` file you downloaded.
+6. Locate and select the `repository.addonniss-1.0.1.zip` file you downloaded.
 7. Once installed, select **Install from repository**.
 8. Choose **Addonniss Repository** > **Program add-ons** > **Translatarr** > **Install**.
 
