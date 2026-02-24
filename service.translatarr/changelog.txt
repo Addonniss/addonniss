@@ -1,4 +1,10 @@
 v2.0.1
+- Adaptive chunk behavior:
+
+Starts with the user-defined chunk size
+If the API rejects it, automatically divides by 2 and retries 3 times
+This prevents "all chunks rejected" errors, especially for free-tier API users
+
 - Improved Settings readabilty adding categories
 - Added debug mode
 - Added change log support
