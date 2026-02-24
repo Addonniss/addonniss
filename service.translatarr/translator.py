@@ -2,11 +2,14 @@
 import requests
 import re
 import xbmc
+import xbmcaddon
+
+ADDON = xbmcaddon.Addon('service.translatarr')
+
 
 # ----------------------------------------------------------
 # Logging
 # ----------------------------------------------------------
-
 def log(msg):
     xbmc.log(f"[Translatarr] {msg}", xbmc.LOGINFO)
 
@@ -14,8 +17,13 @@ def log(msg):
 # ----------------------------------------------------------
 # Style Builder
 # ----------------------------------------------------------
+def build_style_instruction(trg_name):
+    style_mode = ADDON.getSetting('translation_style') or "0"
 
-def build_style_instruction(trg_name, style_mode):
+    # 0 = Family-Friendly (default)
+    # 1 = Natural
+    # 2 = Gritty / Adult
+
     if style_mode == "2":
         return (
             "STYLE REQUIREMENT:\n"
@@ -24,6 +32,7 @@ def build_style_instruction(trg_name, style_mode):
             "- Do NOT soften insults.\n"
             "- Maintain emotional intensity.\n"
         )
+
     elif style_mode == "1":
         return (
             "STYLE REQUIREMENT:\n"
@@ -31,6 +40,7 @@ def build_style_instruction(trg_name, style_mode):
             "- Sound realistic and fluid.\n"
             "- Avoid overly literal translation.\n"
         )
+
     # Default = Family-Friendly
     return (
         "STYLE REQUIREMENT:\n"
@@ -41,54 +51,58 @@ def build_style_instruction(trg_name, style_mode):
     )
 
 
-# ==========================================================
-# BASE TRANSLATOR
-# ==========================================================
-
+# ----------------------------------------------------------
+# Base Translator Class
+# ----------------------------------------------------------
 class BaseTranslator:
-    def __init__(self, settings):
-        self.settings = settings
-
     def translate_batch(self, text_list, expected_count):
         raise NotImplementedError
 
     def calculate_cost(self, input_tokens, output_tokens):
-        return 0.0
+        raise NotImplementedError
 
     def get_model_string(self):
-        return "Unknown"
+        raise NotImplementedError
 
 
 # ==========================================================
 # GEMINI TRANSLATOR
 # ==========================================================
-
 class GeminiTranslator(BaseTranslator):
+
     PRICING = {
         "gemini-2.0-flash": (0.0000005, 0.0000015),
         "gemini-1.5-flash": (0.0000005, 0.0000015),
         "gemini-2.5-flash": (0.0000007, 0.0000020),
     }
 
-    MODEL_MAP = {
-        "0": "gemini-2.0-flash",
-        "1": "gemini-1.5-flash",
-        "2": "gemini-2.5-flash"
-    }
+    def __init__(self):
+        self.api_key = ADDON.getSetting('api_key')
+        self.model_idx = ADDON.getSetting('model') or "0"
+        self.temperature = self._get_temperature()
 
-    def __init__(self, settings):
-        super().__init__(settings)
-        self.api_key = settings["api_key"]
-        self.model = self.MODEL_MAP.get(settings["model"], "gemini-2.0-flash")
-        self.temperature = settings["temperature"]
+        model_map = {
+            "0": "gemini-2.0-flash",
+            "1": "gemini-1.5-flash",
+            "2": "gemini-2.5-flash"
+        }
+
+        self.model = model_map.get(self.model_idx, "gemini-2.0-flash")
+
+    def _get_temperature(self):
+        try:
+            temp = float(ADDON.getSetting('temp') or 0.15)
+            return max(0.0, min(temp, 1.0))
+        except:
+            return 0.15
 
     def translate_batch(self, text_list, expected_count):
         if not self.api_key:
             return None, 0, 0
 
-        src_name = self.settings["source_name"]
-        trg_name = self.settings["target_name"]
-        style_mode = self.settings["translation_style"]
+        from languages import get_lang_params
+        src_name, _ = get_lang_params(ADDON.getSetting('source_lang'))
+        trg_name, _ = get_lang_params(ADDON.getSetting('target_lang'))
 
         if src_name.lower() != "auto-detect":
             lang_instruction = f"Translate from {src_name} to {trg_name}."
@@ -97,10 +111,10 @@ class GeminiTranslator(BaseTranslator):
 
         prefixed = [f"L{i:03}: {t}" for i, t in enumerate(text_list)]
         input_text = "\n".join(prefixed)
-        style_block = build_style_instruction(trg_name, style_mode)
 
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
 
+        style_block = build_style_instruction(trg_name)
         payload = {
             "contents": [{
                 "parts": [{
@@ -124,9 +138,8 @@ class GeminiTranslator(BaseTranslator):
         }
 
         try:
-            r = requests.post(url, json=payload, timeout=60)
+            r = requests.post(url, json=payload, timeout=30)
             if r.status_code != 200:
-                log(f"Gemini API error: {r.status_code}")
                 return None, 0, 0
 
             data = r.json()
@@ -141,8 +154,8 @@ class GeminiTranslator(BaseTranslator):
             out_t = usage.get("candidatesTokenCount", 0)
 
             return translated, in_t, out_t
-        except Exception as e:
-            log(f"Gemini exception: {e}")
+
+        except:
             return None, 0, 0
 
     def _scrub(self, raw_text, expected):
@@ -150,7 +163,8 @@ class GeminiTranslator(BaseTranslator):
         cleaned = []
         for line in lines:
             if re.match(r'^L\d{3}:\s*', line.strip()):
-                cleaned.append(re.sub(r'^L\d{3}:\s*', '', line.strip()))
+                clean = re.sub(r'^L\d{3}:\s*', '', line.strip())
+                cleaned.append(clean)
         return cleaned if len(cleaned) == expected else None
 
     def calculate_cost(self, input_tokens, output_tokens):
@@ -164,33 +178,41 @@ class GeminiTranslator(BaseTranslator):
 # ==========================================================
 # OPENAI TRANSLATOR
 # ==========================================================
-
 class OpenAITranslator(BaseTranslator):
+
     PRICING = {
         "gpt-4o-mini": (0.00000015, 0.00000060),
         "gpt-4o": (0.000005, 0.000015),
         "gpt-5-mini": (0.00000025, 0.0000020),
     }
 
-    MODEL_MAP = {
-        "0": "gpt-4o-mini",
-        "1": "gpt-4o",
-        "2": "gpt-5-mini"
-    }
+    def __init__(self):
+        self.api_key = ADDON.getSetting('openai_api_key')
+        self.model_idx = ADDON.getSetting('openai_model') or "0"
+        self.temperature = self._get_temperature()
 
-    def __init__(self, settings):
-        super().__init__(settings)
-        self.api_key = settings["api_key"]
-        self.model = self.MODEL_MAP.get(settings["model"], "gpt-4o-mini")
-        self.temperature = settings["temperature"]
+        model_map = {
+            "0": "gpt-4o-mini",
+            "1": "gpt-4o",
+            "2": "gpt-5-mini"
+        }
+
+        self.model = model_map.get(self.model_idx, "gpt-4o-mini")
+
+    def _get_temperature(self):
+        try:
+            temp = float(ADDON.getSetting('temp') or 0.15)
+            return max(0.0, min(temp, 1.0))
+        except:
+            return 0.15
 
     def translate_batch(self, text_list, expected_count):
         if not self.api_key:
             return None, 0, 0
 
-        src_name = self.settings["source_name"]
-        trg_name = self.settings["target_name"]
-        style_mode = self.settings["translation_style"]
+        from languages import get_lang_params
+        src_name, _ = get_lang_params(ADDON.getSetting('source_lang'))
+        trg_name, _ = get_lang_params(ADDON.getSetting('target_lang'))
 
         if src_name.lower() != "auto-detect":
             lang_instruction = f"Translate from {src_name} to {trg_name}."
@@ -199,13 +221,14 @@ class OpenAITranslator(BaseTranslator):
 
         prefixed = [f"L{i:03}: {t}" for i, t in enumerate(text_list)]
         input_text = "\n".join(prefixed)
-        style_block = build_style_instruction(trg_name, style_mode)
 
         url = "https://api.openai.com/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
+
+        style_block = build_style_instruction(trg_name)
         payload = {
             "model": self.model,
             "messages": [
@@ -229,13 +252,13 @@ class OpenAITranslator(BaseTranslator):
         }
 
         try:
-            r = requests.post(url, headers=headers, json=payload, timeout=60)
+            r = requests.post(url, headers=headers, json=payload, timeout=30)
             if r.status_code != 200:
-                log(f"OpenAI API error: {r.status_code}")
                 return None, 0, 0
 
             data = r.json()
             raw = data['choices'][0]['message']['content'].strip()
+
             translated = self._scrub(raw, expected_count)
             if not translated:
                 return None, 0, 0
@@ -245,8 +268,8 @@ class OpenAITranslator(BaseTranslator):
             out_t = usage.get("completion_tokens", 0)
 
             return translated, in_t, out_t
-        except Exception as e:
-            log(f"OpenAI exception: {e}")
+
+        except:
             return None, 0, 0
 
     def _scrub(self, raw_text, expected):
@@ -254,7 +277,8 @@ class OpenAITranslator(BaseTranslator):
         cleaned = []
         for line in lines:
             if re.match(r'^L\d{3}:\s*', line.strip()):
-                cleaned.append(re.sub(r'^L\d{3}:\s*', '', line.strip()))
+                clean = re.sub(r'^L\d{3}:\s*', '', line.strip())
+                cleaned.append(clean)
         return cleaned if len(cleaned) == expected else None
 
     def calculate_cost(self, input_tokens, output_tokens):
@@ -266,21 +290,20 @@ class OpenAITranslator(BaseTranslator):
 
 
 # ==========================================================
-# PUBLIC API (Used by service.py)
+# PUBLIC API
 # ==========================================================
-
-def get_translator(settings):
-    provider = settings.get("provider", "0")
-    return OpenAITranslator(settings) if provider == "1" else GeminiTranslator(settings)
-
-
-def translate_batch(settings, text_list, expected_count):
-    return get_translator(settings).translate_batch(text_list, expected_count)
+def _get_translator():
+    provider = ADDON.getSetting('provider')  # 0=Gemini 1=OpenAI
+    return OpenAITranslator() if provider == "1" else GeminiTranslator()
 
 
-def calculate_cost(settings, input_tokens, output_tokens):
-    return get_translator(settings).calculate_cost(input_tokens, output_tokens)
+def translate_batch(text_list, expected_count):
+    return _get_translator().translate_batch(text_list, expected_count)
 
 
-def get_model_string(settings):
-    return get_translator(settings).get_model_string()
+def calculate_cost(input_tokens, output_tokens):
+    return _get_translator().calculate_cost(input_tokens, output_tokens)
+
+
+def get_model_string():
+    return _get_translator().get_model_string()
