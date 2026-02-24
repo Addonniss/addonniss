@@ -229,7 +229,7 @@ class TranslatarrMonitor(xbmc.Monitor):
     # Detect new subtitle
     # -----------------------------------
     def check_for_subs(self):
-        log("Running check_for_subs()")
+        # log("Running check_for_subs()")
         if not xbmc.Player().isPlaying():
             # log("No video playing. Skipping subtitle check.")
             return
@@ -312,6 +312,7 @@ if __name__ == '__main__':
     while not monitor.abortRequested():
         monitor.check_for_subs()
         monitor.waitForAbort(5)
+
 
 
 
