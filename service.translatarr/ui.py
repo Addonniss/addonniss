@@ -99,7 +99,7 @@ class TranslationProgress:
         self.start_time = time.time()
 
         # Milestones
-        self.milestones = {25, 50, 75, 100}
+        self.milestones = {10, 25, 50, 75, 90, 100}
         self.triggered = set()
 
         self.pDialog = None
