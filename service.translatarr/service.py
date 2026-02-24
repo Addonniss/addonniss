@@ -2,10 +2,12 @@
 import xbmc
 import xbmcaddon
 import xbmcvfs
+import xbmcgui
 import os
 import time
 import math
 import re
+import sys
 
 import translator
 import file_manager
@@ -13,7 +15,7 @@ import ui
 from languages import get_lang_params
 
 ADDON = xbmcaddon.Addon('service.translatarr')
-DEBUG = ADDON.getSettingBool('debug_mode')  # <-- New debug mode setting
+DEBUG = ADDON.getSettingBool('debug_mode')
 
 # ----------------------------------------------------------
 # Logging
@@ -26,6 +28,23 @@ def log(msg, level='info', force=False):
     """
     if force or DEBUG or level != 'debug':
         xbmc.log(f"[Translatarr] {msg}", getattr(xbmc, f"LOG{level.upper()}"))
+
+
+# ----------------------------------------------------------
+# CHANGELOG POPUP SUPPORT
+# ----------------------------------------------------------
+def show_changelog():
+    addon_path = ADDON.getAddonInfo('path')
+    changelog_path = os.path.join(addon_path, 'changelog.txt')
+
+    if xbmcvfs.exists(changelog_path):
+        with xbmcvfs.File(changelog_path) as f:
+            content = f.read()
+    else:
+        content = "No changelog available."
+
+    xbmcgui.Dialog().textviewer("Translatarr - Change Log", content)
+
 
 # ----------------------------------------------------------
 # Subtitle Processing
@@ -163,9 +182,6 @@ def process_subtitles(original_path, monitor):
 
         log(f"Translation complete: {clean_name}, cost: ${cost:.4f}")
 
-        # -----------------------------------
-        # STATS BOX
-        # -----------------------------------
         if show_stats:
             ui.show_stats_box(
                 os.path.basename(original_path),
@@ -179,9 +195,6 @@ def process_subtitles(original_path, monitor):
                 total_time
             )
 
-        # -----------------------------------
-        # SIMPLE NOTIFICATION (WITH COST)
-        # -----------------------------------
         if use_notifications:
             ui.notify(
                 f"✔ Done in {ui.format_time(total_time)} | Cost: ${cost:.4f}",
@@ -201,66 +214,49 @@ class TranslatarrMonitor(xbmc.Monitor):
     def __init__(self):
         super().__init__()
         self.last_processed = ""
-        self.reload_settings()  # load initial settings
+        self.reload_settings()
 
-    # -----------------------------------
-    # Load settings dynamically
-    # -----------------------------------
     def reload_settings(self):
-        # Use a fresh Addon instance to avoid cached values
         addon = xbmcaddon.Addon('service.translatarr')
 
-        # Read boolean / string / integer settings
         self.use_notifications = addon.getSettingBool('notify_mode')
         self.show_stats = addon.getSettingBool('show_stats')
         self.chunk_size = int(addon.getSetting('chunk_size') or 100)
         self.source_lang = addon.getSetting('source_lang')
         self.target_lang = addon.getSetting('target_lang')
-        self.debug_mode = addon.getSettingBool('debug_mode')  # <-- Added
+        self.debug_mode = addon.getSettingBool('debug_mode')
 
-        # Log for debugging
-        log(f"Reloading settings...", level='debug')
+        log("Reloading settings...", level='debug')
         log(f"Settings: notify={self.use_notifications}, show_stats={self.show_stats}, chunk_size={self.chunk_size}, debug={self.debug_mode}", level='debug')
 
-    # -----------------------------------
-    # Auto-called when user changes settings in GUI
-    # -----------------------------------
     def onSettingsChanged(self):
         log("Settings changed — reloading live.", level='debug')
         self.reload_settings()
 
-    # -----------------------------------
-    # Detect new subtitle
-    # -----------------------------------
     def check_for_subs(self):
         log("Running check_for_subs()", level='debug')
+
         if not xbmc.Player().isPlaying():
-            log("No video playing. Skipping subtitle check.", level='debug')
             return
 
-        # Get language codes
         _, src_iso = get_lang_params(self.source_lang)
         _, trg_iso = get_lang_params(self.target_lang)
+
         if trg_iso == "auto":
             trg_iso = "ro"
 
         target_ext = f".{trg_iso}.srt"
 
-        # Check custom subtitle folder
-        custom_dir = xbmcaddon.Addon('service.translatarr').getSetting('sub_folder')
+        custom_dir = ADDON.getSetting('sub_folder')
         if not custom_dir or not xbmcvfs.exists(custom_dir):
-            log(f"Custom folder invalid or not exists: {custom_dir}", level='debug')
             return
 
         _, files = xbmcvfs.listdir(custom_dir)
-        log(f"Found {len(files)} files in {custom_dir}", level='debug')
 
-        # Get currently playing video filename
         try:
             playing_file = xbmc.Player().getPlayingFile()
             video_name = os.path.splitext(os.path.basename(playing_file))[0]
         except:
-            log("Failed to get currently playing file.", level='debug')
             return
 
         valid_files = []
@@ -268,7 +264,7 @@ class TranslatarrMonitor(xbmc.Monitor):
             f_low = f.lower()
             if video_name.lower() in f_low and f_low.endswith('.srt'):
                 if target_ext in f_low:
-                    continue  # skip already translated
+                    continue
                 match = re.search(r'\.([a-z]{2,3})\.srt$', f_low)
                 if match:
                     lang = match.group(1)
@@ -277,10 +273,8 @@ class TranslatarrMonitor(xbmc.Monitor):
                 valid_files.append(f)
 
         if not valid_files:
-            log("No new valid subtitle files found.", level='debug')
             return
 
-        # Sort by newest modified
         valid_files.sort(
             key=lambda x: xbmcvfs.Stat(os.path.join(custom_dir, x)).st_mtime(),
             reverse=True
@@ -288,31 +282,32 @@ class TranslatarrMonitor(xbmc.Monitor):
 
         newest_path = os.path.join(custom_dir, valid_files[0])
         stat = xbmcvfs.Stat(newest_path)
+
         if stat.st_size() < 500:
-            log(f"File too small or incomplete: {newest_path}", level='debug')
             return
 
-        # Compute target path
         save_path, _ = file_manager.get_target_path(newest_path, video_name)
+
         if xbmcvfs.exists(save_path):
-            log(f"Target file already exists: {save_path}", level='debug')
             return
 
         if newest_path == self.last_processed:
-            log(f"File already processed: {newest_path}", level='debug')
             return
 
-        log(f"Processing : {newest_path}")
         self.last_processed = newest_path
         process_subtitles(newest_path, self)
-        
+
+
 # ----------------------------------------------------------
 # ENTRY POINT
 # ----------------------------------------------------------
 if __name__ == '__main__':
 
-    monitor = TranslatarrMonitor()
-
-    while not monitor.abortRequested():
-        monitor.check_for_subs()
-        monitor.waitForAbort(5)
+    # If called from settings action
+    if len(sys.argv) > 1 and sys.argv[1] == "show_changelog":
+        show_changelog()
+    else:
+        monitor = TranslatarrMonitor()
+        while not monitor.abortRequested():
+            monitor.check_for_subs()
+            monitor.waitForAbort(5)
