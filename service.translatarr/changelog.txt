@@ -1,0 +1,16 @@
+v2.0.0
+- Multi-AI support (Gemini + OpenAI)
+- Added OpenAI models: gpt-4o, gpt-4o-mini, gpt-5-mini
+- Translation styles: Family-Friendly, Natural, Gritty / Adult
+- Live settings reload (no Kodi restart required)
+- Smart chunk retry system (auto fallback)
+- Cost transparency per translation
+- Debug mode added
+- Improved subtitle detection
+- Better API error handling
+
+v1.0.0
+- Initial release
+- Added Gemini models: 2.0 Flash, 1.5 Flash, 2.5 Flash
+- Optional statistics popup
+- Simple notification mode
