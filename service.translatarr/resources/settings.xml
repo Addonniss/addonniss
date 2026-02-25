@@ -66,13 +66,13 @@
         <setting id="source_lang"
                  type="enum"
                  label="Source Language"
-                 values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Auto-Detect|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Slovenian|Croatian"
+                 values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Auto-Detect|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Slovenian|Croatian|Catalan"
                  default="10" />
 
         <setting id="target_lang"
                  type="enum"
                  label="Target Language"
-                 values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Slovenian|Croatian"
+                 values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Auto-Detect|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Slovenian|Croatian|Catalan"
                  default="0" />
 
         <setting id="translation_style"
@@ -124,3 +124,4 @@
     </category>
 
 </settings>
+
