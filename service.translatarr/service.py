@@ -74,7 +74,7 @@ def process_subtitles(original_path, monitor):
         initial_chunk = max(10, min(int(monitor.chunk_size or 100), 150))
         target_lang = monitor.target_lang
 
-        model_name = translator.get_model_string(monitor)
+        model_name = translator.get_model_string()
         log(f"Using model: {model_name}, target_lang: {target_lang}")
 
         progress = ui.TranslationProgress(
@@ -311,3 +311,4 @@ if __name__ == '__main__':
         while not monitor.abortRequested():
             monitor.check_for_subs()
             monitor.waitForAbort(5)
+
