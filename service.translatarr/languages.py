@@ -29,7 +29,8 @@ LANGUAGES = {
     "25": ("Thai", "th"),
     "26": ("Vietnamese", "vi"),
     "27": ("Slovenian", "sl"),
-    "28": ("Croatian", "hr")
+    "28": ("Croatian", "hr"),
+    "29": ("Catalan", "ca")
 
 }
 
