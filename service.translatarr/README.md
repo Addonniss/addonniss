@@ -1,4 +1,4 @@
-# 🎬 Translatarr  
+# 🎬 Translatarr  2.1.0
 ## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
@@ -392,3 +392,4 @@ Use:
 If you enjoy Translatarr and want to support development:
 
 https://www.buymeacoffee.com/addonniss
+
