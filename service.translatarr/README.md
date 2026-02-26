@@ -2,7 +2,7 @@
 ## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
-Powered by Google Gemini or OpenAI
+Powered by Google Gemini or OpenAI  
 
 ---
 
@@ -18,7 +18,7 @@ Unlike traditional word-by-word translators, it understands:
 - Tone  
 - Cultural nuance  
 
-Result: subtitles that feel natural and human-written.
+**Result:** subtitles that feel natural and human-written.
 
 ---
 
@@ -28,9 +28,11 @@ Result: subtitles that feel natural and human-written.
 ✔ Automatic adaptive chunk resizing  
 ✔ Token usage tracking  
 ✔ Real cost calculation per movie per model selection  
+✔ Strict ISO language validation (safe & accurate detection)  
 ✔ Translation Style control  
 ✔ Real-time settings reload (no Kodi restart required)  
 ✔ Very fast subtitle detection & translation start  
+✔ Restart-safe translation handling  
 
 Translation now begins almost immediately after a subtitle appears in your configured folder.
 
@@ -61,6 +63,7 @@ Set:
 - Provider (Gemini or OpenAI)
 - API Key
 - Model
+- Source Language
 - Target Language
 - Subtitle Folder (IMPORTANT – see below)
 
@@ -68,18 +71,61 @@ Set:
 
 ## 3️⃣ Play a Movie 🎥
 
-1. Start playing a movie.
+1. Start playing a movie.  
 2. Download subtitles using any Kodi subtitle addon  
    OR manually place an `.srt` file in your configured subtitle folder.
 
 Translatarr will:
 
-- Detect the subtitle automatically
-- Translate it
-- Save a new file (e.g. `.ro.srt`, `.fr.srt`)
-- Activate it instantly
+- Detect the subtitle automatically  
+- Translate it  
+- Save a new file (e.g. `.ro.srt`, `.fr.srt`)  
+- Activate it instantly  
 
 No manual switching required.
+
+---
+
+# 🌍 Language Safety (Simple Explanation)
+
+Translatarr uses international language codes to make sure translations are correct.
+
+You don’t need to understand what ISO means — here’s what matters:
+
+Some languages have multiple code variations.
+
+For example:
+
+Romanian can appear as:
+- `ro`
+- `ron`
+- `rum`
+
+French can appear as:
+- `fr`
+- `fra`
+- `fre`
+
+Italian:
+- `it`
+- `ita`
+
+Translatarr understands all of these safely.
+
+### What this means for you:
+
+- It correctly detects your source subtitle language  
+- It never translates a subtitle twice  
+- It never confuses similar language codes  
+- It only translates the exact language you selected  
+
+This prevents:
+
+- Wrong language processing  
+- Double translations  
+- Infinite translation loops  
+
+Both **Source** and **Target** languages must be selected explicitly for maximum accuracy.
 
 ---
 
@@ -117,6 +163,7 @@ C:\KodiSubtitles
 ```
 
 The folder must:
+
 - Exist  
 - Be writable  
 - Be accessible by Kodi  
@@ -131,12 +178,10 @@ Kodi Settings → Player Settings → Subtitles
 
 Set:
 
-- **Subtitle storage location** → `Custom location`
-- **Custom subtitle folder** → Select the folder path you created
+- **Subtitle storage location** → `Custom location`  
+- **Custom subtitle folder** → Select the folder path you created  
 
 Both settings must point to the same folder.
-
-This ensures subtitle addons download `.srt` files directly into the monitored folder.
 
 ---
 
@@ -149,6 +194,7 @@ Set:
 📁 Subtitle Folder → Select the SAME folder
 
 Now both:
+
 - Kodi subtitle system  
 - Translatarr  
 
@@ -158,110 +204,32 @@ That’s the key.
 
 ---
 
-## 📥 How Subtitles Enter the Folder
-
-There are two ways:
-
-### 1️⃣ Automatic (Recommended)
-
-Use a subtitle addon while playing a movie.
-
-The downloaded `.srt` file will appear in the folder → Translatarr detects it immediately → Translation starts.
-
----
-
-### 2️⃣ Manual
-
-You can manually copy an `.srt` file into the folder.
-
-As soon as the file appears (and matches the playing movie name), translation starts.
-
----
-
-## 📝 Important Naming Rule
-
-The subtitle file must match the movie filename.
-
-Example:
-
-Movie:
-```
-The.Dutchman.2025.mkv
-```
-
-Subtitle:
-```
-The.Dutchman.2025.eng.srt
-```
-
-Translatarr will generate:
-```
-The.Dutchman.2025.ro.srt
-```
-
----
-
 # 🎭 Translation Style
 
-Translatarr allows you to control how subtitles are adapted stylistically.
-
-This does NOT affect translation accuracy.  
-It controls tone, profanity handling, and dialogue intensity.
+Translation Style controls tone and intensity — not accuracy.
 
 Default mode: **Family-Friendly**
 
----
-
-## 🔹 0 — Family-Friendly (Default)
-
-Clean, neutral, broadcast-safe translation.
+### 🔹 0 — Family-Friendly (Default)
 
 - Avoids profanity  
-- Replaces strong insults with mild alternatives  
-- Keeps dialogue suitable for general audiences  
-- Safe for watching with children or family  
+- Softens strong insults  
+- Suitable for general audiences  
 
-Best for:
-- Home viewing  
-- Family environments  
-- General audiences  
+### 🔹 1 — Natural
 
----
+- Conversational  
+- Realistic tone  
+- Balanced authenticity  
 
-## 🔹 1 — Natural
-
-Conversational and realistic tone.
-
-- Sounds fluid and natural  
-- Avoids overly literal translation  
-- Keeps dialogue authentic  
-- Balanced realism  
-
-Best for:
-- Everyday viewing  
-- TV shows  
-- Mixed audiences  
-
----
-
-## 🔹 2 — Gritty / Adult
-
-Raw and unfiltered.
+### 🔹 2 — Gritty / Adult
 
 - Preserves profanity  
-- Keeps strong insults intact  
-- Maintains emotional intensity  
-- No softening of harsh dialogue  
+- Keeps emotional intensity  
+- No softening  
 
-Best for:
-- Crime dramas  
-- Action films  
-- Mature content  
-
----
-
-⚠ Translation Style does not significantly increase cost.  
-It only modifies the AI instruction prompt sent to the model.
+⚠ Translation Style does **not significantly increase cost**.  
+It only modifies the AI instruction prompt.
 
 ---
 
@@ -269,12 +237,10 @@ It only modifies the AI instruction prompt sent to the model.
 
 ## 🧠 Provider
 
-Choose your AI backend:
-
-Gemini  
+**Gemini**  
 Fast and very cost-effective.
 
-OpenAI  
+**OpenAI**  
 Higher linguistic refinement (especially GPT-4o).
 
 ---
@@ -283,150 +249,139 @@ Higher linguistic refinement (especially GPT-4o).
 
 ### 🔹 Gemini Models
 
-- Gemini 2.0 Flash (recommended)  
-  Best overall balance of speed, cost, and subtitle quality. Fast, stable, and ideal for most movies and TV shows.
+- **Gemini 2.0 Flash (recommended)**  
+  Best balance of speed, cost, and subtitle quality.
 
-- Gemini 1.5 Flash  
-  Lightweight and reliable model. Slightly older generation, very stable, good for conservative or low-cost usage.
+- **Gemini 1.5 Flash**  
+  Stable and budget-friendly.
 
-- Gemini 2.5 Flash  
-  Newer-generation model with improved contextual understanding and better nuance handling. Slightly more expensive, but stronger with slang and complex dialogue.
+- **Gemini 2.5 Flash**  
+  Stronger contextual understanding and nuance.
 
+---
 
 ### 🔹 OpenAI Models
 
-- gpt-4o-mini (cheap + fast)  
-  Budget-friendly and very fast. Great for bulk subtitle translation with solid quality at minimal cost.
+- **gpt-4o-mini (cheap + fast)**  
+  Budget-friendly and very fast.
 
-- gpt-5-mini  
-  Next-generation balanced model. Smarter contextual understanding than 4o-mini, improved nuance and dialogue flow, while remaining cost-efficient.
+- **gpt-5-mini**  
+  Improved nuance while remaining cost-efficient.
 
-- gpt-4o (premium quality)  
-  Highest refinement and linguistic precision. Best choice for maximum naturalness, emotional tone accuracy, and complex scripts.
-
----
-
-## 🌍 Source & Target Language
-
-Source:  
-Use Auto-Detect unless you know the exact language.
-
-Target:  
-Must be a specific language (not Auto).
-
-Generated files follow ISO codes:
-
-- MovieName.ro.srt  
-- MovieName.fr.srt  
-- MovieName.es.srt  
+- **gpt-4o (premium quality)**  
+  Highest refinement and emotional accuracy.
 
 ---
 
-## 🌡 Temperature
-
-Controls creativity:
-
-0.15  → Accurate & stable (recommended)  
-0.5   → Slightly more natural  
-0.7+  → More creative / risky  
-
-For subtitles, 0.15 is ideal.
-
----
-
-## 📦 Lines Per Chunk
+## 📦 Dialogue Lines Per Chunk
 
 How many subtitle lines are sent per API request.
 
 Recommended:
+
 - 50  → safer  
 - 100 → faster  
 - 150 → aggressive  
 
-**Adaptive chunk behavior (new in v2.0.1):**  
-- Starts with the user-defined chunk size  
-- If the API rejects it, automatically divides by 2 and retries 3 times
+### Adaptive chunk behavior (v2.0.1)
 
-This prevents "all chunks rejected" errors, especially for free-tier API users
+- Starts with your selected chunk size  
+- If the API rejects it, automatically halves the chunk  
+- Retries up to 3 times  
 
-No manual retry needed.
+Prevents "all chunks rejected" failures — especially useful for free-tier API users.
 
 ---
 
-## 🔔 Notification Modes
+# 💰 Cost Transparency & Smart Token Usage
 
-Show Statistics:  
-Displays:
-- Model used  
-- Total tokens  
-- Estimated cost  
+Translatarr is built to **save you money**.
+
+When translating subtitles, we send to the AI:
+
+✔ ONLY dialogue lines  
+
+We DO NOT send:
+
+✘ Subtitle indexes  
+✘ Timestamps  
+
+After translation:
+
+- Timestamps and numbering are rebuilt locally  
+- Only translated dialogue is reinserted  
+
+This dramatically reduces:
+
+- Token usage  
+- API cost  
+- Processing time  
+
+You are paying only for meaningful dialogue — not technical subtitle metadata.
+
+---
+
+## 📊 Real Cost Per Movie
+
+After each translation, Translatarr shows:
+
+- Total tokens used  
+- Estimated API cost  
+- Model selected  
 - Total chunks  
-- Lines translated  
-
-Simple Notifications:  
-Minimal progress bar only.
-
-You can enable one or both.
-
----
-
-# 💰 Cost Transparency
-
-Translatarr calculates the real API cost per movie based on official token pricing.
+- Processing time  
 
 You always know exactly what you spend.
 
 ---
 
-Example (OpenAI – gpt-4o-mini)
+### Example (OpenAI – gpt-4o-mini)
 
 Model: gpt-4o-mini  
 Total Tokens: 52,000  
 Estimated Cost: $0.0124  
 
-Fast and extremely affordable for full-length movies.
-
 ---
 
-Example (Gemini – Gemini 2.0 Flash)
+### Example (Gemini – Gemini 2.0 Flash)
 
 Model: Gemini 2.0 Flash  
 Total Tokens: 52,000  
 Estimated Cost: $0.0080  
 
-Very cost-efficient and ideal for everyday subtitle translation.
-
 ---
 
-Cost depends on:
-- Model selected  
-- Total tokens used  
-- Subtitle length  
-
-Tip:  
 For lowest cost per movie, use:
+
 - Gemini 2.0 Flash  
 - gpt-4o-mini  
+
+Both are extremely affordable for full-length films.
 
 ---
 
 # 🛠 Troubleshooting
 
-No translation appears:
+**No translation appears:**
+
 - Check API key  
 - Check provider selected  
 - Verify subtitle folder exists  
 - Verify Kodi subtitle location matches Translatarr folder  
 - Make sure a video is playing  
 
-Translation stops midway:
+**Translation stops midway:**
+
 Adaptive chunking retries smaller sizes automatically.  
 If still failing:
+
 - Lower chunk size  
 - Lower temperature  
 
-Cost seems high:
+**Cost seems high:**
+
 Use:
+
 - Gemini 2.0 Flash  
 - gpt-4o-mini  
 
@@ -437,4 +392,3 @@ Use:
 If you enjoy Translatarr and want to support development:
 
 https://www.buymeacoffee.com/addonniss
-
