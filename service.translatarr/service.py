@@ -54,7 +54,7 @@ def show_changelog():
     xbmcgui.Dialog().textviewer("Translatarr - Change Log", content)
 
 # ----------------------------------------------------------
-# Subtitle Processing
+# Subtitle Processing with TEMP FILES
 # ----------------------------------------------------------
 def process_subtitles(original_path, monitor, force_retranslate=False):
     log(f"process_subtitles called with: {original_path}, force_retranslate={force_retranslate}", "debug", monitor)
@@ -68,8 +68,10 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
         log(f"Video currently playing: {video_name}", "debug", monitor)
 
         save_path, clean_name = file_manager.get_target_path(original_path, video_name)
-        log(f"Calculated target save_path: {save_path}", "debug", monitor)
+        temp_path = save_path + ".tmp"  # <-- temp file path
+        log(f"Calculated target save_path: {save_path}, temp_path: {temp_path}", "debug", monitor)
 
+        # If final SRT exists and not forced, just load it
         if xbmcvfs.exists(save_path) and not force_retranslate:
             log("Target exists and no force flag. Loading existing subtitle.", "debug", monitor)
             xbmc.Player().setSubtitles(save_path)
@@ -151,8 +153,21 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
                 log("Aborting translation: all retries failed.", "error", monitor)
                 return False
 
-        log("Writing translated SRT file.", "debug", monitor)
-        file_manager.write_srt(save_path, timestamps, all_translated)
+        # Write final translation to TEMP file first
+        log("Writing translated SRT TEMP file.", "debug", monitor)
+        file_manager.write_srt(temp_path, timestamps, all_translated)
+
+        # Once done, rename temp to final
+        try:
+            if xbmcvfs.exists(save_path):
+                xbmcvfs.delete(save_path)
+            xbmcvfs.rename(temp_path, save_path)
+            log(f"Temp file renamed to final SRT: {save_path}", "debug", monitor)
+        except Exception as e:
+            log(f"Failed to rename temp file: {e}", "error", monitor)
+            ui.notify(f"Error renaming temp file: {e}", title="Translatarr Error")
+            return False
+
         xbmc.Player().setSubtitles(save_path)
         progress.close()
         monitor.session_translation_created = True
@@ -196,7 +211,6 @@ class TranslatarrMonitor(xbmc.Monitor):
     def __init__(self):
         super().__init__()
         self.polling_active = False
-        self.last_source_path = None
         self.last_source_size = {}
         self.is_busy = False
         self.session_translation_created = False
@@ -216,7 +230,6 @@ class TranslatarrMonitor(xbmc.Monitor):
     def onPlaybackStarted(self):
         log("Playback started. Activating polling.", "debug", self)
         self.polling_active = True
-        self.last_source_path = None
         self.last_source_size = {}
         self.session_translation_created = False
 
@@ -232,7 +245,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         log("Polling for subtitles...", "debug", self)
 
         if not xbmc.Player().isPlaying():
-            if self.debug_mode:  # <-- only log in debug mode
+            if self.debug_mode:
                 log("Playback not active. Skipping check.", "debug", self)
             return
 
@@ -251,29 +264,30 @@ class TranslatarrMonitor(xbmc.Monitor):
             log("Sub folder missing or inaccessible. Abort check.", "debug", self)
             return
 
+        # Only look for SRTs for current video
         _, files = xbmcvfs.listdir(custom_dir)
-        log(f"Found {len(files)} files in sub folder.", "debug", self)
-
         src_variants = get_iso_variants(self.source_lang)
         trg_variants = get_iso_variants(self.target_lang)
         target_exts = [f".{v}.srt" for v in trg_variants]
 
-        for f in files:
-            f_low = f.lower()
-            log(f"Checking file: {f_low}", "debug", self)
+        # Filter files to only those matching video_name + source ISO
+        candidate_files = [
+            f for f in files
+            if f.lower().startswith(video_name.lower())
+            and f.lower().endswith('.srt')
+            and any(f.lower().endswith(f".{v}.srt") for v in src_variants)
+            and not any(f.lower().endswith(ext) for ext in target_exts)
+        ]
 
-            if video_name.lower() not in f_low or not f_low.endswith('.srt'):
-                log(f"Skipping file: {f_low} (not matching video or not .srt)", "debug", self)
-                continue
+        # --- SORT candidate files by modification time descending ---
+        candidate_files.sort(
+            key=lambda f: xbmcvfs.Stat(os.path.join(custom_dir, f)).st_mtime(),
+            reverse=True
+        )
 
-            if any(ext in f_low for ext in target_exts):
-                log(f"Skipping file: {f_low} (already a target translation)", "debug", self)
-                continue
+        log(f"Found {len(candidate_files)} candidate source SRT(s) for current video.", "debug", self)
 
-            if not any(f_low.endswith(f".{v}.srt") for v in src_variants):
-                log(f"Skipping file: {f_low} (not a recognized source variant)", "debug", self)
-                continue
-
+        for f in candidate_files:
             full_path = os.path.join(custom_dir, f)
             stat = xbmcvfs.Stat(full_path)
             log(f"File stats -> size: {stat.st_size()} bytes, mtime: {stat.st_mtime()}", "debug", self)
@@ -284,7 +298,7 @@ class TranslatarrMonitor(xbmc.Monitor):
 
             # --- ISO + Size Check for retranslation ---
             force_retranslate = False
-            last_size = self.last_source_size.get(f_low)
+            last_size = self.last_source_size.get(f.lower())
             if last_size is not None:
                 if stat.st_size() != last_size:
                     log(f"File size changed: {last_size} → {stat.st_size()}. Forcing retranslation.", "debug", self)
@@ -301,7 +315,7 @@ class TranslatarrMonitor(xbmc.Monitor):
                 self.is_busy = False
 
             if success:
-                self.last_source_size[f_low] = stat.st_size()
+                self.last_source_size[f.lower()] = stat.st_size()
                 log("Stored source metadata snapshot.", "debug", self)
 
             return  # only process one new file per poll
