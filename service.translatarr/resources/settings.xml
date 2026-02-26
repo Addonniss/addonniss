@@ -14,7 +14,7 @@
         <setting type="lsep" label="Important Setup" />
 
         <setting type="text"
-                 label="Kodi must use 'Custom Subtitle Location' and point to the SAME folder selected above."
+                 label="Kodi must use same path for 'Custom Subtitle Location'"
                  enable="false" />
 
     </category>
@@ -32,6 +32,8 @@
                  default="0" />
 
         <!-- Gemini Settings -->
+        <setting type="lsep" label="Gemini Settings" />
+
         <setting id="api_key"
                  type="text"
                  label="Gemini API Key"
@@ -44,6 +46,9 @@
                  default="0" />
 
         <!-- OpenAI Settings -->
+        
+        <setting type="lsep" label="OpenAI Settings" />
+        
         <setting id="openai_api_key"
                  type="text"
                  label="OpenAI API Key"
@@ -66,14 +71,14 @@
         <setting id="source_lang"
                  type="enum"
                  label="Source Language"
-                 values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Auto-Detect|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Slovenian|Croatian|Catalan"
-                 default="10" />
+                 values="Arabic|Catalan|Chinese|Croatian|Czech|Danish|Dutch|English|Finnish|French|German|Greek|Hebrew|Hindi|Hungarian|Italian|Japanese|Korean|Norwegian|Polish|Portuguese|Romanian|Russian|Slovenian|Spanish|Swedish|Thai|Turkish|Vietnamese"
+                 default="7" />
 
         <setting id="target_lang"
                  type="enum"
                  label="Target Language"
-                 values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Auto-Detect|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Slovenian|Croatian|Catalan"
-                 default="0" />
+                 values="Arabic|Catalan|Chinese|Croatian|Czech|Danish|Dutch|English|Finnish|French|German|Greek|Hebrew|Hindi|Hungarian|Italian|Japanese|Korean|Norwegian|Polish|Portuguese|Romanian|Russian|Slovenian|Spanish|Swedish|Thai|Turkish|Vietnamese"
+                 default="21" />
 
         <setting id="translation_style"
                  type="enum"
@@ -101,7 +106,7 @@
 
         <setting id="show_stats"
                  type="bool"
-                 label="Show Statistics"
+                 label="Show Success Page Statistics"
                  default="true" />
 
         <setting id="notify_mode"
@@ -124,5 +129,3 @@
     </category>
 
 </settings>
-
-
