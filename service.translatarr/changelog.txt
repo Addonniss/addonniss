@@ -1,26 +1,76 @@
+v2.1.0
+
+- Added Global Translation Lock
+  * Prevents overlapping translations 
+  * Ensures only one translation runs at a time
+  * Eliminates duplicate API calls on rapid subtitle changes
+
+- Refined Source Change Detection
+  * Source overwrite detection now based on file size only
+  * Prevents unnecessary retranslation when identical subtitles are re-downloaded
+
+- Session-Based Translation Protection
+  * Existing translated subtitles are never auto-overwritten across sessions
+  * Protects user-approved translations
+
+- Smart Mid-Session Overwrite Logic
+  * Retranslation allowed only within the same playback session
+  * Subtitle switch/download during playback triggers safe retranslation
+
+- Improved Cross-Session Behavior
+  * Playback restart no longer triggers unwanted retranslation
+  * Prevents API cost waste
+  
+- Temporary translation files
+   * Translations are first saved to temporary files
+   * Only completed translations overwrite the final subtitles, keeping your folder clean
+
+- Improved Debug Logging
+  * Clear logging for overwrite decisions
+  * Logs when translation is skipped due to active lock
+
+--------------------------------------------------
+
 v2.0.1
-- Adaptive chunk behavior:
 
-Starts with the user-defined chunk size
-If the API rejects it, automatically divides by 2 and retries 3 times
-This prevents "all chunks rejected" errors, especially for free-tier API users
+- Adaptive chunk behavior
+  * Starts with user-defined chunk size
+  * Halves chunk size per retry if API rejects
+  * Retries up to 3 times per chunk
 
-- Improved Settings readabilty adding categories
-- Added debug mode
-- Added change log support
+- Strict ISO language validation
+  * Exact source ISO matching
+  * Target ISO detection prevents retranslation
+  * Removed ambiguous matching
+
+- Removed Target Auto-Detect
+  * Target language must be explicitly selected
+
+- Improved playback restart handling
+- Service cleanup and monitor improvements
+- Added Catalan language support
+- Improved settings readability
+- Debug mode improvements
+- Added Change Log viewer in settings
+
+--------------------------------------------------
 
 v2.0.0
+
 - Multi-AI support (Gemini + OpenAI)
 - Added OpenAI models: gpt-4o, gpt-4o-mini, gpt-5-mini
 - Translation styles: Family-Friendly, Natural, Gritty / Adult
-- Live settings reload (no Kodi restart required)
-- Smart chunk retry system (auto fallback)
+- Live settings reload
+- Smart chunk retry system
 - Cost transparency per translation
 - Debug mode added
 - Improved subtitle detection
 - Better API error handling
 
+--------------------------------------------------
+
 v1.0.0
+
 - Initial release
 - Added Gemini models: 2.0 Flash, 1.5 Flash, 2.5 Flash
 - Optional statistics popup
