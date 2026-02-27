@@ -68,9 +68,10 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
         log(f"Video currently playing: {video_name}", "debug", monitor)
 
         save_path, clean_name = file_manager.get_target_path(original_path, video_name)
-        temp_path = save_path + ".tmp"
+        temp_path = save_path + ".tmp"  # <-- temp file path
         log(f"Calculated target save_path: {save_path}, temp_path: {temp_path}", "debug", monitor)
 
+        # If final SRT exists and not forced, just load it
         if xbmcvfs.exists(save_path) and not force_retranslate:
             log("Target exists and no force flag. Loading existing subtitle.", "debug", monitor)
             xbmc.Player().setSubtitles(save_path)
@@ -152,9 +153,11 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
                 log("Aborting translation: all retries failed.", "error", monitor)
                 return False
 
+        # Write final translation to TEMP file first
         log("Writing translated SRT TEMP file.", "debug", monitor)
         file_manager.write_srt(temp_path, timestamps, all_translated)
 
+        # Once done, rename temp to final
         try:
             if xbmcvfs.exists(save_path):
                 xbmcvfs.delete(save_path)
@@ -214,13 +217,6 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.reload_settings()
         log("Monitor initialized.", "debug", self)
 
-    # ----------------------------------------------------------
-    # NEW: Dynamic Settings Reload (ONLY ADDITION)
-    # ----------------------------------------------------------
-    def onSettingsChanged(self):
-        log("Settings changed → reloading monitor.", "debug", self, force=True)
-        self.reload_settings()
-
     def reload_settings(self):
         addon = xbmcaddon.Addon(ADDON_ID)
         self.debug_mode = addon.getSettingBool('debug_mode')
@@ -268,11 +264,13 @@ class TranslatarrMonitor(xbmc.Monitor):
             log("Sub folder missing or inaccessible. Abort check.", "debug", self)
             return
 
+        # Only look for SRTs for current video
         _, files = xbmcvfs.listdir(custom_dir)
         src_variants = get_iso_variants(self.source_lang)
         trg_variants = get_iso_variants(self.target_lang)
         target_exts = [f".{v}.srt" for v in trg_variants]
 
+        # Filter files to only those matching video_name + source ISO
         candidate_files = [
             f for f in files
             if f.lower().startswith(video_name.lower())
@@ -281,6 +279,7 @@ class TranslatarrMonitor(xbmc.Monitor):
             and not any(f.lower().endswith(ext) for ext in target_exts)
         ]
 
+        # --- SORT candidate files by modification time descending ---
         candidate_files.sort(
             key=lambda f: xbmcvfs.Stat(os.path.join(custom_dir, f)).st_mtime(),
             reverse=True
@@ -297,6 +296,7 @@ class TranslatarrMonitor(xbmc.Monitor):
                 log(f"File too small (possibly incomplete). Will check next poll: {f}", "debug", self)
                 continue
 
+            # --- ISO + Size Check for retranslation ---
             force_retranslate = False
             last_size = self.last_source_size.get(f.lower())
             if last_size is not None:
@@ -318,7 +318,7 @@ class TranslatarrMonitor(xbmc.Monitor):
                 self.last_source_size[f.lower()] = stat.st_size()
                 log("Stored source metadata snapshot.", "debug", self)
 
-            return
+            return  # only process one new file per poll
 
 # ----------------------------------------------------------
 # ENTRY POINT
