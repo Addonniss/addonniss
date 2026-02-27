@@ -66,7 +66,7 @@
     <!-- ============================= -->
     <!-- TRANSLATION TUNING -->
     <!-- ============================= -->
-    <category label="Translation Tuning">
+    <category label="Tuning">
 
         <setting id="source_lang"
                  type="enum"
@@ -113,11 +113,14 @@
                  type="bool"
                  label="Simple Notifications"
                  default="true" />
+
+        <setting type="lsep" label="" />
         <!-- ---------------------------------------------------------- -->
         <!-- NEW: Live Translation (progressive subtitle writing)       -->
         <!-- Writes partial SRT after each successful chunk             -->
         <!-- Keeps timestamps fully controlled by Translatarr           -->
         <!-- ---------------------------------------------------------- -->
+        
         <setting id="live_translation"
                  type="bool"
                  label="Enable Live Translation (Experimental)"
@@ -138,4 +141,5 @@
     </category>
 
 </settings>
+
 
