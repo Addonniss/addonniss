@@ -10,7 +10,7 @@
     </extension>
     <extension point="kodi.addon.metadata">
         <summary lang="en_GB">AI-Powered Subtitle Translator using Google Gemini or OpenAi</summary>
-        <description lang="en_GB">Automatically detects and translates movie subtitles into your preferred language using the Gemini/OpenAI preffered model. Features smart media matching and English-priority source selection.</description>
+        <description lang="en_GB">Automatically ranslates movie subtitles into your preferred language using the Gemini/OpenAI preffered model. </description>
         <platform>all</platform>
         <license>GPL-2.0-only</license>
         <assets>
@@ -19,6 +19,7 @@
         </assets>
     </extension>
 </addon>
+
 
 
 
