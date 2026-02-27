@@ -11,11 +11,15 @@
                  label="Subtitle Save Folder"
                  default="/storage/emulated/0/Download/sub/" />
 
+        <!-- Separator / Section title -->
         <setting type="lsep" label="Important Setup" />
 
         <setting type="text"
                  label="Kodi must use same path for 'Custom Subtitle Location'"
                  enable="false" />
+
+        <!-- Extra spacing -->
+        <setting type="lsep" label=" " />
 
     </category>
 
@@ -45,10 +49,12 @@
                  values="Gemini 2.0 Flash|Gemini 1.5 Flash|Gemini 2.5 Flash"
                  default="0" />
 
+        <!-- Extra spacing -->
+        <setting type="lsep" label=" " />
+
         <!-- OpenAI Settings -->
-        
         <setting type="lsep" label="OpenAI Settings" />
-        
+
         <setting id="openai_api_key"
                  type="text"
                  label="OpenAI API Key"
@@ -59,6 +65,9 @@
                  label="OpenAI Model"
                  values="gpt-4o-mini|gpt-4o|gpt-5-mini"
                  default="0" />
+
+        <!-- Extra spacing -->
+        <setting type="lsep" label=" " />
 
     </category>
 
@@ -85,7 +94,7 @@
                  label="Translation Style"
                  values="Family-Friendly|Natural|Gritty / Adult"
                  default="0" />
-        
+
         <setting id="temp"
                  type="text"
                  label="Temperature (0.0 - 1.0)"
@@ -95,6 +104,9 @@
                  type="number"
                  label="Dialogue Lines per Chunk"
                  default="50" />
+
+        <!-- Extra spacing -->
+        <setting type="lsep" label=" " />
 
     </category>
 
@@ -114,13 +126,14 @@
                  label="Simple Notifications"
                  default="true" />
 
+        <!-- Small visual separation -->
         <setting type="lsep" label="" />
+
         <!-- ---------------------------------------------------------- -->
         <!-- NEW: Live Translation (progressive subtitle writing)       -->
         <!-- Writes partial SRT after each successful chunk             -->
         <!-- Keeps timestamps fully controlled by Translatarr           -->
         <!-- ---------------------------------------------------------- -->
-        
         <setting id="live_translation"
                  type="bool"
                  label="Enable Live Translation (Experimental)"
@@ -131,15 +144,17 @@
                  label="Enable Debug Mode"
                  default="false" />
 
-        <settingf type="lsep" label="Information" />
+        <!-- Information / section break -->
+        <setting type="lsep" label="Information" />
 
         <setting id="show_changelog"
                  type="action"
                  label="View Change Log"
                  action="RunScript(service.translatarr,show_changelog)" />
 
+        <!-- Extra spacing at the bottom -->
+        <setting type="lsep" label=" " />
+
     </category>
 
 </settings>
-
-
