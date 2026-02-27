@@ -152,6 +152,30 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
                         lines_done=idx,
                         total_lines=total_lines
                     )
+                    
+                    # ----------------------------------------------------------
+                    # NEW: Live Translation Write
+                    # If enabled, write partial translated SRT after each chunk.
+                    # We NEVER let AI touch timestamps.
+                    # We slice timestamps to match translated lines only.
+                    # This guarantees valid SRT structure at all times.
+                    # ----------------------------------------------------------
+                    if monitor.live_translation:
+                        try:
+                            log("Live mode: writing partial SRT.", "debug", monitor)
+
+                            file_manager.write_srt(
+                                temp_path,
+                                timestamps[:len(all_translated)],
+                                all_translated
+                            )
+
+                            # Load partial subtitles during playback
+                            xbmc.Player().setSubtitles(temp_path)
+
+                        except Exception as e:
+                            log(f"Live write failed: {e}", "error", monitor)
+                            
                 else:
                     retries += 1
                     chunk_size = max(chunk_size // 2, min_chunk)
@@ -379,3 +403,4 @@ if __name__ == '__main__':
                 monitor.waitForAbort(3)
             else:
                 monitor.waitForAbort(15)
+
