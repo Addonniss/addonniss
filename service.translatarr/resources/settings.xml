@@ -113,13 +113,22 @@
                  type="bool"
                  label="Simple Notifications"
                  default="true" />
+        <!-- ---------------------------------------------------------- -->
+        <!-- NEW: Live Translation (progressive subtitle writing)       -->
+        <!-- Writes partial SRT after each successful chunk             -->
+        <!-- Keeps timestamps fully controlled by Translatarr           -->
+        <!-- ---------------------------------------------------------- -->
+        <setting id="live_translation"
+                 type="bool"
+                 label="Enable Live Translation (Experimental)"
+                 default="false" />
 
         <setting id="debug_mode"
                  type="bool"
                  label="Enable Debug Mode"
                  default="false" />
 
-        <setting type="lsep" label="Information" />
+        <settingf type="lsep" label="Information" />
 
         <setting id="show_changelog"
                  type="action"
@@ -129,3 +138,4 @@
     </category>
 
 </settings>
+
