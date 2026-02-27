@@ -118,6 +118,9 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
         idx = 0
         start_time = time.time()
         min_chunk = 5
+        # Reset live reload index for progressive reload
+        if monitor.live_translation:
+            monitor.live_reload_index = 0
 
         while idx < total_lines:
             if progress.is_canceled() or not xbmc.Player().isPlaying():
@@ -160,21 +163,22 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
                     # We slice timestamps to match translated lines only.
                     # This guarantees valid SRT structure at all times.
                     # ----------------------------------------------------------
+                    # Progressive live translation reload
                     if monitor.live_translation:
-                        try:
-                            log("Live mode: writing partial SRT.", "debug", monitor)
-
-                            file_manager.write_srt(
-                                temp_path,
-                                timestamps[:len(all_translated)],
-                                all_translated
-                            )
-
-                            # Load partial subtitles during playback
-                            xbmc.Player().setSubtitles(temp_path)
-
-                        except Exception as e:
-                            log(f"Live write failed: {e}", "error", monitor)
+                        percent_done = int((idx / total_lines) * 100)
+                        if (monitor.live_reload_index < len(monitor.live_reload_points) and
+                            percent_done >= monitor.live_reload_points[monitor.live_reload_index]):
+                            try:
+                                log(f"Live mode: writing partial SRT at {percent_done}%", "debug", monitor)
+                                file_manager.write_srt(
+                                    temp_path,
+                                    timestamps[:len(all_translated)],
+                                    all_translated
+                                )
+                                xbmc.Player().setSubtitles(temp_path)
+                            except Exception as e:
+                                log(f"Live write failed: {e}", "error", monitor)
+                            monitor.live_reload_index += 1
                             
                 else:
                     retries += 1
@@ -273,7 +277,9 @@ class TranslatarrMonitor(xbmc.Monitor):
         # When enabled, subtitles are written after each translated chunk
         # instead of waiting for full translation completion.
         # ----------------------------------------------------------
-        self.live_translation = addon.getSettingBool('live_translation')
+        self.live_translation = ADDON.getSettingBool('live_translation')  # New optional setting
+        self.live_reload_points = [5, 15, 35, 60, 85]  # % milestones
+        self.live_reload_index = 0
 
         # ----------------------------------------------------------
         # NEW CHANGE:
@@ -409,5 +415,3 @@ if __name__ == '__main__':
                 monitor.waitForAbort(3)
             else:
                 monitor.waitForAbort(15)
-
-
