@@ -35,7 +35,6 @@ def log(msg, level='info', monitor=None, force=False):
         else:
             xbmc.log(f"{prefix} {msg}", xbmc.LOGINFO)
 
-
 # ----------------------------------------------------------
 # CHANGELOG POPUP
 # ----------------------------------------------------------
@@ -54,13 +53,11 @@ def show_changelog():
 
     xbmcgui.Dialog().textviewer("Translatarr - Change Log", content)
 
-
 # ----------------------------------------------------------
 # Subtitle Processing with TEMP FILES
 # ----------------------------------------------------------
 def process_subtitles(original_path, monitor, force_retranslate=False):
     log(f"process_subtitles called with: {original_path}, force_retranslate={force_retranslate}", "debug", monitor)
-
     try:
         if not xbmc.Player().isPlaying():
             log("Not playing. Abort translation.", "debug", monitor)
@@ -87,9 +84,11 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
         log(f"Using translation model: {model_name}, chunk size: {initial_chunk}", "debug", monitor)
 
         progress = ui.TranslationProgress(model_name=model_name, title=video_name)
+        log(f"Starting translation for: {original_path}", "debug", monitor)
 
         with xbmcvfs.File(original_path, 'r') as f:
             content = f.read()
+            log(f"Read source SRT, size: {len(content)} bytes", "debug", monitor)
 
         timestamps, texts = file_manager.parse_srt(content)
         if not timestamps:
@@ -99,6 +98,7 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
 
         total_lines = len(texts)
         total_chunks_est = math.ceil(total_lines / initial_chunk)
+        log(f"Total lines to translate: {total_lines}, estimated chunks: {total_chunks_est}", "debug", monitor)
 
         all_translated = []
         cum_in = 0
@@ -108,8 +108,8 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
         min_chunk = 5
 
         while idx < total_lines:
-
             if progress.is_canceled() or not xbmc.Player().isPlaying():
+                log("Playback stopped or user canceled.", "debug", monitor)
                 progress.close()
                 return False
 
@@ -119,11 +119,9 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
 
             while retries < 3 and not success:
                 curr_size = min(chunk_size, total_lines - idx)
+                log(f"Translating chunk {idx}-{idx+curr_size}, size: {curr_size}", "debug", monitor)
 
-                res, in_t, out_t = translator.translate_batch(
-                    texts[idx:idx + curr_size],
-                    curr_size
-                )
+                res, in_t, out_t = translator.translate_batch(texts[idx:idx + curr_size], curr_size)
 
                 if res:
                     all_translated.extend(res)
@@ -131,9 +129,8 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
                     cum_out += out_t
                     idx += curr_size
                     success = True
-
                     percent = int((idx / total_lines) * 100)
-
+                    log(f"Chunk translated. Progress: {percent}%", "debug", monitor)
                     progress.update(
                         percent,
                         src_name=video_name,
@@ -146,20 +143,25 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
                 else:
                     retries += 1
                     chunk_size = max(chunk_size // 2, min_chunk)
+                    log(f"Chunk rejected. Retry {retries}. New size {chunk_size}", "debug", monitor)
                     time.sleep(2)
 
             if not success:
                 progress.close()
                 ui.notify("Critical failure: API rejected all chunk sizes.")
+                log("Aborting translation: all retries failed.", "error", monitor)
                 return False
 
+        log("Writing translated SRT TEMP file.", "debug", monitor)
         file_manager.write_srt(temp_path, timestamps, all_translated)
 
         try:
             if xbmcvfs.exists(save_path):
                 xbmcvfs.delete(save_path)
             xbmcvfs.rename(temp_path, save_path)
+            log(f"Temp file renamed to final SRT: {save_path}", "debug", monitor)
         except Exception as e:
+            log(f"Failed to rename temp file: {e}", "error", monitor)
             ui.notify(f"Error renaming temp file: {e}", title="Translatarr Error")
             return False
 
@@ -169,8 +171,8 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
 
         total_time = time.time() - start_time
         cost = translator.calculate_cost(cum_in, cum_out)
-
         trg_name, _ = get_lang_params(monitor.target_lang)
+        log(f"Translation finished. Total time: {total_time:.2f}s, cost: ${cost:.4f}", "debug", monitor)
 
         if monitor.show_stats:
             ui.show_stats_box(
@@ -198,7 +200,6 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
         ui.notify(f"Error: {e}", title="Translatarr Error")
         return False
 
-
 # ----------------------------------------------------------
 # Monitor
 # ----------------------------------------------------------
@@ -213,7 +214,9 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.reload_settings()
         log("Monitor initialized.", "debug", self)
 
-    # ✅ PROPER FIX: Kodi calls this automatically when settings change
+    # ----------------------------------------------------------
+    # NEW: Dynamic Settings Reload (ONLY ADDITION)
+    # ----------------------------------------------------------
     def onSettingsChanged(self):
         log("Settings changed → reloading monitor.", "debug", self, force=True)
         self.reload_settings()
@@ -229,30 +232,40 @@ class TranslatarrMonitor(xbmc.Monitor):
         log("Settings reloaded.", "debug", self, force=True)
 
     def onPlaybackStarted(self):
+        log("Playback started. Activating polling.", "debug", self)
         self.polling_active = True
         self.last_source_size = {}
         self.session_translation_created = False
 
     def onPlaybackStopped(self):
+        log("Playback stopped. Resetting state.", "debug", self)
         self.polling_active = False
 
     def onPlaybackEnded(self):
+        log("Playback ended. Resetting state.", "debug", self)
         self.polling_active = False
 
     def check_for_subs(self):
+        log("Polling for subtitles...", "debug", self)
 
         if not xbmc.Player().isPlaying():
+            if self.debug_mode:
+                log("Playback not active. Skipping check.", "debug", self)
             return
 
         if self.is_busy:
+            log("Translation in progress. Skipping check.", "debug", self)
             return
 
         playing_file = xbmc.Player().getPlayingFile()
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
+        log(f"Current video: {video_name}", "debug", self)
 
         custom_dir = ADDON.getSetting('sub_folder')
+        log(f"Custom subtitles folder: {custom_dir}", "debug", self)
 
         if not custom_dir or not xbmcvfs.exists(custom_dir):
+            log("Sub folder missing or inaccessible. Abort check.", "debug", self)
             return
 
         _, files = xbmcvfs.listdir(custom_dir)
@@ -273,34 +286,39 @@ class TranslatarrMonitor(xbmc.Monitor):
             reverse=True
         )
 
-        for f in candidate_files:
+        log(f"Found {len(candidate_files)} candidate source SRT(s) for current video.", "debug", self)
 
+        for f in candidate_files:
             full_path = os.path.join(custom_dir, f)
             stat = xbmcvfs.Stat(full_path)
+            log(f"File stats -> size: {stat.st_size()} bytes, mtime: {stat.st_mtime()}", "debug", self)
 
             if stat.st_size() < 500:
+                log(f"File too small (possibly incomplete). Will check next poll: {f}", "debug", self)
                 continue
 
             force_retranslate = False
             last_size = self.last_source_size.get(f.lower())
-
             if last_size is not None:
                 if stat.st_size() != last_size:
+                    log(f"File size changed: {last_size} → {stat.st_size()}. Forcing retranslation.", "debug", self)
                     force_retranslate = True
                 else:
+                    log("File unchanged since last check. Skipping.", "debug", self)
                     continue
 
             try:
                 self.is_busy = True
+                log(f"Processing subtitle: {f}", "debug", self)
                 success = process_subtitles(full_path, self, force_retranslate)
             finally:
                 self.is_busy = False
 
             if success:
                 self.last_source_size[f.lower()] = stat.st_size()
+                log("Stored source metadata snapshot.", "debug", self)
 
             return
-
 
 # ----------------------------------------------------------
 # ENTRY POINT
