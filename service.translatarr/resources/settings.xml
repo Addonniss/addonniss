@@ -1,9 +1,30 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
-    <category label="Translatarr Config">
 
-        <!-- AI Provider -->
-        <setting label="AI Provider" type="lsep" />
+    <!-- ============================= -->
+    <!-- SUBTITLES -->
+    <!-- ============================= -->
+    <category label="Subtitles">
+
+        <setting id="sub_folder"
+                 type="folder"
+                 label="Subtitle Save Folder"
+                 default="/storage/emulated/0/Download/sub/" />
+
+        <setting type="lsep" label="Important Setup" />
+
+        <setting type="text"
+                 label="Kodi must use same path for 'Custom Subtitle Location'"
+                 enable="false" />
+
+    </category>
+
+
+    <!-- ============================= -->
+    <!-- AI ENGINE -->
+    <!-- ============================= -->
+    <category label="AI Engine">
+
         <setting id="provider"
                  type="enum"
                  label="Active Engine"
@@ -11,11 +32,13 @@
                  default="0" />
 
         <!-- Gemini Settings -->
-        <setting label="Gemini Settings" type="lsep" />
+        <setting type="lsep" label="Gemini Settings" />
+
         <setting id="api_key"
                  type="text"
                  label="Gemini API Key"
                  default="" />
+
         <setting id="model"
                  type="enum"
                  label="Gemini Model"
@@ -23,31 +46,39 @@
                  default="0" />
 
         <!-- OpenAI Settings -->
-        <setting label="OpenAI Settings" type="lsep" />
+        
+        <setting type="lsep" label="OpenAI Settings" />
+        
         <setting id="openai_api_key"
                  type="text"
                  label="OpenAI API Key"
                  default="" />
+
         <setting id="openai_model"
                  type="enum"
                  label="OpenAI Model"
                  values="gpt-4o-mini|gpt-4o|gpt-5-mini"
                  default="0" />
 
-        <!-- Translation -->
-        <setting label="Translation Config" type="lsep" />
+    </category>
+
+
+    <!-- ============================= -->
+    <!-- TRANSLATION TUNING -->
+    <!-- ============================= -->
+    <category label="Translation Tuning">
 
         <setting id="source_lang"
                  type="enum"
                  label="Source Language"
-                 values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Auto-Detect|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Slovenian|Croatian"
-                 default="10" />
+                 values="Arabic|Catalan|Chinese|Croatian|Czech|Danish|Dutch|English|Finnish|French|German|Greek|Hebrew|Hindi|Hungarian|Italian|Japanese|Korean|Norwegian|Polish|Portuguese|Romanian|Russian|Slovenian|Spanish|Swedish|Thai|Turkish|Vietnamese"
+                 default="7" />
 
         <setting id="target_lang"
                  type="enum"
                  label="Target Language"
-                 values="Romanian|French|Spanish|German|Italian|Portuguese|Russian|Chinese|Japanese|English|Arabic|Greek|Turkish|Dutch|Polish|Hungarian|Czech|Swedish|Danish|Finnish|Norwegian|Hebrew|Hindi|Korean|Thai|Vietnamese|Slovenian|Croatian"
-                 default="0" />
+                 values="Arabic|Catalan|Chinese|Croatian|Czech|Danish|Dutch|English|Finnish|French|German|Greek|Hebrew|Hindi|Hungarian|Italian|Japanese|Korean|Norwegian|Polish|Portuguese|Romanian|Russian|Slovenian|Spanish|Swedish|Thai|Turkish|Vietnamese"
+                 default="21" />
 
         <setting id="translation_style"
                  type="enum"
@@ -62,17 +93,20 @@
 
         <setting id="chunk_size"
                  type="number"
-                 label="Lines per Chunk"
+                 label="Dialogue Lines per Chunk"
                  default="50" />
 
-        <setting id="sub_folder"
-                 type="folder"
-                 label="Save Folder"
-                 default="/storage/emulated/0/Download/sub/" />
+    </category>
+
+
+    <!-- ============================= -->
+    <!-- ADVANCED -->
+    <!-- ============================= -->
+    <category label="Advanced">
 
         <setting id="show_stats"
                  type="bool"
-                 label="Show Statistics"
+                 label="Show Success Page Statistics"
                  default="true" />
 
         <setting id="notify_mode"
@@ -80,8 +114,18 @@
                  label="Simple Notifications"
                  default="true" />
 
+        <setting id="debug_mode"
+                 type="bool"
+                 label="Enable Debug Mode"
+                 default="false" />
+
+        <setting type="lsep" label="Information" />
+
+        <setting id="show_changelog"
+                 type="action"
+                 label="View Change Log"
+                 action="RunScript(service.translatarr,show_changelog)" />
+
     </category>
+
 </settings>
-
-
-
