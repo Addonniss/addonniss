@@ -217,6 +217,13 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.reload_settings()
         log("Monitor initialized.", "debug", self)
 
+    # ----------------------------------------------------------
+    # Dynamic Settings Reload (no Kodi restart required)
+    # ----------------------------------------------------------
+    def onSettingsChanged(self):
+        log("Settings changed → reloading monitor.", "debug", self, force=True)
+        self.reload_settings()
+    
     def reload_settings(self):
         addon = xbmcaddon.Addon(ADDON_ID)
         self.debug_mode = addon.getSettingBool('debug_mode')
@@ -334,3 +341,4 @@ if __name__ == '__main__':
             log(f"Poll iteration #{poll_count}", "debug", monitor)
             monitor.check_for_subs()
             monitor.waitForAbort(3)
+
