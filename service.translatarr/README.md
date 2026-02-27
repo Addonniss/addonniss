@@ -1,4 +1,4 @@
-# 🎬 Translatarr  2.1.0
+# 🎬 Translatarr # 2.1.0
 ## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
@@ -35,6 +35,8 @@ Unlike traditional word-by-word translators, it understands:
 ✔ Restart-safe translation handling  
 
 Translation now begins almost immediately after a subtitle appears in your configured folder.
+
+**You can download multiple subtitles during playback. Simply choose the one that’s best synced — Translatarr will translate your latest selection.
 
 ---
 
@@ -392,4 +394,5 @@ Use:
 If you enjoy Translatarr and want to support development:
 
 https://www.buymeacoffee.com/addonniss
+
 
