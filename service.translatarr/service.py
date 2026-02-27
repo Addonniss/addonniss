@@ -155,6 +155,15 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
                         lines_done=idx,
                         total_lines=total_lines
                     )
+                    # ------------------------------
+                    # FIRST CHUNK GUARANTEE
+                    # ------------------------------
+                    if monitor.live_translation and idx <= initial_chunk:
+                        try:
+                            file_manager.write_srt(temp_path, timestamps[:len(all_translated)], all_translated)
+                            xbmc.Player().setSubtitles(temp_path)
+                        except Exception as e:
+                            log(f"Live write failed: {e}", "error", monitor)
                     
                     # ----------------------------------------------------------
                     # NEW: Live Translation Write
@@ -415,3 +424,4 @@ if __name__ == '__main__':
                 monitor.waitForAbort(3)
             else:
                 monitor.waitForAbort(15)
+
