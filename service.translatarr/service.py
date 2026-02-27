@@ -406,14 +406,10 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == "show_changelog":
         show_changelog()
     else:
-        monitor = TranslatarrMonitor()
-
-        # ----------------------------------------------------------
-        # FIX: ensure global debug fallback works properly
-        # ----------------------------------------------------------
         global _global_monitor
+        monitor = TranslatarrMonitor()
         _global_monitor = monitor
-
+        
         poll_count = 0
         while not monitor.abortRequested():
             poll_count += 1
@@ -423,5 +419,6 @@ if __name__ == '__main__':
                 monitor.check_for_subs()
                 monitor.waitForAbort(3)
             else:
-                monitor.waitForAbort(15)
+                monitor.waitForAbort(60)
+
 
