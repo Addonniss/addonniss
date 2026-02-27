@@ -244,6 +244,15 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.chunk_size = int(addon.getSetting('chunk_size') or 100)
         self.source_lang = addon.getSetting('source_lang')
         self.target_lang = addon.getSetting('target_lang')
+
+        # ----------------------------------------------------------
+        # NEW CHANGE:
+        # Centralize sub_folder inside monitor settings
+        # This ensures consistent dynamic reload behavior and
+        # removes direct ADDON access from polling logic.
+        # ----------------------------------------------------------
+        self.sub_folder = addon.getSetting('sub_folder')
+
         log("Settings reloaded.", "debug", self, force=True)
 
     def onPlaybackStarted(self):
@@ -276,7 +285,10 @@ class TranslatarrMonitor(xbmc.Monitor):
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
         log(f"Current video: {video_name}", "debug", self)
 
-        custom_dir = ADDON.getSetting('sub_folder')
+        # ----------------------------------------------------------
+        # UPDATED: use centralized self.sub_folder
+        # ----------------------------------------------------------
+        custom_dir = self.sub_folder
         log(f"Custom subtitles folder: {custom_dir}", "debug", self)
 
         if not custom_dir or not xbmcvfs.exists(custom_dir):
@@ -322,7 +334,6 @@ class TranslatarrMonitor(xbmc.Monitor):
                     log("File unchanged since last check. Skipping.", "debug", self)
                     continue
 
-            # Snapshot BEFORE processing
             self.last_source_size[f.lower()] = stat.st_size()
             log("Stored source metadata snapshot (pre-process).", "debug", self)
 
@@ -352,8 +363,9 @@ if __name__ == '__main__':
     else:
         monitor = TranslatarrMonitor()
 
-        # Expose monitor globally so log() calls without an explicit monitor
-        # reference still respect the current debug_mode setting.
+        # ----------------------------------------------------------
+        # FIX: ensure global debug fallback works properly
+        # ----------------------------------------------------------
         global _global_monitor
         _global_monitor = monitor
 
