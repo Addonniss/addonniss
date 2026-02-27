@@ -22,21 +22,17 @@ Unlike traditional word-by-word translators, it understands:
 
 ---
 
-# 🚀 What’s New
+# 🚀 What’s New (v2.1.0)
 
-✔ Gemini AND OpenAI support  
-✔ Automatic adaptive chunk resizing  
-✔ Token usage tracking  
-✔ Real cost calculation per movie per model selection  
-✔ Strict ISO language validation (safe & accurate detection)  
-✔ Translation Style control  
-✔ Real-time settings reload (no Kodi restart required)  
-✔ Very fast subtitle detection & translation start  
-✔ Restart-safe translation handling  
+✔ Global Translation Lock (prevents overlapping translations)  
+✔ Refined Source Change Detection (file size–based overwrite logic)  
+✔ Session-Based Translation Protection  
+✔ Smart Mid-Session Retranslation Handling  
+✔ Improved Cross-Session Behavior (restart-safe)  
+✔ Temporary Translation Files (clean & safe saving)  
+✔ Improved Debug Logging  
 
-Translation now begins almost immediately after a subtitle appears in your configured folder.
-
-**You can download multiple subtitles during playback. Simply choose the one that’s best synced — Translatarr will translate your latest selection.
+Translations are now safer, smarter, and protected against duplicates, unwanted overwrites, and unnecessary API usage — while allowing you to download and switch subtitles freely during playback.
 
 ---
 
@@ -394,5 +390,6 @@ Use:
 If you enjoy Translatarr and want to support development:
 
 https://www.buymeacoffee.com/addonniss
+
 
 
