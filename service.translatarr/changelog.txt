@@ -33,7 +33,7 @@ v2.1.0
 
 v2.0.1
 
-- Adaptive chunk behavior
+- Adaptive chunk behavior may help free tier users
   * Starts with user-defined chunk size
   * Halves chunk size per retry if API rejects
   * Retries up to 3 times per chunk
