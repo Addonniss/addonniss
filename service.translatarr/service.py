@@ -268,6 +268,12 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.chunk_size = int(addon.getSetting('chunk_size') or 100)
         self.source_lang = addon.getSetting('source_lang')
         self.target_lang = addon.getSetting('target_lang')
+        # ----------------------------------------------------------
+        # NEW: Live Translation mode (progressive SRT writing)
+        # When enabled, subtitles are written after each translated chunk
+        # instead of waiting for full translation completion.
+        # ----------------------------------------------------------
+        self.live_translation = addon.getSettingBool('live_translation')
 
         # ----------------------------------------------------------
         # NEW CHANGE:
@@ -403,4 +409,5 @@ if __name__ == '__main__':
                 monitor.waitForAbort(3)
             else:
                 monitor.waitForAbort(15)
+
 
