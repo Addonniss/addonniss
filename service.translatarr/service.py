@@ -232,21 +232,90 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.reload_settings()
 
     def reload_settings(self):
+        """
+        Reload addon settings safely.
+        Designed to work with both settings version="1" and version="2".
+        Prevents TypeError from getSettingBool() and avoids stale runtime state.
+        """
+    
         addon = xbmcaddon.Addon(ADDON_ID)
-        self.debug_mode = addon.getSettingBool('debug_mode')
-        self.use_notifications = addon.getSettingBool('notify_mode')
-        self.show_stats = addon.getSettingBool('show_stats')
-        self.chunk_size = int(addon.getSetting('chunk_size') or 100)
+    
+        # ------------------------------------------------------------
+        # Helper: Safe boolean reader (version-agnostic)
+        # ------------------------------------------------------------
+        def safe_bool(key, fallback=False):
+            """
+            Safely read boolean setting.
+            Works even if Kodi returns string instead of real bool.
+            """
+            try:
+                return addon.getSettingBool(key)
+            except (TypeError, ValueError):
+                raw = str(addon.getSetting(key) or '').strip().lower()
+                if raw in ('true', '1', 'yes', 'on'):
+                    return True
+                elif raw in ('false', '0', 'no', 'off', ''):
+                    return False
+                return fallback
+    
+        # ------------------------------------------------------------
+        # Helper: Safe integer reader
+        # ------------------------------------------------------------
+        def safe_int(key, fallback):
+            """
+            Safely read integer setting.
+            Prevents crashes if setting is empty or corrupted.
+            """
+            try:
+                return int(addon.getSetting(key))
+            except (TypeError, ValueError):
+                log(f"Invalid integer setting for '{key}', using fallback {fallback}", "warning", self)
+                return fallback
+    
+        # ------------------------------------------------------------
+        # Boolean settings
+        # ------------------------------------------------------------
+        self.debug_mode = safe_bool('debug_mode', False)
+        self.use_notifications = safe_bool('notify_mode', True)
+        self.show_stats = safe_bool('show_stats', True)
+        self.live_translation = safe_bool('live_translation', False)
+    
+        # ------------------------------------------------------------
+        # Numeric / string settings
+        # ------------------------------------------------------------
+        self.chunk_size = safe_int('chunk_size', 100)
         self.source_lang = addon.getSetting('source_lang')
         self.target_lang = addon.getSetting('target_lang')
         self.sub_folder = addon.getSetting('sub_folder') or "/storage/emulated/0/Download/sub/"
-
-        self.live_translation = addon.getSettingBool('live_translation')
+    
+        # ------------------------------------------------------------
+        # Live translation runtime state handling
+        # Prevent stale values when feature is disabled
+        # ------------------------------------------------------------
         if self.live_translation:
             self.live_reload_points = [5, 15, 35, 60, 85]
             self.live_reload_index = 0
-
-        log("Settings reloaded.", "debug", self, force=True)
+            log("Live translation enabled.", "debug", self)
+        else:
+            self.live_reload_points = []
+            self.live_reload_index = 0
+            log("Live translation disabled. Runtime state cleared.", "debug", self)
+    
+        # ------------------------------------------------------------
+        # Validate subtitle folder path
+        # Auto-create if missing (Android-safe)
+        # ------------------------------------------------------------
+        if not os.path.exists(self.sub_folder):
+            try:
+                os.makedirs(self.sub_folder, exist_ok=True)
+                log(f"Created missing subtitle folder: {self.sub_folder}", "info", self)
+            except Exception as e:
+                log(f"Failed to create subtitle folder: {self.sub_folder} | Error: {e}", "error", self)
+    
+        # ------------------------------------------------------------
+        # Final confirmation log
+        # ------------------------------------------------------------
+        log("Settings reloaded successfully.", "debug", self, force=True)
 
     def onPlaybackStarted(self):
         log("Playback started. Activating polling.", "debug", self)
