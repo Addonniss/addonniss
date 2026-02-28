@@ -1,5 +1,43 @@
+v2.2.0
+
+- Added Live Translation Mode (Optional)
+  * Subtitles progressively update during translation
+  * Reloads partial translations at defined progress points
+  * Reduces perceived wait time on large subtitles
+
+- Instant Source Subtitle Display
+  * Newly downloaded source subtitles are shown immediately during playback
+  * Translation runs in background without blocking viewing
+
+- Single Instance Service Protection
+  * Prevents multiple service instances from running simultaneously
+  * Eliminates duplicate polling and race conditions
+  * Improves overall addon stability
+
+- Improved Candidate Detection Logic
+  * More flexible subtitle filename matching
+  * Maintains strict ISO source/target validation
+  * Preserves size-based overwrite detection
+
+- Enhanced Session Safety
+  * Maintains session-based overwrite protection
+  * Prevents cross-session unwanted retranslations
+  * Keeps API usage controlled and predictable
+
+- Improved Global Logging System
+  * Centralized debug logging
+  * More consistent internal state reporting
+  * Better traceability during live translation
+
+- Internal Code Refactoring
+  * Cleaner subfolder handling
+  * Safer monitor lifecycle management
+  * Structural stability improvements without altering core behavior
+
+
 v2.1.1
 - Fix for target language display in stats and notifications
+
 
 v2.1.0
 
