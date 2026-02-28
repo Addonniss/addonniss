@@ -316,6 +316,20 @@ class TranslatarrMonitor(xbmc.Monitor):
         # Final confirmation log
         # ------------------------------------------------------------
         log("Settings reloaded successfully.", "debug", self, force=True)
+        log(
+            f"Settings snapshot → "
+            f"debug={self.debug_mode}, "
+            f"notify={self.use_notifications}, "
+            f"stats={self.show_stats}, "
+            f"live={self.live_translation}, "
+            f"chunk={self.chunk_size}, "
+            f"src={self.source_lang}, "
+            f"trg={self.target_lang}, "
+            f"folder={self.sub_folder}",
+            "debug",
+            self,
+            force=True
+        )
 
     def onPlaybackStarted(self):
         log("Playback started. Activating polling.", "debug", self)
