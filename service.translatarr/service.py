@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import xbmc
 import xbmcaddon
 import xbmcvfs
@@ -19,22 +18,19 @@ ADDON = xbmcaddon.Addon(ADDON_ID)
 
 xbmc.log("[Translatarr] SERVICE STARTED", xbmc.LOGINFO)
 
-# –––––––––––––––––––––––––––––
+# ----------------------------------------------------------
 # Logging
-# –––––––––––––––––––––––––––––
+# ----------------------------------------------------------
+_global_monitor = None  # module-level reference for logging
 
-# Global monitor reference used by log() when no monitor is passed explicitly.
-# Set to the active TranslatarrMonitor instance once created.
-_global_monitor = None
+def set_global_monitor(monitor_instance):
+    """Safely set the module-wide global monitor."""
+    global _global_monitor
+    _global_monitor = monitor_instance
 
 def log(msg, level='info', monitor=None, force=False):
-    # Resolve which monitor to use: prefer the explicitly passed one,
-    # fall back to the global reference so debug_mode is always honoured.
-    resolved_monitor = monitor if monitor is not None else _global_monitor
-    debug_enabled = False
-    if resolved_monitor and hasattr(resolved_monitor, 'debug_mode'):
-        debug_enabled = resolved_monitor.debug_mode
-
+    resolved_monitor = monitor if monitor else _global_monitor
+    debug_enabled = getattr(resolved_monitor, 'debug_mode', False)
     if force or level != 'debug' or debug_enabled:
         prefix = "[Translatarr]"
         if level == 'debug':
@@ -44,29 +40,9 @@ def log(msg, level='info', monitor=None, force=False):
         else:
             xbmc.log(f"{prefix} {msg}", xbmc.LOGINFO)
 
-# –––––––––––––––––––––––––––––
-# CHANGELOG POPUP
-# –––––––––––––––––––––––––––––
-
-def show_changelog():
-    addon_path = ADDON.getAddonInfo('path')
-    changelog_path = os.path.join(addon_path, 'changelog.txt')
-    log(f"Attempting to show changelog from: {changelog_path}", "debug")
-
-    if xbmcvfs.exists(changelog_path):
-        with xbmcvfs.File(changelog_path) as f:
-            content = f.read()
-            log("Changelog loaded successfully.", "debug")
-    else:
-        content = "No changelog available."
-        log("Changelog not found.", "debug")
-
-    xbmcgui.Dialog().textviewer("Translatarr - Change Log", content)
-
-# –––––––––––––––––––––––––––––
+# ----------------------------------------------------------
 # Subtitle Processing with TEMP FILES
-# –––––––––––––––––––––––––––––
-
+# ----------------------------------------------------------
 def process_subtitles(original_path, monitor, force_retranslate=False):
     log(f"process_subtitles called with: {original_path}, force_retranslate={force_retranslate}", "debug", monitor)
     try:
@@ -79,12 +55,12 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
         log(f"Video currently playing: {video_name}", "debug", monitor)
 
         save_path, clean_name = file_manager.get_target_path(original_path, video_name)
-        temp_path = save_path + ".tmp"  # <-- temp file path
+        temp_path = save_path + ".tmp"
         log(f"Calculated target save_path: {save_path}, temp_path: {temp_path}", "debug", monitor)
 
         # If final SRT exists and not forced, just load it
         if xbmcvfs.exists(save_path) and not force_retranslate:
-            log("Target exists and no force flag. Loading existing subtitle.", "debug", monitor)
+            log("Subtitle already loaded this session. Skipping reload.", "debug", monitor)
             xbmc.Player().setSubtitles(save_path)
             return True
 
@@ -118,9 +94,17 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
         idx = 0
         start_time = time.time()
         min_chunk = 5
-        # Reset live reload index for progressive reload
-        if monitor.live_translation:
+
+        if getattr(monitor, 'live_translation', False):
             monitor.live_reload_index = 0
+
+        # Immediately display new subtitle mid-playback if it's a fresh source
+        if not force_retranslate and xbmcvfs.exists(original_path):
+            try:
+                xbmc.Player().setSubtitles(original_path)
+                log("Displayed newly detected source subtitle instantly.", "debug", monitor)
+            except Exception as e:
+                log(f"Failed to instantly display source subtitle: {e}", "error", monitor)
 
         while idx < total_lines:
             if progress.is_canceled() or not xbmc.Player().isPlaying():
@@ -155,40 +139,20 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
                         lines_done=idx,
                         total_lines=total_lines
                     )
-                    # ------------------------------
-                    # FIRST CHUNK GUARANTEE
-                    # ------------------------------
-                    if monitor.live_translation and idx <= initial_chunk:
-                        try:
-                            file_manager.write_srt(temp_path, timestamps[:len(all_translated)], all_translated)
-                            xbmc.Player().setSubtitles(temp_path)
-                        except Exception as e:
-                            log(f"Live write failed: {e}", "error", monitor)
-                    
-                    # ----------------------------------------------------------
-                    # NEW: Live Translation Write
-                    # If enabled, write partial translated SRT after each chunk.
-                    # We NEVER let AI touch timestamps.
-                    # We slice timestamps to match translated lines only.
-                    # This guarantees valid SRT structure at all times.
-                    # ----------------------------------------------------------
-                    # Progressive live translation reload
-                    if monitor.live_translation:
+
+                    # Live translation progressive reload
+                    if getattr(monitor, 'live_translation', False):
                         percent_done = int((idx / total_lines) * 100)
                         if (monitor.live_reload_index < len(monitor.live_reload_points) and
                             percent_done >= monitor.live_reload_points[monitor.live_reload_index]):
                             try:
                                 log(f"Live mode: writing partial SRT at {percent_done}%", "debug", monitor)
-                                file_manager.write_srt(
-                                    temp_path,
-                                    timestamps[:len(all_translated)],
-                                    all_translated
-                                )
+                                file_manager.write_srt(temp_path, timestamps[:len(all_translated)], all_translated)
                                 xbmc.Player().setSubtitles(temp_path)
                             except Exception as e:
                                 log(f"Live write failed: {e}", "error", monitor)
                             monitor.live_reload_index += 1
-                            
+
                 else:
                     retries += 1
                     chunk_size = max(chunk_size // 2, min_chunk)
@@ -201,11 +165,9 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
                 log("Aborting translation: all retries failed.", "error", monitor)
                 return False
 
-        # Write final translation to TEMP file first
         log("Writing translated SRT TEMP file.", "debug", monitor)
         file_manager.write_srt(temp_path, timestamps, all_translated)
 
-        # Once done, rename temp to final
         try:
             if xbmcvfs.exists(save_path):
                 xbmcvfs.delete(save_path)
@@ -251,10 +213,9 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
         ui.notify(f"Error: {e}", title="Translatarr Error")
         return False
 
-# –––––––––––––––––––––––––––––
+# ----------------------------------------------------------
 # Monitor
-# –––––––––––––––––––––––––––––
-
+# ----------------------------------------------------------
 class TranslatarrMonitor(xbmc.Monitor):
 
     def __init__(self):
@@ -266,9 +227,6 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.reload_settings()
         log("Monitor initialized.", "debug", self)
 
-    # ----------------------------------------------------------
-    # Dynamic Settings Reload (no Kodi restart required)
-    # ----------------------------------------------------------
     def onSettingsChanged(self):
         log("Settings changed → reloading monitor.", "debug", self, force=True)
         self.reload_settings()
@@ -281,22 +239,12 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.chunk_size = int(addon.getSetting('chunk_size') or 100)
         self.source_lang = addon.getSetting('source_lang')
         self.target_lang = addon.getSetting('target_lang')
-        # ----------------------------------------------------------
-        # NEW: Live Translation mode (progressive SRT writing)
-        # When enabled, subtitles are written after each translated chunk
-        # instead of waiting for full translation completion.
-        # ----------------------------------------------------------
-        self.live_translation = ADDON.getSettingBool('live_translation')  # New optional setting
-        self.live_reload_points = [5, 15, 35, 60, 85]  # % milestones
-        self.live_reload_index = 0
+        self.sub_folder = addon.getSetting('sub_folder') or "/storage/emulated/0/Download/sub/"
 
-        # ----------------------------------------------------------
-        # NEW CHANGE:
-        # Centralize sub_folder inside monitor settings
-        # This ensures consistent dynamic reload behavior and
-        # removes direct ADDON access from polling logic.
-        # ----------------------------------------------------------
-        self.sub_folder = addon.getSetting('sub_folder')
+        self.live_translation = addon.getSettingBool('live_translation')
+        if self.live_translation:
+            self.live_reload_points = [5, 15, 35, 60, 85]
+            self.live_reload_index = 0
 
         log("Settings reloaded.", "debug", self, force=True)
 
@@ -318,8 +266,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         log("Polling for subtitles...", "debug", self)
 
         if not xbmc.Player().isPlaying():
-            if self.debug_mode:
-                log("Playback not active. Skipping check.", "debug", self)
+            log("Playback not active. Skipping check.", "debug", self)
             return
 
         if self.is_busy:
@@ -330,9 +277,6 @@ class TranslatarrMonitor(xbmc.Monitor):
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
         log(f"Current video: {video_name}", "debug", self)
 
-        # ----------------------------------------------------------
-        # UPDATED: use centralized self.sub_folder
-        # ----------------------------------------------------------
         custom_dir = self.sub_folder
         log(f"Custom subtitles folder: {custom_dir}", "debug", self)
 
@@ -345,20 +289,21 @@ class TranslatarrMonitor(xbmc.Monitor):
         trg_variants = get_iso_variants(self.target_lang)
         target_exts = [f".{v}.srt" for v in trg_variants]
 
-        candidate_files = [
-            f for f in files
-            if f.lower().startswith(video_name.lower())
-            and f.lower().endswith('.srt')
-            and any(f.lower().endswith(f".{v}.srt") for v in src_variants)
-            and not any(f.lower().endswith(ext) for ext in target_exts)
-        ]
+        # Candidate detection with ISO + name + target ext filters
+        candidate_files = []
+        for f in files:
+            f_lower = f.lower()
+            base_ok = video_name.lower() in f_lower
+            src_ok = any(f_lower.endswith(f".{v}.srt") for v in src_variants)
+            trg_ok = not any(f_lower.endswith(ext) for ext in target_exts)
+            if base_ok and src_ok and trg_ok:
+                candidate_files.append(f)
+                log(f"Candidate subtitle detected: {f}", "debug", self)
 
         candidate_files.sort(
             key=lambda f: xbmcvfs.Stat(os.path.join(custom_dir, f)).st_mtime(),
             reverse=True
         )
-
-        log(f"Found {len(candidate_files)} candidate source SRT(s) for current video.", "debug", self)
 
         for f in candidate_files:
             full_path = os.path.join(custom_dir, f)
@@ -369,6 +314,7 @@ class TranslatarrMonitor(xbmc.Monitor):
                 log(f"File too small (possibly incomplete). Will check next poll: {f}", "debug", self)
                 continue
 
+            # Check if source changed in size → force retranslation
             force_retranslate = False
             last_size = self.last_source_size.get(f.lower())
             if last_size is not None:
@@ -379,9 +325,6 @@ class TranslatarrMonitor(xbmc.Monitor):
                     log("File unchanged since last check. Skipping.", "debug", self)
                     continue
 
-            self.last_source_size[f.lower()] = stat.st_size()
-            log("Stored source metadata snapshot (pre-process).", "debug", self)
-
             try:
                 self.is_busy = True
                 log(f"Processing subtitle: {f}", "debug", self)
@@ -389,36 +332,35 @@ class TranslatarrMonitor(xbmc.Monitor):
             finally:
                 self.is_busy = False
 
-            if not success:
-                if last_size is None:
-                    del self.last_source_size[f.lower()]
-                else:
-                    self.last_source_size[f.lower()] = last_size
-                log("Reverted source metadata snapshot due to failure.", "debug", self)
+            if success:
+                self.last_source_size[f.lower()] = stat.st_size()
+                log("Stored source metadata snapshot.", "debug", self)
 
-            return
+            return  # only process one new file per poll
 
-# –––––––––––––––––––––––––––––
+# ----------------------------------------------------------
 # ENTRY POINT
-# –––––––––––––––––––––––––––––
-
+# ----------------------------------------------------------
 if __name__ == '__main__':
-    if len(sys.argv) > 1 and sys.argv[1] == "show_changelog":
-        show_changelog()
-    else:
-        global _global_monitor
+    window = xbmcgui.Window(10000)
+
+    if window.getProperty("TranslatarrRunning") == "true":
+        xbmc.log("[Translatarr] Another instance already running. Exiting.", xbmc.LOGINFO)
+        sys.exit()
+
+    window.setProperty("TranslatarrRunning", "true")
+
+    try:
         monitor = TranslatarrMonitor()
         _global_monitor = monitor
-        
+
         poll_count = 0
         while not monitor.abortRequested():
             poll_count += 1
             log(f"Poll iteration #{poll_count}", "debug", monitor)
+            monitor.check_for_subs()
+            monitor.waitForAbort(3)
 
-            if monitor.polling_active:
-                monitor.check_for_subs()
-                monitor.waitForAbort(3)
-            else:
-                monitor.waitForAbort(60)
-
-
+    finally:
+        window.clearProperty("TranslatarrRunning")
+        xbmc.log("[Translatarr] Instance stopped. Lock released.", xbmc.LOGINFO)
