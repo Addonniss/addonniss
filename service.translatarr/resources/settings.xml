@@ -2,26 +2,49 @@
 <settings>
 
     <!-- ============================= -->
-    <!-- SUBTITLES -->
-    <!-- ============================= -->
-    <category label="Subtitles">
+		<!-- SUBTITLES -->
+		<!-- ============================= -->
+		<category label="Subtitles">
+		
+		    <!-- NEW: Automatic Mode -->
+		    <setting id="auto_mode"
+		             type="bool"
+		             label="Automatic Subtitle Detection (Recommended)"
+		             default="true" />
+		
+		    <!-- Explanation text when auto is ON -->
+		    <setting type="text"
+		             label="Automatically detects subtitles and caches translations."
+		             enable="false"
+		             visible="eq(-1,true)" />
+		
+		    <!-- Manual Mode Separator -->
+		    <setting type="lsep"
+		             label="Manual Mode (Advanced)"
+		             visible="eq(-2,false)" />
+		
+		    <!-- Manual Folder (only visible if auto_mode is OFF) -->
+		    <setting id="sub_folder"
+		             type="folder"
+		             label="Subtitle Save Folder"
+		             default="/storage/emulated/0/Download/sub/"
+		             visible="eq(-3,false)" />
+		
+		    <!-- Manual Info -->
+		    <setting type="text"
+		             label="Kodi must use same path for 'Custom Subtitle Location'"
+		             enable="false"
+		             visible="eq(-4,false)" />
+		
+		    <!-- Extra spacing -->
+		    <setting type="lsep" label=" " />
 
-        <setting id="sub_folder"
-                 type="folder"
-                 label="Subtitle Save Folder"
-                 default="/storage/emulated/0/Download/sub/" />
-
-        <!-- Separator / Section title -->
-        <setting type="lsep" label="Important Setup" />
-
-        <setting type="text"
-                 label="Kodi must use same path for 'Custom Subtitle Location'"
-                 enable="false" />
-
-        <!-- Extra spacing -->
-        <setting type="lsep" label=" " />
-
-    </category>
+				<setting id="live_translation"
+                 type="bool"
+                 label="Enable Live Translation (Experimental)"
+                 default="false" />
+		
+		</category>
 
 
     <!-- ============================= -->
@@ -128,16 +151,6 @@
 
         <!-- Small visual separation -->
         <setting type="lsep" label="" />
-
-        <!-- ---------------------------------------------------------- -->
-        <!-- NEW: Live Translation (progressive subtitle writing)       -->
-        <!-- Writes partial SRT after each successful chunk             -->
-        <!-- Keeps timestamps fully controlled by Translatarr           -->
-        <!-- ---------------------------------------------------------- -->
-        <setting id="live_translation"
-                 type="bool"
-                 label="Enable Live Translation (Experimental)"
-                 default="false" />
 
         <setting id="debug_mode"
                  type="bool"
