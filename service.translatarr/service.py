@@ -284,9 +284,36 @@ class TranslatarrMonitor(xbmc.Monitor):
         # Numeric / string settings
         # ------------------------------------------------------------
         self.chunk_size = safe_int('chunk_size', 100)
-        self.source_lang = addon.getSetting('source_lang')
-        self.target_lang = addon.getSetting('target_lang')
         self.sub_folder = addon.getSetting('sub_folder') or "/storage/emulated/0/Download/sub/"
+        # ------------------------------------------------------------
+        # Language settings (new select-aware, ISO-respecting)
+        # ------------------------------------------------------------
+        raw_source = addon.getSetting('source_lang') or "Romanian"
+        raw_target = addon.getSetting('target_lang') or "Romanian"
+        
+        # Convert to full name and ISO
+        self.source_lang_name, self.source_lang_iso = get_lang_params(raw_source)
+        self.target_lang_name, self.target_lang_iso = get_lang_params(raw_target)
+        
+        log(
+            f"Languages loaded → "
+            f"source: {self.source_lang_name} ({self.source_lang_iso}), "
+            f"target: {self.target_lang_name} ({self.target_lang_iso})",
+            "debug",
+            self,
+            force=True
+        )
+        
+        self.provider = addon.getSetting('provider')
+        self.model = addon.getSetting('model')
+        self.openai_model = addon.getSetting('openai_model')
+        
+        log(
+            f"AI snapshot → provider={self.provider}, model={self.model}, openai_model={self.openai_model}",
+            "debug",
+            self,
+            force=True
+        )
     
         # ------------------------------------------------------------
         # Live translation runtime state handling
@@ -323,8 +350,8 @@ class TranslatarrMonitor(xbmc.Monitor):
             f"stats={self.show_stats}, "
             f"live={self.live_translation}, "
             f"chunk={self.chunk_size}, "
-            f"src={self.source_lang}, "
-            f"trg={self.target_lang}, "
+            f"src={self.source_lang_name} ({self.source_lang_iso}), "
+            f"trg={self.target_lang_name} ({self.target_lang_iso}), "
             f"folder={self.sub_folder}",
             "debug",
             self,
@@ -368,8 +395,8 @@ class TranslatarrMonitor(xbmc.Monitor):
             return
 
         _, files = xbmcvfs.listdir(custom_dir)
-        src_variants = get_iso_variants(self.source_lang)
-        trg_variants = get_iso_variants(self.target_lang)
+        src_variants = get_iso_variants(self.source_lang_name)
+        trg_variants = get_iso_variants(self.target_lang_name)
         target_exts = [f".{v}.srt" for v in trg_variants]
 
         # Candidate detection with ISO + name + target ext filters
