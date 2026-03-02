@@ -86,11 +86,10 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
         log(f"Using translation model: {model_name}, chunk size: {initial_chunk}", "debug", monitor)
 
         # Create progress dialog
-        progress = ui.TranslationProgress(model_name=model_name, title=video_name)
-        log(f"Starting translation for: {original_path}", "debug", monitor)
-        
         progress = None
         try:
+            progress = ui.TranslationProgress(model_name=model_name, title=video_name)
+            log(f"Starting translation for: {original_path}", "debug", monitor)
             with xbmcvfs.File(original_path, 'r') as f:
                 content = f.read()
                 log(f"Read source SRT, size: {len(content)} bytes", "debug", monitor)
