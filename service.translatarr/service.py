@@ -450,10 +450,10 @@ class TranslatarrMonitor(xbmc.Monitor):
             log("Source subtitle unchanged. Skipping translation.", "debug", self)
             return
 
-# If translation file exists but source changed → force overwrite
-if xbmcvfs.exists(save_path):
-    log("Source changed. Forcing retranslation.", "debug", self)
-    force_retranslate = True
+        # If translation file exists but source changed → force overwrite
+        if xbmcvfs.exists(save_path):
+            log("Source changed. Forcing retranslation.", "debug", self)
+            force_retranslate = True
         
         # Only call process_subtitles **once**, passing the save_path
         try:
@@ -463,8 +463,7 @@ if xbmcvfs.exists(save_path):
             success = process_subtitles(sub_path, self, force_retranslate, save_path=save_path)
         
             if success:
-                stat = xbmcvfs.Stat(save_path)
-                self.last_source_size[sub_file_name.lower()] = stat.st_size()
+                self.last_source_size[sub_file_name.lower()] = source_size
                 log(f"Translation saved: {save_path}", "debug", self)
         
         finally:
