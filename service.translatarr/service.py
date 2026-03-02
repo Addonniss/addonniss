@@ -275,6 +275,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         # ------------------------------------------------------------
         # Boolean settings
         # ------------------------------------------------------------
+        self.auto_mode = safe_bool('auto_mode', True)
         self.debug_mode = safe_bool('debug_mode', False)
         self.use_notifications = safe_bool('notify_mode', True)
         self.show_stats = safe_bool('show_stats', True)
@@ -373,6 +374,66 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.polling_active = False
 
     def check_for_subs(self):
+    
+        if self.auto_mode:
+            self.check_auto_mode()
+        else:
+            self.check_manual_mode()
+            
+    def check_auto_mode(self):
+    
+        log("AUTO MODE: Polling special://temp/", "debug", self)
+    
+        if not xbmc.Player().isPlaying() or self.is_busy:
+            return
+    
+        temp_dir = xbmcvfs.translatePath("special://temp/")
+        if not xbmcvfs.exists(temp_dir):
+            return
+    
+        playing_file = xbmc.Player().getPlayingFile()
+        video_name = os.path.splitext(os.path.basename(playing_file))[0]
+    
+        _, files = xbmcvfs.listdir(temp_dir)
+    
+        candidates = []
+        for f in files:
+            if f.lower().endswith(".srt") and video_name.lower() in f.lower():
+                candidates.append(f)
+    
+        candidates.sort(
+            key=lambda f: xbmcvfs.Stat(os.path.join(temp_dir, f)).st_mtime(),
+            reverse=True
+        )
+    
+        for f in candidates:
+            full_path = os.path.join(temp_dir, f)
+            stat = xbmcvfs.Stat(full_path)
+    
+            if stat.st_size() < 500:
+                continue
+    
+            last_size = self.last_source_size.get(f.lower())
+            force_retranslate = False
+    
+            if last_size is not None:
+                if stat.st_size() != last_size:
+                    force_retranslate = True
+                else:
+                    continue
+    
+            try:
+                self.is_busy = True
+                success = process_subtitles(full_path, self, force_retranslate)
+            finally:
+                self.is_busy = False
+    
+            if success:
+                self.last_source_size[f.lower()] = stat.st_size()
+    
+            return
+    
+    def check_manual_mode(self):
         log("Polling for subtitles...", "debug", self)
 
         if not xbmc.Player().isPlaying():
