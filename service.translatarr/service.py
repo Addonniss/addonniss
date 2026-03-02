@@ -433,14 +433,21 @@ class TranslatarrMonitor(xbmc.Monitor):
                 newest_mtime = stat.st_mtime()
                 newest_file = full_path
     
-        # Only translate if a new temp file is detected or path changed
-        if (newest_file and
-            (getattr(self, 'last_temp_file_path', None) != newest_file or
-             getattr(self, 'last_temp_folder_mtime', 0) != newest_mtime)):
+        # -----------------------------
+        # Early-return if nothing changed
+        # -----------------------------
+        if (getattr(self, 'last_temp_file_path', None) == newest_file and
+            getattr(self, 'last_temp_folder_mtime', 0) == newest_mtime):
+            log("No new or modified temp SRT detected. Skipping.", "debug", self)
+            return  # nothing changed
     
-            self.last_temp_file_path = newest_file
-            self.last_temp_folder_mtime = newest_mtime
+        # -----------------------------
+        # Only process new or changed file
+        # -----------------------------
+        self.last_temp_file_path = newest_file
+        self.last_temp_folder_mtime = newest_mtime
     
+        if newest_file:
             log(f"New temp SRT detected: {newest_file}", "debug", self)
             process_subtitles(newest_file, self)
             
@@ -477,15 +484,21 @@ class TranslatarrMonitor(xbmc.Monitor):
             log(f"Failed to stat source subtitle: {e}", "error", self)
             return
     
+        # -----------------------------
+        # Early-return if nothing changed
+        # -----------------------------
+        if getattr(self, 'last_auto_sub_path', None) == sub_path and current_mtime == self.last_auto_sub_mtime:
+            log("Subtitle unchanged since last poll. Skipping translation.", "debug", self)
+            return  # nothing changed
+    
         # Determine if we should force retranslation
         force_retranslate = False
-    
         if getattr(self, 'last_auto_sub_path', None) != sub_path:
             # New subtitle file detected
             force_retranslate = True
             self.last_auto_sub_path = sub_path
     
-        # Update last processed mtime regardless
+        # Update last processed mtime
         self.last_auto_sub_mtime = current_mtime
     
         try:
