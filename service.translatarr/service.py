@@ -347,12 +347,18 @@ class TranslatarrMonitor(xbmc.Monitor):
         # Validate subtitle folder path
         # Auto-create if missing (Android-safe)
         # ------------------------------------------------------------
-        if not os.path.exists(self.sub_folder):
+        # Kodi-safe folder creation (Android / SMB / special:// compatible)
+        if not xbmcvfs.exists(self.sub_folder):
             try:
-                os.makedirs(self.sub_folder, exist_ok=True)
-                log(f"Created missing subtitle folder: {self.sub_folder}", "info", self)
+                success = xbmcvfs.mkdirs(self.sub_folder)
+                if success:
+                    log(f"Created missing subtitle folder: {self.sub_folder}", "info", self)
+                else:
+                    log(f"mkdirs returned False for: {self.sub_folder}", "error", self)
             except Exception as e:
-                log(f"Failed to create subtitle folder: {self.sub_folder} | Error: {e}", "error", self)
+                log(f"Exception creating subtitle folder: {self.sub_folder} | Error: {e}", "error", self)
+        else:
+            log(f"Subtitle folder already exists: {self.sub_folder}", "debug", self)
     
         # ------------------------------------------------------------
         # Final confirmation log
