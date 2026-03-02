@@ -233,6 +233,7 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
 class TranslatarrMonitor(xbmc.Monitor):
 
     def __init__(self):
+        self.last_temp_mtime = 0  # track newest temp SRT modification time
         super().__init__()
         self.polling_active = False
         self.last_source_size = {}
@@ -399,6 +400,36 @@ class TranslatarrMonitor(xbmc.Monitor):
             self.check_auto_mode()
         else:
             self.check_manual_mode()
+            
+    def check_temp_folder_for_srt(self):
+        """
+        Detect any .srt file in special://temp/ and process it if new.
+        """
+        temp_path = xbmcvfs.translatePath("special://temp/")
+        try:
+            files = [f for f in xbmcvfs.listdir(temp_path)[1] if f.lower().endswith(".srt")]
+        except Exception as e:
+            log(f"Failed to list temp folder: {e}", "error", self)
+            return
+    
+        newest_file = None
+        newest_mtime = 0
+    
+        for f in files:
+            full_path = os.path.join(temp_path, f)
+            try:
+                stat = xbmcvfs.Stat(full_path)
+            except Exception:
+                continue
+            if stat.st_mtime() > newest_mtime:
+                newest_mtime = stat.st_mtime()
+                newest_file = full_path
+    
+        # Only translate if it’s a new file
+        if newest_file and self.last_temp_mtime != newest_mtime:
+            self.last_temp_mtime = newest_mtime
+            log(f"New temp SRT detected: {newest_file}", "debug", self)
+            process_subtitles(newest_file, self)
             
     def check_auto_mode(self):
         """
