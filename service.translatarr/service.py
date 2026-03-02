@@ -521,11 +521,16 @@ class TranslatarrMonitor(xbmc.Monitor):
             if base_ok and src_ok and trg_ok:
                 candidate_files.append(f)
                 log(f"Candidate subtitle detected: {f}", "debug", self)
-
-        candidate_files.sort(
-            key=lambda f: xbmcvfs.Stat(os.path.join(custom_dir, f)).st_mtime(),
-            reverse=True
-        )
+        
+        # Safe sorting by mtime
+        def safe_mtime(f):
+            try:
+                return xbmcvfs.Stat(os.path.join(custom_dir, f)).st_mtime()
+            except Exception:
+                log(f"Could not stat file (maybe deleted): {f}", "debug", self)
+                return 0  # Push missing files to the end
+        
+        candidate_files.sort(key=safe_mtime, reverse=True)
 
         for f in candidate_files:
             full_path = os.path.join(custom_dir, f)
