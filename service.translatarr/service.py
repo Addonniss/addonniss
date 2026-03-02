@@ -16,6 +16,14 @@ from languages import get_lang_params, get_iso_variants
 ADDON_ID = 'service.translatarr'
 ADDON = xbmcaddon.Addon(ADDON_ID)
 
+# Special folder for Translatarr translations (profile-safe)
+TRANSLATARR_SUB_FOLDER = xbmcvfs.translatePath(
+    "special://profile/addon_data/service.translatarr/subtitles/"
+)
+
+if not xbmcvfs.exists(TRANSLATARR_SUB_FOLDER):
+    xbmcvfs.mkdir(TRANSLATARR_SUB_FOLDER)
+
 xbmc.log("[Translatarr] SERVICE STARTED", xbmc.LOGINFO)
 
 # ----------------------------------------------------------
@@ -381,57 +389,60 @@ class TranslatarrMonitor(xbmc.Monitor):
             self.check_manual_mode()
             
     def check_auto_mode(self):
-    
-        log("AUTO MODE: Polling special://temp/", "debug", self)
-    
+        """
+        AUTO MODE: Intercept currently loaded subtitle from any addon
+        and process translation, saving in Translatarr profile folder.
+        """
         if not xbmc.Player().isPlaying() or self.is_busy:
-            return
-    
-        temp_dir = xbmcvfs.translatePath("special://temp/")
-        if not xbmcvfs.exists(temp_dir):
             return
     
         playing_file = xbmc.Player().getPlayingFile()
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
     
-        _, files = xbmcvfs.listdir(temp_dir)
+        # Get currently loaded subtitles in player
+        sub_path = xbmc.Player().getSubtitles()
+        if not sub_path:
+            log("No subtitle currently loaded in player.", "debug", self)
+            return
     
-        candidates = []
-        for f in files:
-            if f.lower().endswith(".srt") and video_name.lower() in f.lower():
-                candidates.append(f)
+        sub_file_name = os.path.basename(sub_path)
+        sub_ext = os.path.splitext(sub_file_name)[1].lower()
+        if sub_ext != ".srt":
+            log(f"Subtitle is not .srt ({sub_ext}), skipping.", "debug", self)
+            return
     
-        candidates.sort(
-            key=lambda f: xbmcvfs.Stat(os.path.join(temp_dir, f)).st_mtime(),
-            reverse=True
-        )
+        # Determine target filename using ISO convention
+        source_iso = self.source_lang_iso or "eng"
+        target_iso = self.target_lang_iso or "ro"
     
-        for f in candidates:
-            full_path = os.path.join(temp_dir, f)
-            stat = xbmcvfs.Stat(full_path)
+        final_file_name = f"{video_name}.{target_iso}.srt"
+        save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
+        temp_path = save_path + ".tmp"
     
-            if stat.st_size() < 500:
-                continue
+        # Check if translation already exists
+        force_retranslate = False
+        if xbmcvfs.exists(save_path):
+            stat = xbmcvfs.Stat(save_path)
+            last_size = self.last_source_size.get(sub_file_name.lower())
+            if last_size == stat.st_size():
+                log("Translated SRT already exists and unchanged. Skipping.", "debug", self)
+                return
+            else:
+                force_retranslate = True
     
-            last_size = self.last_source_size.get(f.lower())
-            force_retranslate = False
+        try:
+            self.is_busy = True
+            log(f"Translating subtitle from auto-detected source: {sub_file_name}", "debug", self)
     
-            if last_size is not None:
-                if stat.st_size() != last_size:
-                    force_retranslate = True
-                else:
-                    continue
-    
-            try:
-                self.is_busy = True
-                success = process_subtitles(full_path, self, force_retranslate)
-            finally:
-                self.is_busy = False
+            success = process_subtitles(sub_path, self, force_retranslate)
     
             if success:
-                self.last_source_size[f.lower()] = stat.st_size()
+                stat = xbmcvfs.Stat(save_path)
+                self.last_source_size[sub_file_name.lower()] = stat.st_size()
+                log(f"Translation saved: {save_path}", "debug", self)
     
-            return
+        finally:
+            self.is_busy = False
     
     def check_manual_mode(self):
         log("Polling for subtitles...", "debug", self)
