@@ -195,7 +195,7 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
                 return False
     
             xbmc.Player().setSubtitles(save_path)
-            progress.close()
+            
             monitor.session_translation_created = True
     
             total_time = time.time() - start_time
