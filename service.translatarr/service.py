@@ -445,13 +445,15 @@ class TranslatarrMonitor(xbmc.Monitor):
         # Get currently loaded subtitles in player
         sub_path = xbmc.Player().getSubtitles()
         if not sub_path:
-            log("No subtitle currently loaded in player.", "debug", self)
+            log("No subtitle in player. Checking temp folder...", "debug", self)
+            self.check_temp_folder_for_srt()
             return
     
         sub_file_name = os.path.basename(sub_path)
         sub_ext = os.path.splitext(sub_file_name)[1].lower()
         if sub_ext != ".srt":
-            log(f"Subtitle is not .srt ({sub_ext}), skipping.", "debug", self)
+            log(f"Subtitle is not .srt ({sub_ext}). Checking temp folder...", "debug", self)
+            self.check_temp_folder_for_srt()
             return
     
         # Determine target filename using ISO convention
