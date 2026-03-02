@@ -51,8 +51,9 @@ def log(msg, level='info', monitor=None, force=False):
 # ----------------------------------------------------------
 # Subtitle Processing with TEMP FILES
 # ----------------------------------------------------------
-def process_subtitles(original_path, monitor, force_retranslate=False):
+def process_subtitles(original_path, monitor, force_retranslate=False, save_path=None):
     log(f"process_subtitles called with: {original_path}, force_retranslate={force_retranslate}", "debug", monitor)
+
     try:
         if not xbmc.Player().isPlaying():
             log("Not playing. Abort translation.", "debug", monitor)
@@ -62,7 +63,12 @@ def process_subtitles(original_path, monitor, force_retranslate=False):
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
         log(f"Video currently playing: {video_name}", "debug", monitor)
 
-        save_path, clean_name = file_manager.get_target_path(original_path, video_name)
+        # Use the passed save_path, otherwise generate one
+        if save_path is None:
+            save_path, clean_name = file_manager.get_target_path(original_path, video_name)
+        else:
+            clean_name = os.path.splitext(os.path.basename(save_path))[0]
+
         temp_path = save_path + ".tmp"
         log(f"Calculated target save_path: {save_path}, temp_path: {temp_path}", "debug", monitor)
 
@@ -414,10 +420,15 @@ class TranslatarrMonitor(xbmc.Monitor):
         # Determine target filename using ISO convention
         source_iso = self.source_lang_iso or "eng"
         target_iso = self.target_lang_iso or "ro"
-    
+        
         final_file_name = f"{video_name}.{target_iso}.srt"
+        
+        # THIS IS THE CRITICAL LINE — use TRANSLATARR_SUB_FOLDER
         save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
         temp_path = save_path + ".tmp"
+        
+        # Ensure process_subtitles knows exactly where to save
+        success = process_subtitles(sub_path, self, force_retranslate, save_path=save_path)
     
         # Check if translation already exists
         force_retranslate = False
