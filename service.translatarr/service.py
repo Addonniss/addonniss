@@ -480,7 +480,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         try:
             self.is_busy = True
             log(f"Translating subtitle from auto-detected source: {sub_file_name}", "debug", self)
-            process_subtitles(sub_path, self, save_path=save_path)
+            process_subtitles(sub_path, self, force_retranslate=True, save_path=save_path)
         finally:
             self.is_busy = False
     
