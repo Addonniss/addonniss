@@ -198,7 +198,7 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
 
         total_time = time.time() - start_time
         cost = translator.calculate_cost(cum_in, cum_out)
-        trg_name, _ = get_lang_params(monitor.target_lang)
+        trg_name = monitor.target_lang_name
         log(f"Translation finished. Total time: {total_time:.2f}s, cost: ${cost:.4f}", "debug", monitor)
 
         if monitor.show_stats:
