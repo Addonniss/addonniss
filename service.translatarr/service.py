@@ -225,7 +225,8 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
             return True
             
         finally:
-            progress.close()
+            if progress:
+                progress.close()
             
     except Exception as e:
         xbmc.log(f"[Translatarr][ERROR] {e}", xbmc.LOGERROR)
