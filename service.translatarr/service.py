@@ -239,7 +239,8 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
 class TranslatarrMonitor(xbmc.Monitor):
 
     def __init__(self):
-        self.last_temp_mtime = 0  # track newest temp SRT modification time
+        self.last_temp_folder_mtime = 0   # Track newest temp SRT in special://temp/
+        self.last_auto_sub_mtime = 0      # Track last processed auto-detected in-player subtitle
         super().__init__()
         self.polling_active = False
         self.last_source_size = {}
@@ -407,20 +408,20 @@ class TranslatarrMonitor(xbmc.Monitor):
         else:
             self.check_manual_mode()
             
+    # ------------------------------------------------------------
+    # check_temp_folder_for_srt
+    # ------------------------------------------------------------
     def check_temp_folder_for_srt(self):
-        """
-        Detect any .srt file in special://temp/ and process it if new.
-        """
         temp_path = xbmcvfs.translatePath("special://temp/")
         try:
             files = [f for f in xbmcvfs.listdir(temp_path)[1] if f.lower().endswith(".srt")]
         except Exception as e:
             log(f"Failed to list temp folder: {e}", "error", self)
             return
-    
+
         newest_file = None
         newest_mtime = 0
-    
+
         for f in files:
             full_path = os.path.join(temp_path, f)
             try:
@@ -430,71 +431,56 @@ class TranslatarrMonitor(xbmc.Monitor):
             if stat.st_mtime() > newest_mtime:
                 newest_mtime = stat.st_mtime()
                 newest_file = full_path
-    
-        # Only translate if it’s a new file
-        if newest_file and self.last_temp_mtime != newest_mtime:
-            self.last_temp_mtime = newest_mtime
+
+        # Only translate if it’s a new file in temp folder
+        if newest_file and self.last_temp_folder_mtime != newest_mtime:
+            self.last_temp_folder_mtime = newest_mtime
             log(f"New temp SRT detected: {newest_file}", "debug", self)
             process_subtitles(newest_file, self)
             
+    # ------------------------------------------------------------
+    # check_auto_mode
+    # ------------------------------------------------------------
     def check_auto_mode(self):
-        """
-        AUTO MODE: Intercept currently loaded subtitle from any addon
-        and process translation, saving in Translatarr profile folder.
-        """
         if not xbmc.Player().isPlaying() or self.is_busy:
             return
-    
+
         playing_file = xbmc.Player().getPlayingFile()
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
-    
-        # Get currently loaded subtitles in player
+
         sub_path = xbmc.Player().getSubtitles()
         if not sub_path:
             log("No subtitle in player. Checking temp folder...", "debug", self)
             self.check_temp_folder_for_srt()
             return
-    
+
         sub_file_name = os.path.basename(sub_path)
         sub_ext = os.path.splitext(sub_file_name)[1].lower()
         if sub_ext != ".srt":
             log(f"Subtitle is not .srt ({sub_ext}). Checking temp folder...", "debug", self)
             self.check_temp_folder_for_srt()
             return
-    
-        # Determine target filename using ISO convention
-        source_iso = self.source_lang_iso or "eng"
-        target_iso = self.target_lang_iso or "ro"
-        
-        final_file_name = f"{video_name}.{target_iso}.srt"
-        
-        # CRITICAL: Always save to profile-safe folder
+
+        final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
         save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
-        temp_path = save_path + ".tmp"
-        
-        # Determine if translation already exists
-    
+
         try:
             stat = xbmcvfs.Stat(sub_path)
             current_mtime = stat.st_mtime()
         except Exception as e:
             log(f"Failed to stat source subtitle: {e}", "error", self)
             return
-        
-        # Skip if already processed
-        if current_mtime <= self.last_temp_mtime:
+
+        # Only translate if subtitle mtime is newer than last processed auto subtitle
+        if current_mtime <= self.last_auto_sub_mtime:
             return
-        
-        # Mark as processed immediately (avoid double trigger)
-        self.last_temp_mtime = current_mtime
-        
-        # Only call process_subtitles **once**, passing the save_path
+
+        self.last_auto_sub_mtime = current_mtime  # mark as processed
+
         try:
             self.is_busy = True
             log(f"Translating subtitle from auto-detected source: {sub_file_name}", "debug", self)
-        
             process_subtitles(sub_path, self, save_path=save_path)
-        
         finally:
             self.is_busy = False
     
