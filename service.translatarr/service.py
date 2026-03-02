@@ -435,14 +435,25 @@ class TranslatarrMonitor(xbmc.Monitor):
         
         # Determine if translation already exists
         force_retranslate = False
-        if xbmcvfs.exists(save_path):
-            stat = xbmcvfs.Stat(save_path)
-            last_size = self.last_source_size.get(sub_file_name.lower())
-            if last_size == stat.st_size():
-                log("Translated SRT already exists and unchanged. Skipping.", "debug", self)
-                return
-            else:
-                force_retranslate = True
+        
+        try:
+            source_stat = xbmcvfs.Stat(sub_path)
+            source_size = source_stat.st_size()
+        except Exception as e:
+            log(f"Failed to stat source subtitle: {e}", "error", self)
+            return
+        
+        last_size = self.last_source_size.get(sub_file_name.lower())
+        
+        # If we already translated this exact source file size → skip
+        if last_size == source_size:
+            log("Source subtitle unchanged. Skipping translation.", "debug", self)
+            return
+
+# If translation file exists but source changed → force overwrite
+if xbmcvfs.exists(save_path):
+    log("Source changed. Forcing retranslation.", "debug", self)
+    force_retranslate = True
         
         # Only call process_subtitles **once**, passing the save_path
         try:
