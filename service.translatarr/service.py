@@ -423,14 +423,11 @@ class TranslatarrMonitor(xbmc.Monitor):
         
         final_file_name = f"{video_name}.{target_iso}.srt"
         
-        # THIS IS THE CRITICAL LINE — use TRANSLATARR_SUB_FOLDER
+        # CRITICAL: Always save to profile-safe folder
         save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
         temp_path = save_path + ".tmp"
         
-        # Ensure process_subtitles knows exactly where to save
-        success = process_subtitles(sub_path, self, force_retranslate, save_path=save_path)
-    
-        # Check if translation already exists
+        # Determine if translation already exists
         force_retranslate = False
         if xbmcvfs.exists(save_path):
             stat = xbmcvfs.Stat(save_path)
@@ -440,18 +437,19 @@ class TranslatarrMonitor(xbmc.Monitor):
                 return
             else:
                 force_retranslate = True
-    
+        
+        # Only call process_subtitles **once**, passing the save_path
         try:
             self.is_busy = True
             log(f"Translating subtitle from auto-detected source: {sub_file_name}", "debug", self)
-    
-            success = process_subtitles(sub_path, self, force_retranslate)
-    
+        
+            success = process_subtitles(sub_path, self, force_retranslate, save_path=save_path)
+        
             if success:
                 stat = xbmcvfs.Stat(save_path)
                 self.last_source_size[sub_file_name.lower()] = stat.st_size()
                 log(f"Translation saved: {save_path}", "debug", self)
-    
+        
         finally:
             self.is_busy = False
     
