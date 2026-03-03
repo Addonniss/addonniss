@@ -308,7 +308,8 @@ class TranslatarrMonitor(xbmc.Monitor):
         # ------------------------------------------------------------
         # Boolean settings
         # ------------------------------------------------------------
-        self.auto_mode = safe_bool('auto_mode', True)
+        translation_mode = addon.getSetting('translation_mode') or "Auto"
+        self.auto_mode = (translation_mode == "Auto")
         self.debug_mode = safe_bool('debug_mode', False)
         self.use_notifications = safe_bool('notify_mode', True)
         self.show_stats = safe_bool('show_stats', True)
