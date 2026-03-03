@@ -18,7 +18,7 @@ def log(msg):
 # Style Builder (uses new setting: translation_style)
 # ----------------------------------------------------------
 def build_style_instruction(trg_name):
-    style_mode = ADDON.getSetting('translation_style') or "0"
+    style_mode = ADDON.getSetting('translation_style')
 
     # 0 = Family-Friendly (default)
     # 1 = Natural
