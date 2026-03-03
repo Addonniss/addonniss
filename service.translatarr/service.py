@@ -22,7 +22,7 @@ TRANSLATARR_SUB_FOLDER = xbmcvfs.translatePath(
 )
 
 A4K_SUB_FOLDER = xbmcvfs.translatePath(
-    "special://profile/addon_data/a4kSubtitles/"
+    "special://profile/addon_data/service.subtitles.a4ksubtitles/temp/"
 )
 
 OPENSUBTITLES_SUB_FOLDER = xbmcvfs.translatePath(
