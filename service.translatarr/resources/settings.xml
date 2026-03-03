@@ -1,166 +1,238 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<settings>
+<settings version="1">
+    <section id="service.translatarr">
 
-    <!-- ============================= -->
-    <!-- SUBTITLES -->
-    <!-- ============================= -->
-    <category label="Subtitles">
-        
-        <setting id="auto_mode"
-                 type="bool"
-                 label="Auto-Mode (Recommended)"
-                 default="true" />
+        <category id="subtitles" label="30000">
+            <group id="1" label="30000">
+                <setting id="translation_mode" type="string" label="30039" help="30040">
+                    <constraints>
+                        <options>
+                            <option label="30041">Auto</option>
+                            <option label="30042">Manual</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                    <default>Auto</default>
+                </setting>
 
-        <setting type="text"
-                 label="Automatically detects subtitles and caches translations."
-                 enable="eq(-1,true)" />
+                <setting id="auto_info" type="action" label="30043">
+                    <control type="button" format="action" />
+                    <dependencies>
+                        <dependency type="visible" setting="translation_mode">Auto</dependency>
+                    </dependencies>
+                </setting>
 
-        <setting type="text"
-                 label="Manual Mode (Advanced)"
-                 enable="eq(-2,false)" />
+                <setting id="manual_info" type="action" label="30044">
+                    <control type="button" format="action" />
+                    <dependencies>
+                        <dependency type="visible" setting="translation_mode">Manual</dependency>
+                    </dependencies>
+                </setting>
 
-        <setting id="sub_folder"
-                 type="folder"
-                 label="Subtitle Save Folder"
-                 default="/storage/emulated/0/Download/sub/"
-                 enable="eq(-3,false)" />
+                <setting id="sub_folder" type="path" label="30003" help="30004">
+                    <constraints><writable>true</writable></constraints>
+                    <control type="button" format="path" />
+                    <default>/storage/emulated/0/Download/</default>
+                    <dependencies>
+                        <dependency type="visible" setting="translation_mode">Manual</dependency>
+                    </dependencies>
+                </setting>
 
-        <setting type="text"
-                 label="Kodi must use same path for 'Custom Subtitle Location'"
-                 enable="eq(-4,false)" />
+                <setting type="lsep" label="" />
 
-        <setting type="lsep" label=" " />
+                <setting id="live_translation" type="boolean" label="30005" help="30006">
+                    <control type="toggle" />
+                    <default>false</default>
+                </setting>
+            </group>
+        </category>
 
-        <setting id="live_translation"
-                 type="bool"
-                 label="Enable Real-Time Translation"
-                 default="false" />
-        
-    </category>
+        <category id="ai_engine" label="30007">
+            <group id="2" label="30007">
+                <setting id="provider" type="string" label="30008" help="30009">
+                    <constraints>
+                        <options>
+                            <option label="Gemini">Gemini</option>
+                            <option label="OpenAI">OpenAI</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                    <default>Gemini</default>
+                </setting>
 
+                <setting id="api_key" type="string" label="30010" help="30011">
+                    <constraints><allowempty>true</allowempty></constraints>
+                    <control type="edit" format="string" />
+                    <default />
+                    <dependencies>
+                        <dependency type="visible" setting="provider">Gemini</dependency>
+                    </dependencies>
+                </setting>
 
-    <!-- ============================= -->
-    <!-- AI ENGINE -->
-    <!-- ============================= -->
-    <category label="AI Engine">
+                <setting id="model" type="string" label="30012" help="30013">
+                    <constraints>
+                        <options>
+                            <option label="Gemini 2.0 Flash">Gemini 2.0 Flash</option>
+                            <option label="Gemini 1.5 Flash">Gemini 1.5 Flash</option>
+                            <option label="Gemini 2.5 Flash">Gemini 2.5 Flash</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                    <default>Gemini 2.0 Flash</default>
+                    <dependencies>
+                        <dependency type="visible" setting="provider">Gemini</dependency>
+                    </dependencies>
+                </setting>
 
-        <!-- Provider popup -->
-        <setting id="provider"
-                 type="select"
-                 label="Active Engine"
-                 default="Gemini"
-                 values="Gemini|OpenAI" />
+                <setting id="openai_api_key" type="string" label="30034" help="30035">
+                    <constraints><allowempty>true</allowempty></constraints>
+                    <control type="edit" format="string" />
+                    <default />
+                    <dependencies>
+                        <dependency type="visible" setting="provider">OpenAI</dependency>
+                    </dependencies>
+                </setting>
 
-        <setting type="lsep" label=" " />
+                <setting id="openai_model" type="string" label="30036" help="30037">
+                    <constraints>
+                        <options>
+                            <option label="gpt-4o-mini">gpt-4o-mini</option>
+                            <option label="gpt-4o">gpt-4o</option>
+                            <option label="gpt-5-mini">gpt-5-mini</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                    <default>gpt-4o-mini</default>
+                    <dependencies>
+                        <dependency type="visible" setting="provider">OpenAI</dependency>
+                    </dependencies>
+                </setting>
+            </group>
+        </category>
 
-        <!-- GEMINI -->
-        <setting type="lsep" label="Gemini Settings" />
+		<category id="tuning" label="30014">
+            <group id="3">
+                <setting id="source_lang" type="string" label="30015" help="30016">
+                    <constraints>
+                        <options>
+                            <option label="Arabic">Arabic</option>
+                            <option label="Catalan">Catalan</option>
+                            <option label="Chinese">Chinese</option>
+                            <option label="Croatian">Croatian</option>
+                            <option label="Czech">Czech</option>
+                            <option label="Danish">Danish</option>
+                            <option label="Dutch">Dutch</option>
+                            <option label="English">English</option>
+                            <option label="Finnish">Finnish</option>
+                            <option label="French">French</option>
+                            <option label="German">German</option>
+                            <option label="Greek">Greek</option>
+                            <option label="Hebrew">Hebrew</option>
+                            <option label="Hindi">Hindi</option>
+                            <option label="Hungarian">Hungarian</option>
+                            <option label="Italian">Italian</option>
+                            <option label="Japanese">Japanese</option>
+                            <option label="Korean">Korean</option>
+                            <option label="Norwegian">Norwegian</option>
+                            <option label="Polish">Polish</option>
+                            <option label="Portuguese">Portuguese</option>
+                            <option label="Romanian">Romanian</option>
+                            <option label="Russian">Russian</option>
+                            <option label="Slovenian">Slovenian</option>
+                            <option label="Spanish">Spanish</option>
+                            <option label="Swedish">Swedish</option>
+                            <option label="Thai">Thai</option>
+                            <option label="Turkish">Turkish</option>
+                            <option label="Vietnamese">Vietnamese</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                    <default>English</default>
+                </setting>
 
-        <setting id="api_key"
-                 type="text"
-                 label="Gemini API Key"
-                 default=""
-                 enable="eq(-3,0)" />
+                <setting id="target_lang" type="string" label="30017" help="30018">
+                    <constraints>
+                        <options>
+                            <option label="Arabic">Arabic</option>
+                            <option label="Catalan">Catalan</option>
+                            <option label="Chinese">Chinese</option>
+                            <option label="Croatian">Croatian</option>
+                            <option label="Czech">Czech</option>
+                            <option label="Danish">Danish</option>
+                            <option label="Dutch">Dutch</option>
+                            <option label="English">English</option>
+                            <option label="Finnish">Finnish</option>
+                            <option label="French">French</option>
+                            <option label="German">German</option>
+                            <option label="Greek">Greek</option>
+                            <option label="Hebrew">Hebrew</option>
+                            <option label="Hindi">Hindi</option>
+                            <option label="Hungarian">Hungarian</option>
+                            <option label="Italian">Italian</option>
+                            <option label="Japanese">Japanese</option>
+                            <option label="Korean">Korean</option>
+                            <option label="Norwegian">Norwegian</option>
+                            <option label="Polish">Polish</option>
+                            <option label="Portuguese">Portuguese</option>
+                            <option label="Romanian">Romanian</option>
+                            <option label="Russian">Russian</option>
+                            <option label="Slovenian">Slovenian</option>
+                            <option label="Spanish">Spanish</option>
+                            <option label="Swedish">Swedish</option>
+                            <option label="Thai">Thai</option>
+                            <option label="Turkish">Turkish</option>
+                            <option label="Vietnamese">Vietnamese</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                    <default>Romanian</default>
+                </setting>
 
-        <setting id="model"
-                 type="select"
-                 label="Gemini Model"
-                 default="Gemini 2.0 Flash"
-                 values="Gemini 2.0 Flash|Gemini 1.5 Flash|Gemini 2.5 Flash"
-                 enable="eq(-4,0)" />
+                <setting id="translation_style" type="string" label="30030" help="30031">
+                    <constraints>
+                        <options>
+                            <option label="Family-Friendly">Family-Friendly</option>
+                            <option label="Natural">Natural</option>
+                            <option label="Gritty / Adult">Gritty / Adult</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                    <default>Natural</default>
+                </setting>
 
-        <setting type="lsep" label=" " />
+                <setting id="temp" type="string" label="30032" help="30033">
+                    <constraints><allowempty>false</allowempty></constraints>
+                    <control type="edit" format="string" />
+                    <default>0.15</default>
+                </setting>
 
-        <!-- OPENAI -->
-        <setting type="lsep" label="OpenAI Settings" />
+                <setting id="chunk_size" type="integer" label="30019" help="30020">
+                    <constraints><minimum>10</minimum><step>10</step><maximum>150</maximum></constraints>
+                    <control type="edit" format="integer" />
+                    <default>50</default>
+                </setting>
+            </group>
+        </category>
 
-        <setting id="openai_api_key"
-                 type="text"
-                 label="OpenAI API Key"
-                 default=""
-                 enable="eq(-7,1)" />
-
-        <setting id="openai_model"
-                 type="select"
-                 label="OpenAI Model"
-                 default="gpt-4o-mini"
-                 values="gpt-4o-mini|gpt-4o|gpt-5-mini"
-                 enable="eq(-8,1)" />
-
-        <setting type="lsep" label=" " />
-
-    </category>
-
-
-    <!-- ============================= -->
-    <!-- TRANSLATION TUNING -->
-    <!-- ============================= -->
-    <category label="Tuning">
-
-        <setting id="source_lang"
-                 type="select"
-                 label="Source Language"
-                 values="Arabic|Catalan|Chinese|Croatian|Czech|Danish|Dutch|English|Finnish|French|German|Greek|Hebrew|Hindi|Hungarian|Italian|Japanese|Korean|Norwegian|Polish|Portuguese|Romanian|Russian|Slovenian|Spanish|Swedish|Thai|Turkish|Vietnamese"
-                 default="English" />
-
-        <setting id="target_lang"
-                 type="select"
-                 label="Target Language"
-                 values="Arabic|Catalan|Chinese|Croatian|Czech|Danish|Dutch|English|Finnish|French|German|Greek|Hebrew|Hindi|Hungarian|Italian|Japanese|Korean|Norwegian|Polish|Portuguese|Romanian|Russian|Slovenian|Spanish|Swedish|Thai|Turkish|Vietnamese"
-                 default="Romanian" />
-
-        <setting id="translation_style"
-                 type="select"
-                 label="Translation Style"
-                 values="Family-Friendly|Natural|Gritty / Adult"
-                 default="Natural" />
-
-        <setting id="temp"
-                 type="text"
-                 label="Temperature (0.0 - 1.0)"
-                 default="0.15" />
-
-        <setting id="chunk_size"
-                 type="number"
-                 label="Dialogue Lines per Chunk"
-                 default="50" />
-
-        <setting type="lsep" label=" " />
-
-    </category>
-
-
-    <!-- ============================= -->
-    <!-- ADVANCED -->
-    <!-- ============================= -->
-    <category label="Advanced">
-
-        <setting id="show_stats"
-                 type="bool"
-                 label="Show Success Page Statistics"
-                 default="true" />
-
-        <setting id="notify_mode"
-                 type="bool"
-                 label="Simple Notifications"
-                 default="true" />
-
-        <setting type="lsep" label="" />
-
-        <setting id="debug_mode"
-                 type="bool"
-                 label="Enable Debug Mode"
-                 default="false" />
-
-        <setting type="lsep" label="Information" />
-
-        <setting id="show_changelog"
-                 type="action"
-                 label="View Change Log"
-                 action="RunScript(service.translatarr,show_changelog)" />
-
-        <setting type="lsep" label=" " />
-
-    </category>
-
+        <category id="advanced" label="30021">
+            <group id="4" label="30021">
+                <setting id="show_stats" type="boolean" label="30022" help="30023">
+                    <control type="toggle" />
+                    <default>true</default>
+                </setting>
+                <setting id="notify_mode" type="boolean" label="30024" help="30025">
+                    <control type="toggle" />
+                    <default>true</default>
+                </setting>
+                <setting id="debug_mode" type="boolean" label="30026" help="30027">
+                    <control type="toggle" />
+                    <default>false</default>
+                </setting>
+                <setting id="show_changelog" type="action" label="30028" help="30029">
+                    <control type="button" format="action" />
+                    <data>RunScript(service.translatarr,show_changelog)</data>
+                </setting>
+            </group>
+        </category>
+    </section>
 </settings>
