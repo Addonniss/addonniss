@@ -251,6 +251,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.last_auto_sub_path = None
         self.last_auto_sub_mtime = 0      # Track last processed auto-detected in-player subtitle
         self.last_processed_source_name = None
+        self.last_processed_source_path = None
         super().__init__()
         self.polling_active = False
         self.last_source_size = {}
@@ -498,12 +499,10 @@ class TranslatarrMonitor(xbmc.Monitor):
         if not newest_file:
             return
     
-        source_name = os.path.basename(newest_file)
-    
         # -------------------------------------------------
         # 2️⃣ Prevent duplicate processing (same file in 2 folders)
         # -------------------------------------------------
-        if source_name == getattr(self, "last_processed_source_name", None):
+        if newest_file == getattr(self, "last_processed_source_path", None):
             log("Source already processed this session. Skipping.", "debug", self)
             return
     
@@ -512,7 +511,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         success = process_subtitles(newest_file, self, save_path=save_path)
     
         if success:
-            self.last_processed_source_name = source_name
+            self.last_processed_source_path = newest_file
             
     # ------------------------------------------------------------
     # check_auto_mode
