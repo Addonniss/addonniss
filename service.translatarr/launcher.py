@@ -1,37 +1,69 @@
 # -*- coding: utf-8 -*-
 import sys
+import os
 import xbmc
 import xbmcaddon
 import xbmcgui
+import xbmcvfs
 
 ADDON_ID = "service.translatarr"
-addon = xbmcaddon.Addon(ADDON_ID)
+ADDON = xbmcaddon.Addon(ADDON_ID)
+
+
+def log(message, level="info"):
+    levels = {
+        "debug": xbmc.LOGDEBUG,
+        "info": xbmc.LOGINFO,
+        "warning": xbmc.LOGWARNING,
+        "error": xbmc.LOGERROR
+    }
+    xbmc.log(f"[Translatarr][Launcher] {message}", levels.get(level, xbmc.LOGINFO))
+
 
 def show_changelog():
     try:
-        changelog = addon.getAddonInfo("changelog")
-        with open(changelog, "r", encoding="utf-8") as f:
+        addon_path = ADDON.getAddonInfo('path')
+        changelog_path = os.path.join(addon_path, 'changelog.txt')
+
+        log(f"Attempting to show changelog from: {changelog_path}", "debug")
+
+        if xbmcvfs.exists(changelog_path):
+            f = xbmcvfs.File(changelog_path)
             content = f.read()
+            f.close()
+
+            if isinstance(content, bytes):
+                content = content.decode("utf-8", errors="replace")
+
+            log("Changelog loaded successfully.", "debug")
+        else:
+            content = "No changelog available."
+            log("Changelog not found.", "warning")
 
         xbmcgui.Dialog().textviewer(
-            f"{addon.getAddonInfo('name')} - Change Log",
+            f"{ADDON.getAddonInfo('name')} - Change Log",
             content
         )
 
     except Exception as e:
-        xbmc.log(f"[Translatarr][Launcher] Failed to load changelog: {e}", xbmc.LOGERROR)
-        xbmcgui.Dialog().ok("Translatarr", f"Failed to open changelog:\n{e}")
+        log(f"Failed to open changelog: {e}", "error")
+        xbmcgui.Dialog().ok(
+            ADDON.getAddonInfo('name'),
+            f"Error opening changelog:\n{e}"
+        )
+
 
 if __name__ == "__main__":
 
-    # If called with parameter
+    # If script called with parameter
     if len(sys.argv) > 1:
         param = sys.argv[1]
 
         if param == "show_changelog":
             show_changelog()
         else:
-            addon.openSettings()
+            ADDON.openSettings()
+
     else:
         # Default action: open settings
-        addon.openSettings()
+        ADDON.openSettings()
