@@ -15,7 +15,7 @@ def log(msg):
 
 
 # ----------------------------------------------------------
-# Style Builder
+# Style Builder (uses new setting: translation_style)
 # ----------------------------------------------------------
 def build_style_instruction(trg_name):
     style_mode = ADDON.getSetting('translation_style') or "0"
@@ -52,9 +52,36 @@ def build_style_instruction(trg_name):
 
 
 # ----------------------------------------------------------
-# Base Translator Class
+# Base Translator
 # ----------------------------------------------------------
 class BaseTranslator:
+
+    def _get_temperature(self):
+        try:
+            temp = float(ADDON.getSetting('temp') or 0.15)
+            return max(0.0, min(temp, 1.0))
+        except:
+            return 0.15
+
+    def _scrub(self, raw_text, expected):
+        """
+        Extract only Lxxx prefixed lines.
+        Remove prefix and return clean list.
+        Must match expected_count exactly.
+        """
+        if not raw_text:
+            return None
+
+        lines = raw_text.splitlines()
+        cleaned = []
+
+        for line in lines:
+            match = re.match(r'^\s*L(\d{3}):\s*(.*)', line)
+            if match:
+                cleaned.append(match.group(2).strip())
+
+        return cleaned if len(cleaned) == expected else None
+
     def translate_batch(self, text_list, expected_count):
         raise NotImplementedError
 
@@ -89,15 +116,10 @@ class GeminiTranslator(BaseTranslator):
 
         self.model = model_map.get(self.model_idx, "gemini-2.0-flash")
 
-    def _get_temperature(self):
-        try:
-            temp = float(ADDON.getSetting('temp') or 0.15)
-            return max(0.0, min(temp, 1.0))
-        except:
-            return 0.15
-
     def translate_batch(self, text_list, expected_count):
+
         if not self.api_key:
+            log("Gemini API key missing")
             return None, 0, 0
 
         from languages import get_lang_params
@@ -112,9 +134,13 @@ class GeminiTranslator(BaseTranslator):
         prefixed = [f"L{i:03}: {t}" for i, t in enumerate(text_list)]
         input_text = "\n".join(prefixed)
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
-
         style_block = build_style_instruction(trg_name)
+
+        url = (
+            f"https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{self.model}:generateContent?key={self.api_key}"
+        )
+
         payload = {
             "contents": [{
                 "parts": [{
@@ -140,13 +166,21 @@ class GeminiTranslator(BaseTranslator):
         try:
             r = requests.post(url, json=payload, timeout=30)
             if r.status_code != 200:
+                log(f"Gemini error: {r.status_code}")
                 return None, 0, 0
 
             data = r.json()
-            raw = data['candidates'][0]['content']['parts'][0]['text'].strip()
+            raw = (
+                data.get("candidates", [{}])[0]
+                .get("content", {})
+                .get("parts", [{}])[0]
+                .get("text", "")
+                .strip()
+            )
 
             translated = self._scrub(raw, expected_count)
             if not translated:
+                log("Gemini scrub failed")
                 return None, 0, 0
 
             usage = data.get("usageMetadata", {})
@@ -155,17 +189,9 @@ class GeminiTranslator(BaseTranslator):
 
             return translated, in_t, out_t
 
-        except:
+        except Exception as e:
+            log(f"Gemini exception: {e}")
             return None, 0, 0
-
-    def _scrub(self, raw_text, expected):
-        lines = raw_text.split("\n")
-        cleaned = []
-        for line in lines:
-            if re.match(r'^L\d{3}:\s*', line.strip()):
-                clean = re.sub(r'^L\d{3}:\s*', '', line.strip())
-                cleaned.append(clean)
-        return cleaned if len(cleaned) == expected else None
 
     def calculate_cost(self, input_tokens, output_tokens):
         in_price, out_price = self.PRICING.get(self.model, (0, 0))
@@ -199,15 +225,10 @@ class OpenAITranslator(BaseTranslator):
 
         self.model = model_map.get(self.model_idx, "gpt-4o-mini")
 
-    def _get_temperature(self):
-        try:
-            temp = float(ADDON.getSetting('temp') or 0.15)
-            return max(0.0, min(temp, 1.0))
-        except:
-            return 0.15
-
     def translate_batch(self, text_list, expected_count):
+
         if not self.api_key:
+            log("OpenAI API key missing")
             return None, 0, 0
 
         from languages import get_lang_params
@@ -222,13 +243,8 @@ class OpenAITranslator(BaseTranslator):
         prefixed = [f"L{i:03}: {t}" for i, t in enumerate(text_list)]
         input_text = "\n".join(prefixed)
 
-        url = "https://api.openai.com/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-
         style_block = build_style_instruction(trg_name)
+
         payload = {
             "model": self.model,
             "messages": [
@@ -251,16 +267,34 @@ class OpenAITranslator(BaseTranslator):
             "temperature": self.temperature
         }
 
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+
         try:
-            r = requests.post(url, headers=headers, json=payload, timeout=30)
+            r = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+
             if r.status_code != 200:
+                log(f"OpenAI error: {r.status_code}")
                 return None, 0, 0
 
             data = r.json()
-            raw = data['choices'][0]['message']['content'].strip()
+            raw = (
+                data.get("choices", [{}])[0]
+                .get("message", {})
+                .get("content", "")
+                .strip()
+            )
 
             translated = self._scrub(raw, expected_count)
             if not translated:
+                log("OpenAI scrub failed")
                 return None, 0, 0
 
             usage = data.get("usage", {})
@@ -269,17 +303,9 @@ class OpenAITranslator(BaseTranslator):
 
             return translated, in_t, out_t
 
-        except:
+        except Exception as e:
+            log(f"OpenAI exception: {e}")
             return None, 0, 0
-
-    def _scrub(self, raw_text, expected):
-        lines = raw_text.split("\n")
-        cleaned = []
-        for line in lines:
-            if re.match(r'^L\d{3}:\s*', line.strip()):
-                clean = re.sub(r'^L\d{3}:\s*', '', line.strip())
-                cleaned.append(clean)
-        return cleaned if len(cleaned) == expected else None
 
     def calculate_cost(self, input_tokens, output_tokens):
         in_price, out_price = self.PRICING.get(self.model, (0, 0))
@@ -293,7 +319,7 @@ class OpenAITranslator(BaseTranslator):
 # PUBLIC API
 # ==========================================================
 def _get_translator():
-    provider = ADDON.getSetting('provider')  # 0=Gemini 1=OpenAI
+    provider = ADDON.getSetting('provider')  # 0=Gemini, 1=OpenAI
     return OpenAITranslator() if provider == "1" else GeminiTranslator()
 
 
