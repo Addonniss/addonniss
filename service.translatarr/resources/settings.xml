@@ -233,6 +233,7 @@
                     <data>RunScript(service.translatarr,show_changelog)</data>
                 </setting>
             </group>
+
         </category>
     </section>
 </settings>
