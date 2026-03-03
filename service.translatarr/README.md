@@ -1,4 +1,4 @@
-# 🎬 Translatarr v2.1.1
+# 🎬 Translatarr v2.3.0
 ## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
@@ -22,15 +22,10 @@ Unlike traditional word-by-word translators, it understands:
 
 ---
 
-# 🚀 What’s New (v2.1.1)
+# 🚀 What’s New (v2.3.0)
 
-✔ Global Translation Lock (prevents overlapping translations)  
-✔ Refined Source Change Detection (file size–based overwrite logic)  
-✔ Session-Based Translation Protection  
-✔ Smart Mid-Session Retranslation Handling  
-✔ Improved Cross-Session Behavior (restart-safe)  
-✔ Temporary Translation Files (clean & safe saving)  
-✔ Improved Debug Logging  
+✔ AUTO MODE
+✔ REAL-TIME TRANSLATION
 
 Translations are now safer, smarter, and protected against duplicates, unwanted overwrites, and unnecessary API usage — while allowing you to download and switch subtitles freely during playback.
 
@@ -390,6 +385,7 @@ Use:
 If you enjoy Translatarr and want to support development:
 
 https://www.buymeacoffee.com/addonniss
+
 
 
 
