@@ -445,8 +445,14 @@ class TranslatarrMonitor(xbmc.Monitor):
         # (new session safe, avoids API cost)
         # -------------------------------------------------
         if xbmcvfs.exists(save_path):
-            log(f"Translated subtitle already exists. Loading: {save_path}", "debug", self)
-            xbmc.Player().setSubtitles(save_path)
+            current_sub = xbmc.Player().getSubtitles()
+        
+            if current_sub != save_path:
+                log(f"Translated subtitle exists. Loading once: {save_path}", "debug", self)
+                xbmc.Player().setSubtitles(save_path)
+            else:
+                log("Translated subtitle already active. Skipping reload.", "debug", self)
+        
             return
     
         folders_to_scan = [
