@@ -1,3 +1,9 @@
+v2.3.0
+- Added Auto Mode
+  * works with setting nothing in Kodi
+  * you don't need Custom Folder Location set-up
+  * we are polling temp folders and movie folder location
+
 v2.2.0
 
 - Added Live Translation Mode (Optional)
