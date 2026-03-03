@@ -1,6 +1,6 @@
 v2.3.0
 - Added Auto Mode
-  * works with setting nothing in Kodi
+  * no other mandatory setting in Kodi is required
   * you don't need Custom Folder Location set-up
   * we are polling temp folders and movie folder location
 
