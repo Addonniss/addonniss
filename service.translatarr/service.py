@@ -338,6 +338,9 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.source_lang_name, self.source_lang_iso = get_lang_params(raw_source)
         self.target_lang_name, self.target_lang_iso = get_lang_params(raw_target)
         
+        # Precompute ISO variants for quick lookups
+        self.target_iso_variants = get_iso_variants(self.target_lang_name)
+        
         log(
             f"Languages loaded → "
             f"source: {self.source_lang_name} ({self.source_lang_iso}), "
@@ -473,13 +476,13 @@ class TranslatarrMonitor(xbmc.Monitor):
                 continue
             
             # If we already have a target-language subtitle, exit early
-            for trg_iso in get_iso_variants(self.target_lang_name):
+            for trg_iso in self.target_iso_variants:
                 if f_lower.endswith(f".{trg_iso}.srt"):
                     full_path = os.path.join(movie_folder, f)
                     current_sub = xbmc.Player().getSubtitles()
                     if current_sub != full_path:
                         log(f"Target-language subtitle already exists in movie folder: {full_path}. Skipping translation.", "debug", self)
-                        xbmc.Player().setSubtitles(full_path)  # optional, Kodi may auto-load anyway
+                        return
                     else:
                         log("Target-language subtitle already active. Skipping reload.", "debug", self)
                     return  # ✅ exit early, no translation needed
@@ -511,9 +514,21 @@ class TranslatarrMonitor(xbmc.Monitor):
         newest_file = None
         newest_mtime = 0
     
+        # -------------------------------------------------
+        # Validate folders once before scanning
+        # -------------------------------------------------
+        valid_folders = []
+        
         for folder in folders_to_scan:
-            if not folder or not xbmcvfs.exists(folder):
-                continue
+            if folder and xbmcvfs.exists(folder):
+                valid_folders.append(folder)
+            else:
+                log(f"Skipping invalid or missing folder: {folder}", "debug", self)
+        
+        # -------------------------------------------------
+        # Scan only valid folders
+        # -------------------------------------------------
+        for folder in valid_folders:
     
             try:
                 files = [f for f in xbmcvfs.listdir(folder)[1] if f.lower().endswith(".srt")]
