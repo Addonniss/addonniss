@@ -3,6 +3,7 @@
 # -----------------------------
 # Languages dictionary (alphabetical)
 # -----------------------------
+# Key can be numeric string (old) or language name (new select)
 LANGUAGES = {
     "0": ("Arabic", "ar"),
     "1": ("Catalan", "ca"),
@@ -34,6 +35,9 @@ LANGUAGES = {
     "27": ("Turkish", "tr"),
     "28": ("Vietnamese", "vi")
 }
+
+# Mapping for select-based language names (new)
+LANG_NAME_TO_ISO = {name: iso for _, (name, iso) in LANGUAGES.items()}
 
 # -----------------------------
 # ISO variants mapping
@@ -73,14 +77,29 @@ ISO_VARIANTS = {
 # -----------------------------
 # Functions
 # -----------------------------
-def get_lang_params(index):
+def get_lang_params(value):
     """
     Return (Full Name, ISO Code)
-    Defaults to Romanian if index not found
+    Accepts either:
+      - old numeric string key ("7")
+      - new select string ("English")
+    Defaults to Romanian if value not found.
     """
-    return LANGUAGES.get(index, ("Romanian", "ro"))
+    # Try numeric key first
+    if str(value) in LANGUAGES:
+        return LANGUAGES[str(value)]
+    
+    # Try select string name
+    if isinstance(value, str) and value in LANG_NAME_TO_ISO:
+        return (value, LANG_NAME_TO_ISO[value])
+    
+    # Fallback
+    return ("Romanian", "ro")
 
-def get_iso_variants(index):
-    """Return list of possible ISO variants for a language index"""
-    _, iso = get_lang_params(index)
+def get_iso_variants(value):
+    """
+    Return list of ISO variants for a language.
+    Accepts either numeric string or select string.
+    """
+    _, iso = get_lang_params(value)
     return ISO_VARIANTS.get(iso, [iso])
