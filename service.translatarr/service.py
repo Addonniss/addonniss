@@ -471,8 +471,19 @@ class TranslatarrMonitor(xbmc.Monitor):
     
             final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
             save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
+            # -------------------------------------------------
+            # NEW: If translated file already exists → just load it
+            # -------------------------------------------------
+            if xbmcvfs.exists(save_path):
+                log(f"Translated subtitle already exists: {save_path}", "debug", self)
+                xbmc.Player().setSubtitles(save_path)
+                return
     
             process_subtitles(newest_file, self, save_path=save_path)
+            
+            # Update state AFTER translation attempt
+            self.last_temp_file_path = newest_file
+            self.last_temp_folder_mtime = newest_mtime
             
     # ------------------------------------------------------------
     # check_auto_mode
