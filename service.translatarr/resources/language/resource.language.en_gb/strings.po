@@ -1,0 +1,182 @@
+msgid ""
+msgstr ""
+
+msgctxt "#30000"
+msgid "Subtitles"
+msgstr ""
+
+msgctxt "#30001"
+msgid "Auto-Mode"
+msgstr ""
+
+msgctxt "#30002"
+msgid "Automatically detects subtitles and caches translations."
+msgstr ""
+
+msgctxt "#30003"
+msgid "Subtitle Save Folder"
+msgstr ""
+
+msgctxt "#30004"
+msgid "Kodi must use same path for 'Custom Subtitle Location'"
+msgstr ""
+
+msgctxt "#30005"
+msgid "Enable Real-Time Translation"
+msgstr ""
+
+msgctxt "#30006"
+msgid "ON: Progressive translation during playback. OFF: Wait for full file processing."
+msgstr ""
+
+msgctxt "#30007"
+msgid "AI Engine"
+msgstr ""
+
+msgctxt "#30008"
+msgid "Active Engine"
+msgstr ""
+
+msgctxt "#30009"
+msgid "Choose between Gemini or OpenAI for processing."
+msgstr ""
+
+msgctxt "#30010"
+msgid "Gemini API Key"
+msgstr ""
+
+msgctxt "#30011"
+msgid "Enter your key from Google AI Studio."
+msgstr ""
+
+msgctxt "#30012"
+msgid "Gemini Model"
+msgstr ""
+
+msgctxt "#30013"
+msgid "Select the specific Gemini model version."
+msgstr ""
+
+msgctxt "#30014"
+msgid "Tuning"
+msgstr ""
+
+msgctxt "#30015"
+msgid "Source Language"
+msgstr ""
+
+msgctxt "#30016"
+msgid "Language of the downloaded/added source subtitle."
+msgstr ""
+
+msgctxt "#30017"
+msgid "Target Language"
+msgstr ""
+
+msgctxt "#30018"
+msgid "Desired translation language."
+msgstr ""
+
+msgctxt "#30019"
+msgid "Dialogue Lines per Chunk, minimum 10, maximum 150"
+msgstr ""
+
+msgctxt "#30020"
+msgid "Number of dialogue lines sent to AI at once."
+msgstr ""
+
+msgctxt "#30021"
+msgid "Advanced"
+msgstr ""
+
+msgctxt "#30022"
+msgid "Show Success Page Statistics"
+msgstr ""
+
+msgctxt "#30023"
+msgid "Displays cost and token usage after completion."
+msgstr ""
+
+msgctxt "#30024"
+msgid "Simple Notifications Pop-Up"
+msgstr ""
+
+msgctxt "#30025"
+msgid "Use small pop-ups instead of full dialogs."
+msgstr ""
+
+msgctxt "#30026"
+msgid "Enable Debug Mode"
+msgstr ""
+
+msgctxt "#30027"
+msgid "Verbose logging for troubleshooting."
+msgstr ""
+
+msgctxt "#30028"
+msgid "View Change Log"
+msgstr ""
+
+msgctxt "#30029"
+msgid "Shows the history of addon updates."
+msgstr ""
+
+msgctxt "#30030"
+msgid "Translation Style"
+msgstr ""
+
+msgctxt "#30031"
+msgid "Adjusts the tone (Natural, Family-friendly, or Adult)."
+msgstr ""
+
+msgctxt "#30032"
+msgid "Temperature (0.0 - 1.0)"
+msgstr ""
+
+msgctxt "#30033"
+msgid "Higher values make AI more creative; 0.15 is recommended."
+msgstr ""
+
+msgctxt "#30034"
+msgid "OpenAI API Key"
+msgstr ""
+
+msgctxt "#30035"
+msgid "Enter your secret key from the OpenAI dashboard."
+msgstr ""
+
+msgctxt "#30036"
+msgid "OpenAI Model"
+msgstr ""
+
+msgctxt "#30037"
+msgid "Select the specific GPT model version."
+msgstr ""
+
+msgctxt "#30038"
+msgid "Manual Mode (Advanced)"
+msgstr ""
+
+msgctxt "#30039"
+msgid "Translation Mode"
+msgstr ""
+
+msgctxt "#30040"
+msgid "Switch between automatic subtitle detection OR manual folder monitoring."
+msgstr ""
+
+msgctxt "#30041"
+msgid "Auto-Mode (Recommended)"
+msgstr ""
+
+msgctxt "#30042"
+msgid "Manual Mode (Advanced)"
+msgstr ""
+
+msgctxt "#30043"
+msgid "Automatically detects subtitles..."
+msgstr ""
+
+msgctxt "#30044"
+msgid "Monitors custom folder..."
+msgstr ""
