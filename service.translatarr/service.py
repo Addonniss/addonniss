@@ -426,16 +426,12 @@ class TranslatarrMonitor(xbmc.Monitor):
     # ------------------------------------------------------------
     def check_temp_folder_for_srt(self):
     
-        folders_to_scan = [
-            OPENSUBTITLES_SUB_FOLDER,
-            A4K_SUB_FOLDER,
-        ]
-    
         if not xbmc.Player().isPlaying():
             return
     
         playing_file = xbmc.Player().getPlayingFile()
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
+        video_name_lower = video_name.lower()
         final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
         save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
     
@@ -447,6 +443,11 @@ class TranslatarrMonitor(xbmc.Monitor):
             log(f"Translated subtitle already exists. Loading: {save_path}", "debug", self)
             xbmc.Player().setSubtitles(save_path)
             return
+    
+        folders_to_scan = [
+            OPENSUBTITLES_SUB_FOLDER,
+            A4K_SUB_FOLDER,
+        ]
     
         newest_file = None
         newest_mtime = 0
@@ -465,6 +466,10 @@ class TranslatarrMonitor(xbmc.Monitor):
     
                 # Ignore already translated target files
                 if f.lower().endswith(f".{self.target_lang_iso}.srt"):
+                    continue
+    
+                # Only consider SRTs that match currently playing video name
+                if video_name_lower not in f.lower():
                     continue
     
                 full_path = os.path.join(folder, f)
