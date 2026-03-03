@@ -122,9 +122,9 @@ Both **Source** and **Target** languages must be selected explicitly for maximum
 
 ---
 
-# 📁 Subtitle Folder (IMPORTANT)
+# 📁 Subtitle Folder (IMPORTANT IN MAMUAL MODE ONLY)
 
-This is the most important setup step.
+This is the most important setup step for manual mode.
 
 Translatarr monitors a specific folder and automatically processes any new subtitle that appears there.
 
@@ -142,7 +142,7 @@ Examples:
 
 **Android**
 ```
-/storage/emulated/0/Download/sub
+/storage/emulated/0/Download/
 ```
 
 **Windows**
@@ -385,6 +385,7 @@ Use:
 If you enjoy Translatarr and want to support development:
 
 https://www.buymeacoffee.com/addonniss
+
 
 
 
