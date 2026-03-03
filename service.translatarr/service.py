@@ -449,7 +449,13 @@ class TranslatarrMonitor(xbmc.Monitor):
     
         if newest_file:
             log(f"New temp SRT detected: {newest_file}", "debug", self)
-            process_subtitles(newest_file, self)
+            
+            # Force save_path to addon folder
+            video_name = os.path.splitext(os.path.basename(xbmc.Player().getPlayingFile()))[0]
+            final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
+            save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
+    
+            process_subtitles(newest_file, self, save_path=save_path)
             
     # ------------------------------------------------------------
     # check_auto_mode
