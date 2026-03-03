@@ -480,19 +480,19 @@ class TranslatarrMonitor(xbmc.Monitor):
     
         source_name = os.path.basename(newest_file)
     
-    # -------------------------------------------------
-    # 2️⃣ Prevent duplicate processing (same file in 2 folders)
-    # -------------------------------------------------
-    if source_name == getattr(self, "last_processed_source_name", None):
-        log("Source already processed this session. Skipping.", "debug", self)
-        return
-
-    log(f"New source subtitle detected: {newest_file}", "debug", self)
-
-    success = process_subtitles(newest_file, self, save_path=save_path)
-
-    if success:
-        self.last_processed_source_name = source_name
+        # -------------------------------------------------
+        # 2️⃣ Prevent duplicate processing (same file in 2 folders)
+        # -------------------------------------------------
+        if source_name == getattr(self, "last_processed_source_name", None):
+            log("Source already processed this session. Skipping.", "debug", self)
+            return
+    
+        log(f"New source subtitle detected: {newest_file}", "debug", self)
+    
+        success = process_subtitles(newest_file, self, save_path=save_path)
+    
+        if success:
+            self.last_processed_source_name = source_name
             
     # ------------------------------------------------------------
     # check_auto_mode
