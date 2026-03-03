@@ -22,7 +22,7 @@ Unlike traditional word-by-word translators, it understands:
 
 ---
 
-# 🚀 What’s New (v2.1.01)
+# 🚀 What’s New (v2.1.1)
 
 ✔ Global Translation Lock (prevents overlapping translations)  
 ✔ Refined Source Change Detection (file size–based overwrite logic)  
@@ -390,7 +390,6 @@ Use:
 If you enjoy Translatarr and want to support development:
 
 https://www.buymeacoffee.com/addonniss
-
 
 
 
