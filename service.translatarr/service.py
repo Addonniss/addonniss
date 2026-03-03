@@ -25,7 +25,7 @@ A4K_SUB_FOLDER = xbmcvfs.translatePath(
     "special://profile/addon_data/a4kSubtitles/"
 )
 
-OPENSUBTITLE_SUB_FOLDER = xbmcvfs.translatePath(
+OPENSUBTITLES_SUB_FOLDER = xbmcvfs.translatePath(
     "special://temp/"
 )
 
@@ -423,7 +423,7 @@ class TranslatarrMonitor(xbmc.Monitor):
     def check_temp_folder_for_srt(self):
     
         folders_to_scan = [
-            OPENSUBTITLE_SUB_FOLDER,
+            OPENSUBTITLES_SUB_FOLDER,
             A4K_SUB_FOLDER,
         ]
     
