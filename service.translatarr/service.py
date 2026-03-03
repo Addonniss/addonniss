@@ -250,6 +250,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.last_temp_folder_mtime = 0   # Track newest temp SRT in special://temp/
         self.last_auto_sub_path = None
         self.last_auto_sub_mtime = 0      # Track last processed auto-detected in-player subtitle
+        self.last_processed_source_name = None
         super().__init__()
         self.polling_active = False
         self.last_source_size = {}
@@ -427,6 +428,23 @@ class TranslatarrMonitor(xbmc.Monitor):
             A4K_SUB_FOLDER,
         ]
     
+        if not xbmc.Player().isPlaying():
+            return
+    
+        playing_file = xbmc.Player().getPlayingFile()
+        video_name = os.path.splitext(os.path.basename(playing_file))[0]
+        final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
+        save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
+    
+        # -------------------------------------------------
+        # 1️⃣ ALWAYS load translated subtitle if exists
+        # (new session safe, avoids API cost)
+        # -------------------------------------------------
+        if xbmcvfs.exists(save_path):
+            log(f"Translated subtitle already exists. Loading: {save_path}", "debug", self)
+            xbmc.Player().setSubtitles(save_path)
+            return
+    
         newest_file = None
         newest_mtime = 0
     
@@ -441,9 +459,13 @@ class TranslatarrMonitor(xbmc.Monitor):
                 continue
     
             for f in files:
+    
+                # Ignore already translated target files
                 if f.lower().endswith(f".{self.target_lang_iso}.srt"):
                     continue
+    
                 full_path = os.path.join(folder, f)
+    
                 try:
                     stat = xbmcvfs.Stat(full_path)
                 except Exception:
@@ -453,37 +475,24 @@ class TranslatarrMonitor(xbmc.Monitor):
                     newest_mtime = stat.st_mtime()
                     newest_file = full_path
     
-        # Early return if unchanged
-        if (getattr(self, 'last_temp_file_path', None) == newest_file and
-            getattr(self, 'last_temp_folder_mtime', 0) == newest_mtime):
-            log("No new or modified temp SRT detected. Skipping.", "debug", self)
+        if not newest_file:
             return
     
-        self.last_temp_file_path = newest_file
-        self.last_temp_folder_mtime = newest_mtime
+        source_name = os.path.basename(newest_file)
     
-        if newest_file:
-            log(f"New temp SRT detected: {newest_file}", "debug", self)
-    
-            video_name = os.path.splitext(
-                os.path.basename(xbmc.Player().getPlayingFile())
-            )[0]
-    
-            final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
-            save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
-            # -------------------------------------------------
-            # NEW: If translated file already exists → just load it
-            # -------------------------------------------------
-            if xbmcvfs.exists(save_path):
-                log(f"Translated subtitle already exists: {save_path}", "debug", self)
-                xbmc.Player().setSubtitles(save_path)
-                return
-    
-            process_subtitles(newest_file, self, save_path=save_path)
-            
-            # Update state AFTER translation attempt
-            self.last_temp_file_path = newest_file
-            self.last_temp_folder_mtime = newest_mtime
+    # -------------------------------------------------
+    # 2️⃣ Prevent duplicate processing (same file in 2 folders)
+    # -------------------------------------------------
+    if source_name == getattr(self, "last_processed_source_name", None):
+        log("Source already processed this session. Skipping.", "debug", self)
+        return
+
+    log(f"New source subtitle detected: {newest_file}", "debug", self)
+
+    success = process_subtitles(newest_file, self, save_path=save_path)
+
+    if success:
+        self.last_processed_source_name = source_name
             
     # ------------------------------------------------------------
     # check_auto_mode
