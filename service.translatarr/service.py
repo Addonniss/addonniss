@@ -430,8 +430,13 @@ class TranslatarrMonitor(xbmc.Monitor):
             return
     
         playing_file = xbmc.Player().getPlayingFile()
+        if not playing_file:
+            return
+        movie_folder = os.path.dirname(playing_file)
+        
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
         video_name_lower = video_name.lower()
+        
         final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
         save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
     
@@ -447,6 +452,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         folders_to_scan = [
             OPENSUBTITLES_SUB_FOLDER,
             A4K_SUB_FOLDER,
+            movie_folder,
         ]
     
         newest_file = None
