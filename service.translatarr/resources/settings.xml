@@ -2,49 +2,41 @@
 <settings>
 
     <!-- ============================= -->
-		<!-- SUBTITLES -->
-		<!-- ============================= -->
-		<category label="Subtitles">
-		
-		    <!-- NEW: Automatic Mode -->
-		    <setting id="auto_mode"
-		             type="bool"
-		             label="Automatic Subtitle Detection (Recommended)"
-		             default="true" />
-		
-		    <!-- Explanation text when auto is ON -->
-		    <setting type="text"
-		             label="Automatically detects subtitles and caches translations."
-		             enable="false"
-		             visible="eq(-1,true)" />
-		
-		    <!-- Manual Mode Separator -->
-		    <setting type="lsep"
-		             label="Manual Mode (Advanced)"
-		             visible="eq(-2,false)" />
-		
-		    <!-- Manual Folder (only visible if auto_mode is OFF) -->
-		    <setting id="sub_folder"
-		             type="folder"
-		             label="Subtitle Save Folder"
-		             default="/storage/emulated/0/Download/sub/"
-		             visible="eq(-3,false)" />
-		
-		    <!-- Manual Info -->
-		    <setting type="text"
-		             label="Kodi must use same path for 'Custom Subtitle Location'"
-		             enable="false"
-		             visible="eq(-4,false)" />
-		
-		    <!-- Extra spacing -->
-		    <setting type="lsep" label=" " />
-
-				<setting id="live_translation"
+    <!-- SUBTITLES -->
+    <!-- ============================= -->
+    <category label="Subtitles">
+        
+        <setting id="auto_mode"
                  type="bool"
-                 label="Enable Live Translation (Experimental)"
+                 label="Auto-Mode (Recommended)"
+                 default="true" />
+
+        <setting type="text"
+                 label="Automatically detects subtitles and caches translations."
+                 enable="eq(-1,true)" />
+
+        <setting type="text"
+                 label="Manual Mode (Advanced)"
+                 enable="eq(-2,false)" />
+
+        <setting id="sub_folder"
+                 type="folder"
+                 label="Subtitle Save Folder"
+                 default="/storage/emulated/0/Download/sub/"
+                 enable="eq(-3,false)" />
+
+        <setting type="text"
+                 label="Kodi must use same path for 'Custom Subtitle Location'"
+                 enable="eq(-4,false)" />
+
+        <setting type="lsep" label=" " />
+
+        <setting id="live_translation"
+                 type="bool"
+                 label="Enable Real-Time Translation"
                  default="false" />
-		
-		</category>
+        
+    </category>
 
 
     <!-- ============================= -->
@@ -52,44 +44,49 @@
     <!-- ============================= -->
     <category label="AI Engine">
 
+        <!-- Provider popup -->
         <setting id="provider"
-                 type="enum"
+                 type="select"
                  label="Active Engine"
-                 values="Gemini|OpenAI"
-                 default="0" />
+                 default="Gemini"
+                 values="Gemini|OpenAI" />
 
-        <!-- Gemini Settings -->
+        <setting type="lsep" label=" " />
+
+        <!-- GEMINI -->
         <setting type="lsep" label="Gemini Settings" />
 
         <setting id="api_key"
                  type="text"
                  label="Gemini API Key"
-                 default="" />
+                 default=""
+                 enable="eq(-3,0)" />
 
         <setting id="model"
-                 type="enum"
+                 type="select"
                  label="Gemini Model"
+                 default="Gemini 2.0 Flash"
                  values="Gemini 2.0 Flash|Gemini 1.5 Flash|Gemini 2.5 Flash"
-                 default="0" />
+                 enable="eq(-4,0)" />
 
-        <!-- Extra spacing -->
         <setting type="lsep" label=" " />
 
-        <!-- OpenAI Settings -->
+        <!-- OPENAI -->
         <setting type="lsep" label="OpenAI Settings" />
 
         <setting id="openai_api_key"
                  type="text"
                  label="OpenAI API Key"
-                 default="" />
+                 default=""
+                 enable="eq(-7,1)" />
 
         <setting id="openai_model"
-                 type="enum"
+                 type="select"
                  label="OpenAI Model"
+                 default="gpt-4o-mini"
                  values="gpt-4o-mini|gpt-4o|gpt-5-mini"
-                 default="0" />
+                 enable="eq(-8,1)" />
 
-        <!-- Extra spacing -->
         <setting type="lsep" label=" " />
 
     </category>
@@ -101,22 +98,22 @@
     <category label="Tuning">
 
         <setting id="source_lang"
-                 type="enum"
+                 type="select"
                  label="Source Language"
                  values="Arabic|Catalan|Chinese|Croatian|Czech|Danish|Dutch|English|Finnish|French|German|Greek|Hebrew|Hindi|Hungarian|Italian|Japanese|Korean|Norwegian|Polish|Portuguese|Romanian|Russian|Slovenian|Spanish|Swedish|Thai|Turkish|Vietnamese"
-                 default="7" />
+                 default="English" />
 
         <setting id="target_lang"
-                 type="enum"
+                 type="select"
                  label="Target Language"
                  values="Arabic|Catalan|Chinese|Croatian|Czech|Danish|Dutch|English|Finnish|French|German|Greek|Hebrew|Hindi|Hungarian|Italian|Japanese|Korean|Norwegian|Polish|Portuguese|Romanian|Russian|Slovenian|Spanish|Swedish|Thai|Turkish|Vietnamese"
-                 default="21" />
+                 default="Romanian" />
 
         <setting id="translation_style"
-                 type="enum"
+                 type="select"
                  label="Translation Style"
                  values="Family-Friendly|Natural|Gritty / Adult"
-                 default="0" />
+                 default="Natural" />
 
         <setting id="temp"
                  type="text"
@@ -128,7 +125,6 @@
                  label="Dialogue Lines per Chunk"
                  default="50" />
 
-        <!-- Extra spacing -->
         <setting type="lsep" label=" " />
 
     </category>
@@ -149,7 +145,6 @@
                  label="Simple Notifications"
                  default="true" />
 
-        <!-- Small visual separation -->
         <setting type="lsep" label="" />
 
         <setting id="debug_mode"
@@ -157,7 +152,6 @@
                  label="Enable Debug Mode"
                  default="false" />
 
-        <!-- Information / section break -->
         <setting type="lsep" label="Information" />
 
         <setting id="show_changelog"
@@ -165,7 +159,6 @@
                  label="View Change Log"
                  action="RunScript(service.translatarr,show_changelog)" />
 
-        <!-- Extra spacing at the bottom -->
         <setting type="lsep" label=" " />
 
     </category>
