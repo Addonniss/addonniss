@@ -7,6 +7,7 @@ import os
 import time
 import math
 import sys
+import re
 
 import translator
 import file_manager
@@ -437,6 +438,8 @@ class TranslatarrMonitor(xbmc.Monitor):
         
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
         video_name_lower = video_name.lower()
+        # Remove spaces and plus signs, keep alphanumerics and dots only
+        video_name_normalized = re.sub(r'[\s+]+', '', video_name_lower)
         
         final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
         save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
@@ -456,15 +459,15 @@ class TranslatarrMonitor(xbmc.Monitor):
         
             return
     
+        newest_file = None
+        newest_mtime = 0
+    
         folders_to_scan = [
             OPENSUBTITLES_SUB_FOLDER,
             A4K_SUB_FOLDER,
             movie_folder,
         ]
-    
-        newest_file = None
-        newest_mtime = 0
-    
+
         for folder in folders_to_scan:
             if not folder or not xbmcvfs.exists(folder):
                 continue
@@ -522,6 +525,7 @@ class TranslatarrMonitor(xbmc.Monitor):
     
         playing_file = xbmc.Player().getPlayingFile()
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
+        video_name_normalized = re.sub(r'[\s+]+', '', video_name.lower())
     
         sub_path = xbmc.Player().getSubtitles()
         if not sub_path:
@@ -584,6 +588,7 @@ class TranslatarrMonitor(xbmc.Monitor):
 
         playing_file = xbmc.Player().getPlayingFile()
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
+        video_name_normalized = re.sub(r'[\s+]+', '', video_name.lower())
         log(f"Current video: {video_name}", "debug", self)
 
         custom_dir = self.sub_folder
@@ -602,6 +607,12 @@ class TranslatarrMonitor(xbmc.Monitor):
         candidate_files = []
         for f in files:
             f_lower = f.lower()
+            # Normalize filename: remove spaces and '+' signs
+            f_normalized = re.sub(r'[\s+]+', '', f_lower)
+            # Check if it matches the current video
+            if video_name_normalized not in f_normalized:
+                continue  # skip if not the same video
+                
             base_ok = video_name.lower() in f_lower
             src_ok = any(f_lower.endswith(f".{v}.srt") for v in src_variants)
             trg_ok = not any(f_lower.endswith(ext) for ext in target_exts)
