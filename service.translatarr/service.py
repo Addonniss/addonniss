@@ -402,6 +402,9 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.polling_active = True
         self.last_source_size = {}
         self.session_translation_created = False
+        self.last_processed_source_name = None
+        self.last_auto_sub_path = None
+        self.last_auto_sub_mtime = 0
 
     def onPlaybackStopped(self):
         log("Playback stopped. Resetting state.", "debug", self)
