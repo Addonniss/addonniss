@@ -441,6 +441,8 @@ class TranslatarrMonitor(xbmc.Monitor):
                 continue
     
             for f in files:
+                if f.lower().endswith(f".{self.target_lang_iso}.srt"):
+                    continue
                 full_path = os.path.join(folder, f)
                 try:
                     stat = xbmcvfs.Stat(full_path)
