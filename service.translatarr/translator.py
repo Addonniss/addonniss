@@ -24,7 +24,7 @@ def build_style_instruction(trg_name):
     # 1 = Natural
     # 2 = Gritty / Adult
 
-    if style_mode == "2":
+    if style_mode == "Gritty / Adult":
         return (
             "STYLE REQUIREMENT:\n"
             f"- Tone: gritty, raw, adult {trg_name}.\n"
@@ -33,7 +33,7 @@ def build_style_instruction(trg_name):
             "- Maintain emotional intensity.\n"
         )
 
-    elif style_mode == "1":
+    elif style_mode == "Natural":
         return (
             "STYLE REQUIREMENT:\n"
             f"- Tone: natural conversational {trg_name}.\n"
@@ -105,16 +105,15 @@ class GeminiTranslator(BaseTranslator):
 
     def __init__(self):
         self.api_key = ADDON.getSetting('api_key')
-        self.model_idx = ADDON.getSetting('model') or "0"
         self.temperature = self._get_temperature()
 
         model_map = {
-            "0": "gemini-2.0-flash",
-            "1": "gemini-1.5-flash",
-            "2": "gemini-2.5-flash"
+            "Gemini 2.0 Flash": "gemini-2.0-flash",
+            "Gemini 1.5 Flash": "gemini-1.5-flash",
+            "Gemini 2.5 Flash": "gemini-2.5-flash"
         }
 
-        self.model = model_map.get(self.model_idx, "gemini-2.0-flash")
+        self.model = model_map.get(ADDON.getSetting('model'), "gemini-2.0-flash")
 
     def translate_batch(self, text_list, expected_count):
 
@@ -214,16 +213,15 @@ class OpenAITranslator(BaseTranslator):
 
     def __init__(self):
         self.api_key = ADDON.getSetting('openai_api_key')
-        self.model_idx = ADDON.getSetting('openai_model') or "0"
         self.temperature = self._get_temperature()
 
         model_map = {
-            "0": "gpt-4o-mini",
-            "1": "gpt-4o",
-            "2": "gpt-5-mini"
+            "gpt-4o-mini": "gpt-4o-mini",
+            "gpt-4o": "gpt-4o",
+            "gpt-5-mini": "gpt-5-mini"
         }
 
-        self.model = model_map.get(self.model_idx, "gpt-4o-mini")
+        self.model = model_map.get(ADDON.getSetting('openai_model'), "gpt-4o-mini")
 
     def translate_batch(self, text_list, expected_count):
 
@@ -319,8 +317,8 @@ class OpenAITranslator(BaseTranslator):
 # PUBLIC API
 # ==========================================================
 def _get_translator():
-    provider = ADDON.getSetting('provider')  # 0=Gemini, 1=OpenAI
-    return OpenAITranslator() if provider == "1" else GeminiTranslator()
+    provider = ADDON.getSetting('provider')
+    return OpenAITranslator() if provider == "OpenAI" else GeminiTranslator()
 
 
 def translate_batch(text_list, expected_count):
