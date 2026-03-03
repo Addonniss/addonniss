@@ -21,6 +21,14 @@ TRANSLATARR_SUB_FOLDER = xbmcvfs.translatePath(
     "special://profile/addon_data/service.translatarr/subtitles/"
 )
 
+A4K_SUB_FOLDER = xbmcvfs.translatePath(
+    "special://profile/addon_data/a4kSubtitles/"
+)
+
+OPENSUBTITLE_SUB_FOLDER = xbmcvfs.translatePath(
+    "special://temp/"
+)
+
 if not xbmcvfs.exists(TRANSLATARR_SUB_FOLDER):
     xbmcvfs.mkdir(TRANSLATARR_SUB_FOLDER)
 
@@ -413,45 +421,52 @@ class TranslatarrMonitor(xbmc.Monitor):
     # check_temp_folder_for_srt
     # ------------------------------------------------------------
     def check_temp_folder_for_srt(self):
-        temp_path = xbmcvfs.translatePath("special://temp/")
-        try:
-            files = [f for f in xbmcvfs.listdir(temp_path)[1] if f.lower().endswith(".srt")]
-        except Exception as e:
-            log(f"Failed to list temp folder: {e}", "error", self)
-            return
+    
+        folders_to_scan = [
+            OPENSUBTITLE_SUB_FOLDER,
+            A4K_SUB_FOLDER,
+        ]
     
         newest_file = None
         newest_mtime = 0
     
-        for f in files:
-            full_path = os.path.join(temp_path, f)
-            try:
-                stat = xbmcvfs.Stat(full_path)
-            except Exception:
+        for folder in folders_to_scan:
+            if not folder or not xbmcvfs.exists(folder):
                 continue
-            if stat.st_mtime() > newest_mtime:
-                newest_mtime = stat.st_mtime()
-                newest_file = full_path
     
-        # -----------------------------
-        # Early-return if nothing changed
-        # -----------------------------
+            try:
+                files = [f for f in xbmcvfs.listdir(folder)[1] if f.lower().endswith(".srt")]
+            except Exception as e:
+                log(f"Failed to list folder {folder}: {e}", "debug", self)
+                continue
+    
+            for f in files:
+                full_path = os.path.join(folder, f)
+                try:
+                    stat = xbmcvfs.Stat(full_path)
+                except Exception:
+                    continue
+    
+                if stat.st_mtime() > newest_mtime:
+                    newest_mtime = stat.st_mtime()
+                    newest_file = full_path
+    
+        # Early return if unchanged
         if (getattr(self, 'last_temp_file_path', None) == newest_file and
             getattr(self, 'last_temp_folder_mtime', 0) == newest_mtime):
             log("No new or modified temp SRT detected. Skipping.", "debug", self)
-            return  # nothing changed
+            return
     
-        # -----------------------------
-        # Only process new or changed file
-        # -----------------------------
         self.last_temp_file_path = newest_file
         self.last_temp_folder_mtime = newest_mtime
     
         if newest_file:
             log(f"New temp SRT detected: {newest_file}", "debug", self)
-            
-            # Force save_path to addon folder
-            video_name = os.path.splitext(os.path.basename(xbmc.Player().getPlayingFile()))[0]
+    
+            video_name = os.path.splitext(
+                os.path.basename(xbmc.Player().getPlayingFile())
+            )[0]
+    
             final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
             save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
     
