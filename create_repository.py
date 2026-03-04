@@ -1,16 +1,20 @@
-import os 
+import os
 import hashlib
 import zipfile
 import shutil
 import re
 
+# GitHub Pages base URL
 PAGES_URL = "https://addonniss.github.io/repository.addonniss/zips"
 
+# Addon IDs
 SERVICE_ID = "service.translatarr"
 REPO_ID = "repository.addonniss"
 ZIPS_PATH = "zips"
 
-
+# -----------------------------
+# Helper: get version x.x.x
+# -----------------------------
 def get_version(xml_path):
     with open(xml_path, 'r', encoding='utf-8') as f:
         content = f.read()
@@ -19,13 +23,17 @@ def get_version(xml_path):
             return match.group(1)
     raise ValueError(f"Invalid version format in {xml_path}")
 
-
+# -----------------------------
+# Clean zips folder
+# -----------------------------
 def clean():
     if os.path.exists(ZIPS_PATH):
         shutil.rmtree(ZIPS_PATH)
     os.makedirs(ZIPS_PATH)
 
-
+# -----------------------------
+# Build service addon zip
+# -----------------------------
 def build_service():
     xml_path = os.path.join(SERVICE_ID, "addon.xml")
     version = get_version(xml_path)
@@ -44,13 +52,16 @@ def build_service():
 
     return xml_path
 
-
+# -----------------------------
+# Build repository zip
+# -----------------------------
 def build_repo():
     xml_path = "addon.xml"
     version = get_version(xml_path)
     zip_name = f"{REPO_ID}-{version}.zip"
     zip_path = os.path.join(ZIPS_PATH, zip_name)
 
+    # Read addon.xml and replace raw URLs with GitHub Pages URLs
     with open(xml_path, "r", encoding="utf-8") as f:
         repo_xml = f.read()
 
@@ -69,10 +80,11 @@ def build_repo():
             z.write("icon.png", os.path.join(REPO_ID, "icon.png"))
 
     os.remove(temp_xml)
-
     return xml_path
 
-
+# -----------------------------
+# Generate addons.xml and md5
+# -----------------------------
 def generate_addons_xml(xml_files):
     content = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<addons>\n'
 
@@ -82,17 +94,21 @@ def generate_addons_xml(xml_files):
             content += "".join(lines[1:]).strip() + "\n"
 
     content += "</addons>\n"
-
     final = content.strip() + "\n"
 
-    with open(os.path.join(ZIPS_PATH, "addons.xml"), "w", encoding="utf-8", newline="\n") as f:
+    # Write addons.xml
+    addons_xml_path = os.path.join(ZIPS_PATH, "addons.xml")
+    with open(addons_xml_path, "w", encoding="utf-8", newline="\n") as f:
         f.write(final)
 
-    md5 = hashlib.md5(final.encode("utf-8")).hexdigest()
-    with open(os.path.join(ZIPS_PATH, "addons.xml.md5"), "w", encoding="utf-8") as f:
-        f.write(md5)
+    # Write MD5
+    md5_hash = hashlib.md5(final.encode("utf-8")).hexdigest()
+    with open(os.path.join(ZIPS_PATH, "addons.xml.md5"), "w", encoding="utf-8", newline="\n") as f:
+        f.write(md5_hash)
 
-
+# -----------------------------
+# Main
+# -----------------------------
 if __name__ == "__main__":
     clean()
     service_xml = build_service()
