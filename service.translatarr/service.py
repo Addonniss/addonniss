@@ -428,6 +428,10 @@ class TranslatarrMonitor(xbmc.Monitor):
     # ------------------------------------------------------------
     def check_temp_folder_for_srt(self):
     
+        def normalize_name(name):
+            """Lowercase, remove spaces and plus signs for matching"""
+            return re.sub(r'[\s+]+', '', name.lower())
+    
         if not xbmc.Player().isPlaying():
             return
     
@@ -437,9 +441,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         movie_folder = os.path.dirname(playing_file)
         
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
-        video_name_lower = video_name.lower()
-        # Remove spaces and plus signs, keep alphanumerics and dots only
-        video_name_normalized = re.sub(r'[\s+]+', '', video_name_lower)
+        video_name_normalized = normalize_name(video_name)
         
         final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
         save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
@@ -467,13 +469,13 @@ class TranslatarrMonitor(xbmc.Monitor):
             A4K_SUB_FOLDER,
             movie_folder,
         ]
-
+    
         for folder in folders_to_scan:
             if not folder or not xbmcvfs.exists(folder):
                 continue
     
             try:
-                files = [f for f in xbmcvfs.listdir(folder)[1] if f.lower().endswith(".srt")]
+                files = [f for f in xbmcvfs.listdir(folder)[1] if f.lower().strip().endswith(".srt")]
             except Exception as e:
                 log(f"Failed to list folder {folder}: {e}", "debug", self)
                 continue
@@ -484,8 +486,11 @@ class TranslatarrMonitor(xbmc.Monitor):
                 if f.lower().endswith(f".{self.target_lang_iso}.srt"):
                     continue
     
+                # Normalize SRT filename for comparison
+                f_normalized = normalize_name(f)
+    
                 # Only consider SRTs that match currently playing video name
-                if video_name_lower not in f.lower():
+                if video_name_normalized not in f_normalized:
                     continue
     
                 full_path = os.path.join(folder, f)
