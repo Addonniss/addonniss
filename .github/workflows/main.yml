@@ -1,4 +1,4 @@
-name: Build and Deploy Kodi Repository
+name: Build and Deploy Repository
 
 on:
   push:
@@ -7,40 +7,66 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write   # Allows committing generated zips back to repo
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       # 1. Checkout repository
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2. Setup Python
+      # 2. Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.x"
+          python-version: '3.x'
 
-      # 3. Clean old zips folder
+      # 3. Clean previous zips
       - name: Clean previous zips
         run: rm -rf zips/*
 
-      # 4. Build repository and service zips
+      # 4. Build repository zips
       - name: Build repository
         run: python3 create_repository.py
 
-      # 5. Commit zips back to main branch if changes exist
+      # 5. Commit updated zips only if changes exist
       - name: Commit updated zips
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add zips/
+          git add -A zips/
           git add addon.xml
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
             git commit -m "Auto-update repository zips [skip ci]"
             git push origin main
+          fi
+
+      # 6. Upload zips folder as artifact for Pages deployment
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: zips
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+
+    permissions:
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
