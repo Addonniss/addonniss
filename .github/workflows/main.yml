@@ -1,5 +1,9 @@
 name: Update Kodi Repository
 
+concurrency:
+  group: "pages"
+  cancel-in-progress: false  # This tells GitHub to let the current one finish before starting the next
+
 on:
   push:
     branches: [ master, main ]
