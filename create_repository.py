@@ -100,10 +100,24 @@ def create_repo():
     with open(os.path.join(zips_path, 'addons.xml.md5'), 'w', encoding='utf-8') as f:
         f.write(md5.strip())
 
-    # Create a dummy index.html so Kodi can "see" the directory
+    # Generate a "Kodi-friendly" Index for GitHub Pages
     index_path = os.path.join(zips_path, 'index.html')
-    with open(index_path, 'w') as f:
-        f.write('<html><body>Kodi Repo Index</body></html>')
+    with open(index_path, 'w', encoding='utf-8') as f:
+        f.write('<html><head><title>Kodi Repo Index</title></head><body>\n')
+        f.write('<h1>Kodi Repository Index</h1><ul>\n')
+        
+        # This loop finds every file and creates a link Kodi can follow
+        for root, dirs, files in os.walk(zips_path):
+            for file in files:
+                # We only want to show relevant Kodi files
+                if file.endswith(('.zip', '.xml', '.md5')):
+                    # Calculate the path relative to the zips folder
+                    full_path = os.path.join(root, file)
+                    rel_path = os.path.relpath(full_path, zips_path)
+                    # Write the HTML link
+                    f.write(f'<li><a href="{rel_path}">{rel_path}</a></li>\n')
+        
+        f.write('</ul></body></html>')
         
     print("Repository generation complete.")
 
