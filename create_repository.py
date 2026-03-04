@@ -97,6 +97,11 @@ def create_repo():
     with open(os.path.join(zips_path, 'addons.xml.md5'), 'w', encoding='utf-8') as f:
         f.write(md5.strip())
 
+    # Create a dummy index.html so Kodi can "see" the directory
+    index_path = os.path.join(zips_path, 'index.html')
+    with open(index_path, 'w') as f:
+        f.write('<html><body>Kodi Repo Index</body></html>')
+        
     print("Repository generation complete.")
 
 if __name__ == "__main__":
