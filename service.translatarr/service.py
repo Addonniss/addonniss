@@ -438,88 +438,90 @@ class TranslatarrMonitor(xbmc.Monitor):
         playing_file = xbmc.Player().getPlayingFile()
         if not playing_file:
             return
+    
         movie_folder = os.path.dirname(playing_file)
-        
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
         video_name_normalized = normalize_name(video_name)
-        
-        final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
-        save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
     
         # -------------------------------------------------
-        # 1️⃣ ALWAYS load translated subtitle if exists
-        # (new session safe, avoids API cost)
+        # Scan folders for SRTs
         # -------------------------------------------------
-        if xbmcvfs.exists(save_path):
-            current_sub = xbmc.Player().getSubtitles()
-        
-            if current_sub != save_path:
-                log(f"Translated subtitle exists. Loading once: {save_path}", "debug", self)
-                xbmc.Player().setSubtitles(save_path)
-            else:
-                log("Translated subtitle already active. Skipping reload.", "debug", self)
-        
-            return
-    
-        newest_file = None
-        newest_mtime = 0
-    
         folders_to_scan = [
             OPENSUBTITLES_SUB_FOLDER,
             A4K_SUB_FOLDER,
             movie_folder,
         ]
     
+        target_srt_path = None
+        newest_source_file = None
+        newest_source_mtime = 0
+    
         for folder in folders_to_scan:
             if not folder or not xbmcvfs.exists(folder):
                 continue
     
             try:
-                files = [f for f in xbmcvfs.listdir(folder)[1] if f.lower().strip().endswith(".srt")]
+                files = [f for f in xbmcvfs.listdir(folder)[1] if f.lower().endswith(".srt")]
             except Exception as e:
                 log(f"Failed to list folder {folder}: {e}", "debug", self)
                 continue
     
             for f in files:
-    
-                # Ignore already translated target files
-                if f.lower().endswith(f".{self.target_lang_iso}.srt"):
-                    continue
-    
-                # Normalize SRT filename for comparison
+                full_path = os.path.join(folder, f)
+                f_lower = f.lower()
                 f_normalized = normalize_name(f)
     
-                # Only consider SRTs that match currently playing video name
+                # Skip files that don't match the video
                 if video_name_normalized not in f_normalized:
                     continue
     
-                full_path = os.path.join(folder, f)
+                # Target-language file exists → just load it
+                if f_lower.endswith(f".{self.target_lang_iso}.srt"):
+                    if (target_srt_path is None or
+                        xbmcvfs.Stat(full_path).st_mtime() > xbmcvfs.Stat(target_srt_path).st_mtime()):
+                        target_srt_path = full_path
+                    continue  # no translation needed
     
+                # Otherwise, candidate source SRT
                 try:
                     stat = xbmcvfs.Stat(full_path)
                 except Exception:
                     continue
     
-                if stat.st_mtime() > newest_mtime:
-                    newest_mtime = stat.st_mtime()
-                    newest_file = full_path
-    
-        if not newest_file:
-            return
+                if stat.st_mtime() > newest_source_mtime:
+                    newest_source_mtime = stat.st_mtime()
+                    newest_source_file = full_path
     
         # -------------------------------------------------
-        # 2️⃣ Prevent duplicate processing (same file in 2 folders)
+        # 1️⃣ Load target-language SRT if found
         # -------------------------------------------------
-        if newest_file == getattr(self, "last_processed_source_path", None):
+        if target_srt_path:
+            current_sub = xbmc.Player().getSubtitles()
+            if current_sub != target_srt_path:
+                log(f"Target-language subtitle found. Loading: {target_srt_path}", "debug", self)
+                xbmc.Player().setSubtitles(target_srt_path)
+            else:
+                log("Target-language subtitle already active. Skipping reload.", "debug", self)
+            return  # Done, no translation needed
+    
+        # -------------------------------------------------
+        # 2️⃣ If new source found → translate
+        # -------------------------------------------------
+        if not newest_source_file:
+            return  # Nothing to translate
+    
+        if newest_source_file == getattr(self, "last_processed_source_path", None):
             log("Source already processed this session. Skipping.", "debug", self)
             return
     
-        log(f"New source subtitle detected: {newest_file}", "debug", self)
+        final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
+        save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
     
-        success = process_subtitles(newest_file, self, save_path=save_path)
+        log(f"New source subtitle detected: {newest_source_file}", "debug", self)
+        success = process_subtitles(newest_source_file, self, save_path=save_path)
     
         if success:
-            self.last_processed_source_path = newest_file
+            self.last_processed_source_path = newest_source_file
             
     # ------------------------------------------------------------
     # check_auto_mode
