@@ -12,7 +12,8 @@ ZIPS_PATH = "zips"
 
 
 def get_version(xml_path):
-    with open(xml_path, "r", encoding="utf-8") as f:
+    """Extract version in x.x.x format"""
+    with open(xml_path, 'r', encoding='utf-8') as f:
         content = f.read()
         match = re.search(r'version=["\']([0-9]+\.[0-9]+\.[0-9]+)["\']', content)
         if match:
@@ -51,10 +52,9 @@ def build_repo():
     zip_name = f"{REPO_ID}-{version}.zip"
     zip_path = os.path.join(ZIPS_PATH, zip_name)
 
+    # Update URLs to GitHub Pages
     with open(xml_path, "r", encoding="utf-8") as f:
         repo_xml = f.read()
-
-    # Update URLs to GitHub Pages
     repo_xml = repo_xml.replace(
         "https://raw.githubusercontent.com/Addonniss/repository.addonniss/main/zips/",
         f"{PAGES_URL}/"
@@ -84,11 +84,13 @@ def generate_addons_xml(xml_files):
     content += "</addons>\n"
     final = content.strip() + "\n"
 
+    # Write addons.xml
     with open(os.path.join(ZIPS_PATH, "addons.xml"), "w", encoding="utf-8", newline="\n") as f:
         f.write(final)
 
+    # Write md5
     md5 = hashlib.md5(final.encode("utf-8")).hexdigest()
-    with open(os.path.join(ZIPS_PATH, "addons.xml.md5"), "w", encoding="utf-8") as f:
+    with open(os.path.join(ZIPS_PATH, "addons.xml.md5"), "w", encoding="utf-8", newline="\n") as f:
         f.write(md5)
 
 
