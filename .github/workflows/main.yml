@@ -37,7 +37,8 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add -A zips/
           # We add 'addon.xml' just in case the main one changed too
-          git add addon.xml 
+          git add addon.xml
+          git add .nojekyll
           # 2. Check if there are actual changes to avoid empty commit errors
           if git diff --staged --quiet; then
             echo "No changes to commit"
