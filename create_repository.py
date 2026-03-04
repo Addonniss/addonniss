@@ -91,13 +91,12 @@ def create_repo():
     xml_content += '</addons>\n'
 
     # Write addons.xml
-    addons_xml_path = os.path.join(zips_path, 'addons.xml')
-    with open(addons_xml_path, 'w', encoding='utf-8', newline='\n') as f:
+    with open(os.path.join(zips_path, 'addons.xml'), 'w', encoding='utf-8', newline='\n') as f:
         f.write(xml_content)
 
-    # Write addons.xml.md5
+    # Write MD5
     md5 = hashlib.md5(xml_content.encode('utf-8')).hexdigest()
-    with open(os.path.join(zips_path, 'addons.xml.md5'), 'w', encoding='utf-8') as f:
+    with open(os.path.join(zips_path, 'addons.xml.md5'), 'w', encoding='utf-8', newline='') as f:
         f.write(md5.strip())
 
     # Generate a "Clean" Index for Kodi File Manager
