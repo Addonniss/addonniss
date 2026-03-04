@@ -100,22 +100,17 @@ def create_repo():
     with open(os.path.join(zips_path, 'addons.xml.md5'), 'w', encoding='utf-8') as f:
         f.write(md5.strip())
 
-    # Generate a "Kodi-friendly" Index for GitHub Pages
+    # Generate a "Clean" Index for Kodi File Manager
     index_path = os.path.join(zips_path, 'index.html')
     with open(index_path, 'w', encoding='utf-8') as f:
-        f.write('<html><head><title>Kodi Repo Index</title></head><body>\n')
-        f.write('<h1>Kodi Repository Index</h1><ul>\n')
+        f.write('<html><head><title>Addonniss Repository</title></head><body>\n')
+        f.write('<h1>Installable ZIPs</h1><ul>\n')
         
-        # This loop finds every file and creates a link Kodi can follow
-        for root, dirs, files in os.walk(zips_path):
-            for file in files:
-                # We only want to show relevant Kodi files
-                if file.endswith(('.zip', '.xml', '.md5')):
-                    # Calculate the path relative to the zips folder
-                    full_path = os.path.join(root, file)
-                    rel_path = os.path.relpath(full_path, zips_path)
-                    # Write the HTML link
-                    f.write(f'<li><a href="{rel_path}">{rel_path}</a></li>\n')
+        # We ONLY want to show the main repository zip in the root /zips/ folder
+        # This makes it much cleaner for the user in Kodi
+        for file in os.listdir(zips_path):
+            if file.startswith(repo_id) and file.endswith('.zip'):
+                f.write(f'<li><a href="{file}">{file}</a></li>\n')
         
         f.write('</ul></body></html>')
         
