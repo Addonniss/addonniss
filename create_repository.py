@@ -85,6 +85,9 @@ def create_repo():
                 if os.path.exists('icon.png'):
                     z.write('icon.png', os.path.join(repo_id, 'icon.png'))
 
+        if addon_id == repo_id:
+            shutil.copy(zip_path, os.path.join(zips_path, zip_name))
+            
     xml_content += '</addons>\n'
 
     # Write addons.xml
