@@ -27,6 +27,9 @@ jobs:
       - name: Build repository
         run: python3 create_repository.py
 
+      - name: Ensure .nojekyll
+        run: touch zips/.nojekyll
+
       - name: Commit zips to main
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
