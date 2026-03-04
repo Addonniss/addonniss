@@ -1,54 +1,34 @@
-name: Update Kodi Repository
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false  # This tells GitHub to let the current one finish before starting the next
+name: Build and Deploy Repository
 
 on:
   push:
-    branches: [ master, main ]
-  workflow_dispatch:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # Crucial for the bot to push files back
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Build repository
+        run: python3 create_repository.py
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          fetch-depth: 0 # Fetches all history so git can track changes properly
+          path: zips
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
 
-      - name: Generate Kodi Repo Files
-        run: python create_repository.py
-
-      - name: Create .nojekyll
-        run: touch .nojekyll
-
-      - name: Commit and Push Changes
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add -A zips/
-          # We add 'addon.xml' just in case the main one changed too
-          git add addon.xml
-          git add .nojekyll
-          # 2. Check if there are actual changes to avoid empty commit errors
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Auto-update repository [skip ci]"
-            
-            # 3. Pull latest changes to avoid "non-fast-forward" errors
-            # This is the part that usually fixes the "deploy" error
-            git pull origin ${{ github.ref_name }} --rebase
-            
-            # 4. Push back to the branch that triggered the workflow
-            git push origin ${{ github.ref_name }}
-          fi
+    steps:
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
