@@ -1,4 +1,4 @@
-name: Build and Deploy Repository
+name: Build and Deploy Kodi Repository
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # needed to commit files to main
+  contents: read
   pages: write
   id-token: write
 
@@ -16,15 +16,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          fetch-depth: 0  # full history needed to commit
+          python-version: '3.x'
 
       - name: Clean previous zips
-        run: rm -rf zips/*
+        run: |
+          rm -rf zips
+          mkdir -p zips
 
-      - name: Build repository
+      - name: Build Kodi repository
         run: python3 create_repository.py
 
       - name: Ensure .nojekyll
@@ -36,7 +40,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add zips/*
           git commit -m "Update zips [skip ci]" || echo "No changes to commit"
-          git push origin main
+          git push origin
 
       - name: Upload artifact for Pages
         uses: actions/upload-pages-artifact@v3
@@ -56,4 +60,4 @@ jobs:
 
     steps:
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v4 
