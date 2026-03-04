@@ -7,28 +7,35 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write  # needed to commit files to main
   pages: write
   id-token: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # full history needed to commit
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
+      - name: Clean previous zips
+        run: rm -rf zips/*
 
-      - name: Build repository zips
+      - name: Build repository
         run: python3 create_repository.py
 
-      - name: Upload artifact
+      - name: Commit zips to main
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add zips/*
+          git commit -m "Update zips [skip ci]" || echo "No changes to commit"
+          git push origin main
+
+      - name: Upload artifact for Pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: zips
@@ -36,6 +43,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+
     environment:
       name: github-pages
 
@@ -46,5 +54,3 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
-        with:
-          clean: true   # <-- wipes old files before publishing
