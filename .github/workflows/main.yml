@@ -1,4 +1,4 @@
-name: Build and Deploy Repository
+name: Build and Deploy Kodi Repository
 
 on:
   push:
@@ -7,47 +7,40 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write   # Allows committing generated zips back to repo
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      # Checkout code
+      # 1. Checkout repository
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # Force rebuild
-      - name: Force rebuild
-        run: echo "FORCE=$(date +%s)" > force.txt
+      # 2. Setup Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
 
-      # Clean previous zips
+      # 3. Clean old zips folder
       - name: Clean previous zips
         run: rm -rf zips/*
 
-      # Build repository
+      # 4. Build repository and service zips
       - name: Build repository
         run: python3 create_repository.py
 
-      # Upload to GitHub Pages artifact
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: zips
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-
-    environment:
-      name: github-pages
-
-    permissions:
-      pages: write
-      id-token: write
-
-    steps:
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
+      # 5. Commit zips back to main branch if changes exist
+      - name: Commit updated zips
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add zips/
+          git add addon.xml
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Auto-update repository zips [skip ci]"
+            git push origin main
