@@ -18,6 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Clean previous zips
+        run: rm -rf zips/*
+
       - name: Build repository
         run: python3 create_repository.py
 
