@@ -28,6 +28,9 @@ jobs:
       - name: Generate Kodi Repo Files
         run: python create_repository.py
 
+      - name: Create .nojekyll
+        run: touch .nojekyll
+
       - name: Commit and Push Changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
