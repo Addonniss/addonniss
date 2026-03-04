@@ -16,18 +16,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout code
+      # Checkout code
       - uses: actions/checkout@v4
 
-      # 2. Clean previous zips
-      - name: Clean previous zips
-        run: rm -rf zips && mkdir zips
+      # Force rebuild
+      - name: Force rebuild
+        run: echo "FORCE=$(date +%s)" > force.txt
 
-      # 3. Build repository
+      # Clean previous zips
+      - name: Clean previous zips
+        run: rm -rf zips/*
+
+      # Build repository
       - name: Build repository
         run: python3 create_repository.py
 
-      # 4. Upload artifact to Pages
+      # Upload to GitHub Pages artifact
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
