@@ -9,6 +9,7 @@ PAGES_URL = "https://addonniss.github.io/repository.addonniss"
 
 SERVICE_ID = "service.translatarr"
 REPO_ID = "repository.addonniss"
+ZIPS_DIR = "zips"
 
 
 def get_version(xml_path):
@@ -22,12 +23,12 @@ def get_version(xml_path):
 
 def clean():
     # remove old generated files
-    for f in os.listdir("."):
-        if f.startswith("repository.addonniss-") and f.endswith(".zip"):
-            os.remove(f)
-        if f == "addons.xml" or f == "addons.xml.md5":
-            os.remove(f)
-
+    if os.path.exists(ZIPS_DIR):
+        shutil.rmtree(ZIPS_DIR)
+    if os.path.exists("addons.xml"):
+        os.remove("addons.xml")
+    if os.path.exists("addons.xml.md5"):
+        os.remove("addons.xml.md5")
     if os.path.exists(SERVICE_ID):
         shutil.rmtree(SERVICE_ID)
 
@@ -37,7 +38,9 @@ def build_service():
     zip_name = f"{SERVICE_ID}-{version}.zip"
 
     os.makedirs(SERVICE_ID, exist_ok=True)
-    zip_path = os.path.join(SERVICE_ID, zip_name)
+    os.makedirs(ZIPS_DIR, exist_ok=True)
+
+    zip_path = os.path.join(ZIPS_DIR, zip_name)
 
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
         for root, _, files in os.walk(SERVICE_ID):
@@ -53,6 +56,8 @@ def build_repo():
     version = get_version("addon.xml")
     zip_name = f"{REPO_ID}-{version}.zip"
 
+    os.makedirs(ZIPS_DIR, exist_ok=True)
+
     with open("addon.xml", "r", encoding="utf-8") as f:
         repo_xml = f.read()
 
@@ -65,7 +70,7 @@ def build_repo():
     with open(temp_xml, "w", encoding="utf-8", newline="\n") as f:
         f.write(repo_xml)
 
-    with zipfile.ZipFile(zip_name, "w", zipfile.ZIP_DEFLATED) as z:
+    with zipfile.ZipFile(os.path.join(ZIPS_DIR, zip_name), "w", zipfile.ZIP_DEFLATED) as z:
         z.write(temp_xml, os.path.join(REPO_ID, "addon.xml"))
         if os.path.exists("icon.png"):
             z.write("icon.png", os.path.join(REPO_ID, "icon.png"))
