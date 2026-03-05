@@ -4,6 +4,11 @@ import hashlib
 import zipfile
 import shutil
 import re
+import os
+
+print("Current folder:", os.getcwd())
+print("List files in root:", os.listdir("."))
+print("service.translatarr exists?", os.path.exists("service.translatarr"))
 
 PAGES_URL = "https://addonniss.github.io/repository.addonniss"
 
