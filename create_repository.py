@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import hashlib
 import zipfile
@@ -8,7 +9,7 @@ import re
 PAGES_URL = "https://addonniss.github.io/repository.addonniss/zips"
 
 def get_version(xml_path):
-    """Extract the version string exactly in x.x.x format from addon.xml"""
+    """Extract the version string in x.x.x format from addon.xml"""
     try:
         with open(xml_path, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -33,23 +34,23 @@ def create_repo():
     xml_content = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<addons>\n'
 
     for addon_id in [service_id, repo_id]:
-        addon_dir = addon_id if addon_id == service_id else "."
+        addon_dir = service_id if addon_id == service_id else "."
         xml_path = os.path.join(addon_dir, 'addon.xml')
 
         if not os.path.exists(xml_path):
             print(f"Warning: {xml_path} not found, skipping {addon_id}")
             continue
 
-        # Get exact x.x.x version
+        # Get version
         v = get_version(xml_path)
         print(f"Found version {v} for {addon_id}")
 
-        # Read addon.xml, skip XML declaration
+        # Read addon.xml skipping XML declaration
         with open(xml_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
             xml_content += "".join(lines[1:]).strip() + "\n"
 
-        # Create ZIP
+        # Create ZIP inside zips/<addon_id>/
         target_dir = os.path.join(zips_path, addon_id)
         os.makedirs(target_dir, exist_ok=True)
         zip_name = f"{addon_id}-{v}.zip"
@@ -57,7 +58,6 @@ def create_repo():
 
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as z:
             if addon_id == service_id:
-                # Include all files in service addon
                 for root, _, files in os.walk(service_id):
                     for file in files:
                         fp = os.path.join(root, file)
@@ -65,7 +65,6 @@ def create_repo():
                         z.write(fp, arcname)
             else:
                 # Repository zip
-                # Automatically update URLs to GitHub Pages inside addon.xml
                 with open('addon.xml', 'r', encoding='utf-8') as f:
                     repo_xml = f.read()
                 repo_xml = repo_xml.replace(
@@ -98,6 +97,10 @@ def create_repo():
         f.write(md5.strip())
 
     print("Repository generation complete.")
+    print("Generated files:")
+    for root, _, files in os.walk(zips_path):
+        for file in files:
+            print("-", os.path.join(root, file))
 
 if __name__ == "__main__":
     create_repo()
