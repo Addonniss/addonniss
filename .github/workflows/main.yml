@@ -9,27 +9,50 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Crucial for the bot to push files back
+      contents: write  # Required to push files back
+
     steps:
+      # 1️⃣ Checkout the repository
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetches all history so git can track changes properly
+          fetch-depth: 0
 
+      # 2️⃣ Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
+      # 3️⃣ Debug: list root files (optional)
+      - name: List repo files for debug
+        run: |
+          echo "Current folder: $(pwd)"
+          echo "Root files:"
+          ls -la
+          echo "Folders:"
+          ls -d */
+          echo "Contents of service.translatarr:"
+          ls -la service.translatarr || echo "Missing"
+
+      # 4️⃣ Generate Kodi repository files
       - name: Generate Kodi Repo Files
         run: python create_repository.py
 
+      # 5️⃣ Commit and push generated files
       - name: Commit and Push Changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add -A zips/
-          # We add 'addon.xml' just in case the main one changed too
-          git add addon.xml 
-          git commit -m "Auto-update repository v1.0.1 [skip ci]" || echo "No changes to commit"
-          git push
+
+          # Track all changes including new zips
+          git add -A
+
+          # Commit only if there are changes
+          git diff --cached --quiet || git commit -m "Auto-update repository v1.0.1 [skip ci]"
+
+          # Pull remote first to avoid non-fast-forward errors
+          git pull --rebase origin main || true
+
+          # Push back to main
+          git push origin main
