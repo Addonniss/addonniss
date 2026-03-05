@@ -12,7 +12,7 @@ jobs:
       contents: write  # Required to push files back
 
     steps:
-      # 1️⃣ Checkout the repository
+      # 1️⃣ Checkout the repo
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
@@ -24,22 +24,20 @@ jobs:
         with:
           python-version: '3.x'
 
-      # 3️⃣ Debug: list root files (optional)
+      # 3️⃣ Debug: list files (optional)
       - name: List repo files for debug
         run: |
           echo "Current folder: $(pwd)"
           echo "Root files:"
           ls -la
-          echo "Folders:"
-          ls -d */
           echo "Contents of service.translatarr:"
           ls -la service.translatarr || echo "Missing"
 
-      # 4️⃣ Generate Kodi repository files
+      # 4️⃣ Run repository generation
       - name: Generate Kodi Repo Files
         run: python create_repository.py
 
-      # 5️⃣ Commit and push generated files
+      # 5️⃣ Commit and push changes safely
       - name: Commit and Push Changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -54,5 +52,5 @@ jobs:
           # Pull remote first to avoid non-fast-forward errors
           git pull --rebase origin main || true
 
-          # Push back to main
+          # Push changes
           git push origin main
