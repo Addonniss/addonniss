@@ -1,4 +1,4 @@
-# 🚀 Addonniss Kodi Repository
+# 🚀 Addonniss Kodi Repository 
 
 Welcome to the official **Addonniss Repository**! This repository hosts AI-powered tools and services for Kodi, including **Translatarr**.
 
