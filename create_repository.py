@@ -58,6 +58,7 @@ def create_repo():
 
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as z:
             if addon_id == service_id:
+                # Include all files for service addon
                 for root, _, files in os.walk(service_id):
                     for file in files:
                         fp = os.path.join(root, file)
@@ -84,6 +85,34 @@ def create_repo():
                 if os.path.exists('icon.png'):
                     z.write('icon.png', os.path.join(repo_id, 'icon.png'))
 
+        # Create index.html only for repository addon
+        if addon_id == repo_id:
+            # Find newest zip by version
+            zip_files = [f for f in os.listdir(target_dir) if f.endswith(".zip")]
+            if zip_files:
+                def version_key(filename):
+                    match = re.search(r'(\d+)\.(\d+)\.(\d+)', filename)
+                    if match:
+                        return tuple(int(x) for x in match.groups())
+                    return (0,0,0)
+                newest_zip = sorted(zip_files, key=version_key, reverse=True)[0]
+
+                index_path = os.path.join(target_dir, "index.html")
+                with open(index_path, "w", encoding="utf-8") as f:
+                    f.write(f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Addonniss Repository</title>
+</head>
+<body>
+    <h1>Addonniss Repository</h1>
+    <p><a href="{newest_zip}">Download Latest Repository ZIP: {newest_zip}</a></p>
+</body>
+</html>
+""")
+                print(f"Created index.html pointing to newest zip: {newest_zip}")
+
     xml_content += '</addons>\n'
 
     # Write addons.xml
@@ -96,6 +125,7 @@ def create_repo():
     with open(os.path.join(zips_path, 'addons.xml.md5'), 'w', encoding='utf-8') as f:
         f.write(md5.strip())
 
+    # Log all generated files
     print("Repository generation complete.")
     print("Generated files:")
     for root, _, files in os.walk(zips_path):
