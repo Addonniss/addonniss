@@ -7,8 +7,10 @@ import re
 import os
 
 print("Current folder:", os.getcwd())
-print("List files in root:", os.listdir("."))
+print("Root files:", os.listdir("."))
+print("Folders:", [f for f in os.listdir(".") if os.path.isdir(f)])
 print("service.translatarr exists?", os.path.exists("service.translatarr"))
+print("service.translatarr contents:", os.listdir("service.translatarr") if os.path.exists("service.translatarr") else "Missing")
 
 PAGES_URL = "https://addonniss.github.io/repository.addonniss"
 
