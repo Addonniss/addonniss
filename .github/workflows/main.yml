@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write   # Allow committing to the repo
+  contents: read
   pages: write
   id-token: write
 
@@ -16,41 +16,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout the code
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Fetch all history
 
-      # 2. Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
-      # 3. Clean previous zips folder
       - name: Clean previous zips
         run: |
           rm -rf zips
           mkdir -p zips
 
-      # 4. Build Kodi repository
       - name: Build Kodi repository
         run: python3 create_repository.py
 
-      # 5. Ensure .nojekyll for GitHub Pages
       - name: Ensure .nojekyll
         run: touch zips/.nojekyll
 
-      # 6. Commit zips back to main branch
       - name: Commit zips to main
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add zips
-          git commit -m "Update zips [skip ci]" || echo "No changes to commit"
+          git commit -m "Update repository zips [skip ci]" || echo "No changes to commit"
           git push origin main
 
-      # 7. Upload zips as artifact for Pages deployment
       - name: Upload artifact for Pages
         uses: actions/upload-pages-artifact@v3
         with:
