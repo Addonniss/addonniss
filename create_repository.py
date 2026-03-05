@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import hashlib
 import zipfile
@@ -22,17 +23,19 @@ def get_version(xml_path):
 
 
 def clean():
+    """Remove old zips folder."""
     if os.path.exists(ZIPS_PATH):
         shutil.rmtree(ZIPS_PATH)
     os.makedirs(ZIPS_PATH)
 
 
 def build_service():
+    """Zip service addon in its own subfolder."""
     xml_path = os.path.join(SERVICE_ID, "addon.xml")
     version = get_version(xml_path)
     zip_name = f"{SERVICE_ID}-{version}.zip"
 
-    # Folder inside zips for optional service subfolder
+    # Folder inside zips for the service
     service_folder = os.path.join(ZIPS_PATH, SERVICE_ID)
     os.makedirs(service_folder, exist_ok=True)
     zip_path = os.path.join(service_folder, zip_name)
@@ -48,10 +51,15 @@ def build_service():
 
 
 def build_repo():
+    """Zip repository addon in its own subfolder."""
     xml_path = "addon.xml"
     version = get_version(xml_path)
     zip_name = f"{REPO_ID}-{version}.zip"
-    zip_path = os.path.join(ZIPS_PATH, zip_name)
+
+    # Folder for repository
+    repo_folder = os.path.join(ZIPS_PATH, REPO_ID)
+    os.makedirs(repo_folder, exist_ok=True)
+    zip_path = os.path.join(repo_folder, zip_name)
 
     with open(xml_path, "r", encoding="utf-8") as f:
         repo_xml = f.read()
@@ -62,11 +70,10 @@ def build_repo():
         f"{PAGES_URL}/"
     )
 
-    temp_xml = os.path.join(ZIPS_PATH, "repo_addon.xml")
+    temp_xml = os.path.join(repo_folder, "addon.xml")
     with open(temp_xml, "w", encoding="utf-8", newline="\n") as f:
         f.write(repo_xml)
 
-    # Zip repository addon directly in zips/
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
         z.write(temp_xml, os.path.join(REPO_ID, "addon.xml"))
         if os.path.exists("icon.png"):
@@ -77,21 +84,19 @@ def build_repo():
 
 
 def generate_addons_xml(xml_files):
+    """Generate addons.xml and its MD5 checksum."""
     content = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<addons>\n'
     for xml_path in xml_files:
         with open(xml_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
-            # Skip XML declaration line
             content += "".join(lines[1:]).strip() + "\n"
     content += "</addons>\n"
 
     final = content.strip() + "\n"
 
-    # Write addons.xml
     with open(os.path.join(ZIPS_PATH, "addons.xml"), "w", encoding="utf-8", newline="\n") as f:
         f.write(final)
 
-    # Write MD5 checksum
     md5 = hashlib.md5(final.encode("utf-8")).hexdigest()
     with open(os.path.join(ZIPS_PATH, "addons.xml.md5"), "w", encoding="utf-8") as f:
         f.write(md5)
