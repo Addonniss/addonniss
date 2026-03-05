@@ -22,11 +22,9 @@ jobs:
           python-version: '3.x'
 
       - name: Generate Kodi Repository Files
-        working-directory: repository.addonniss  # <- added this line
         run: python create_repository.py
 
       - name: Commit and Push Changes
-        working-directory: repository.addonniss  # <- add this line to commit from same folder
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
