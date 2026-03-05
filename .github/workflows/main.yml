@@ -40,7 +40,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add zips
           git commit -m "Update repository zips [skip ci]" || echo "No changes to commit"
-          git push origin main
+          
 
       - name: Upload artifact for Pages
         uses: actions/upload-pages-artifact@v3
