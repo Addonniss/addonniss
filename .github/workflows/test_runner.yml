@@ -1,0 +1,23 @@
+name: Test Runner Files
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check-files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Print current folder and files
+        run: |
+          echo "Current folder: $(pwd)"
+          echo "Root files:"
+          ls -la
+          echo "Folders:"
+          ls -d */
+          echo "service.translatarr contents:"
+          ls -la service.translatarr || echo "Missing"
