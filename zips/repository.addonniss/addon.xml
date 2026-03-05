@@ -7,9 +7,9 @@
     <extension point="xbmc.addon.repository"
                name="Addonniss Repository">
         <dir>
-            <info compressed="false">https://addonniss.github.io/repository.addonniss/addons.xml</info>
-            <checksum>https://addonniss.github.io/repository.addonniss/addons.xml.md5</checksum>
-            <datadir zip="true">https://addonniss.github.io/repository.addonniss/repository.addonniss-1.0.1.zip</datadir>
+            <info compressed="false">https://addonniss.github.io/repository.addonniss/zips/addons.xml</info>
+            <checksum>https://addonniss.github.io/repository.addonniss/zips/addons.xml.md5</checksum>
+            <datadir zip="true">https://addonniss.github.io/repository.addonniss/zips/</datadir>
         </dir>
     </extension>
 
