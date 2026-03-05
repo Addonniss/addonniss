@@ -9,12 +9,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Crucial for the bot to push files back
+      contents: write
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetches all history so git can track changes properly
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -28,8 +29,13 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add -A zips/
-          # We add 'addon.xml' just in case the main one changed too
-          git add addon.xml 
-          git commit -m "Auto-update repository v1.0.1 [skip ci]" || echo "No changes to commit"
+
+          # Add generated root files
+          git add repository.addonniss-*.zip
+          git add addons.xml
+          git add addons.xml.md5
+          git add service.translatarr/
+          git add addon.xml
+
+          git commit -m "Auto-update repository [skip ci]" || echo "No changes to commit"
           git push
