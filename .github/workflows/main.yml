@@ -5,6 +5,10 @@ on:
     branches: [ master, main ]
   workflow_dispatch:
 
+concurrency:
+  group: kodi-repo-update
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
