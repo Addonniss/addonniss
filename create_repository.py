@@ -107,7 +107,7 @@ def create_repo():
 </head>
 <body>
     <h1>Addonniss Repository</h1>
-    <p><a href="{newest_zip}">Download Latest Repository ZIP: {newest_zip}</a></p>
+    <a href="{newest_zip}">{newest_zip}</a>
 </body>
 </html>
 """)
