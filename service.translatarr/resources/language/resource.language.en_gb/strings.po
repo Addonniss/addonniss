@@ -78,11 +78,11 @@ msgid "Desired translation language."
 msgstr ""
 
 msgctxt "#30019"
-msgid "Dialogue Lines per Chunk, minimum 10, maximum 150"
+msgid "Dialogue Lines per Chunk"
 msgstr ""
 
 msgctxt "#30020"
-msgid "Number of dialogue lines sent to AI at once."
+msgid "Number of dialogue lines sent to AI at once, minimum 10, maximum 150."
 msgstr ""
 
 msgctxt "#30021"
@@ -130,11 +130,11 @@ msgid "Adjusts the tone (Natural, Family-friendly, or Adult)."
 msgstr ""
 
 msgctxt "#30032"
-msgid "Temperature (0.0 - 1.0)"
+msgid "Temperature"
 msgstr ""
 
 msgctxt "#30033"
-msgid "Higher values make AI more creative; 0.15 is recommended."
+msgid "Higher values make AI more creative; 0.15 is recommended.Accepted range (0.0 - 1.0)"
 msgstr ""
 
 msgctxt "#30034"
