@@ -122,7 +122,7 @@ Both **Source** and **Target** languages must be selected explicitly for maximum
 
 ---
 
-# 📁 Subtitle Folder (IMPORTANT IN MAMUAL MODE ONLY)
+# 📁 Subtitle Folder (IMPORTANT IN MANUAL MODE ONLY)
 
 This is the most important setup step for manual mode.
 
@@ -385,6 +385,7 @@ Use:
 If you enjoy Translatarr and want to support development:
 
 https://www.buymeacoffee.com/addonniss
+
 
 
 
