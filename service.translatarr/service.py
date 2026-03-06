@@ -303,23 +303,26 @@ class TranslatarrMonitor(xbmc.Monitor):
             try:
                 return int(addon.getSetting(key))
             except (TypeError, ValueError):
-                log(f"Invalid integer setting for '{key}', using fallback {fallback}", "warning", self)
+                log(f"Invalid integer setting for '{key}', using fallback {fallback}", "error", self)
                 return fallback
     
         # ------------------------------------------------------------
         # Boolean settings
         # ------------------------------------------------------------
-        self.auto_mode = safe_bool('auto_mode', True)
+        mode = addon.getSetting('translation_mode')
+        self.auto_mode = mode == "Auto"
+        log(f"Translation mode: {mode}", "debug", self)
         self.debug_mode = safe_bool('debug_mode', False)
         self.use_notifications = safe_bool('notify_mode', True)
         self.show_stats = safe_bool('show_stats', True)
-        self.live_translation = safe_bool('live_translation', False)
+        self.live_translation = safe_bool('live_translation', True)
     
         # ------------------------------------------------------------
         # Numeric / string settings
         # ------------------------------------------------------------
         self.chunk_size = safe_int('chunk_size', 100)
-        self.sub_folder = addon.getSetting('sub_folder') or "/storage/emulated/0/Download/sub/"
+        self.sub_folder = addon.getSetting('sub_folder') or "/storage/emulated/0/Download/"
+        
         # ------------------------------------------------------------
         # Language settings (new select-aware, ISO-respecting)
         # ------------------------------------------------------------
@@ -430,7 +433,7 @@ class TranslatarrMonitor(xbmc.Monitor):
     
         def normalize_name(name):
             """Lowercase, remove spaces and plus signs for matching"""
-            return re.sub(r'[\s+]+', '', name.lower())
+            return re.sub(r'[^a-zA-Z0-9]', '', name.lower())
     
         if not xbmc.Player().isPlaying():
             return
@@ -496,8 +499,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         # 1️⃣ Load target-language SRT if found
         # -------------------------------------------------
         if target_srt_path:
-            current_sub = xbmc.Player().getSubtitles()
-            if current_sub != target_srt_path:
+            if os.path.basename(current_sub) != os.path.basename(target_srt_path):
                 log(f"Target-language subtitle found. Loading: {target_srt_path}", "debug", self)
                 xbmc.Player().setSubtitles(target_srt_path)
             else:
@@ -532,18 +534,29 @@ class TranslatarrMonitor(xbmc.Monitor):
     
         playing_file = xbmc.Player().getPlayingFile()
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
-        video_name_normalized = re.sub(r'[\s+]+', '', video_name.lower())
+        video_name_normalized = re.sub(r'[^a-zA-Z0-9]', '', video_name.lower())
     
-        sub_path = xbmc.Player().getSubtitles()
+        # Do NOT use xbmc.Player().getSubtitles()
+        sub_path = None
+        
+        # Fallback: scan movie folder if player has no subtitle
         if not sub_path:
-            log("No subtitle in player. Checking temp folder...", "debug", self)
-            self.check_temp_folder_for_srt()
-            return
-    
-        sub_file_name = os.path.basename(sub_path)
-        sub_ext = os.path.splitext(sub_file_name)[1].lower()
-        if sub_ext != ".srt":
-            log(f"Subtitle is not .srt ({sub_ext}). Checking temp folder...", "debug", self)
+            playing_file = xbmc.Player().getPlayingFile()
+            movie_folder = os.path.dirname(playing_file)
+            video_name = os.path.splitext(os.path.basename(playing_file))[0]
+            
+            # search for any .srt that contains video name
+            for f in os.listdir(movie_folder):
+                if f.lower().endswith(".srt") and video_name.lower() in f.lower():
+                    sub_path = os.path.join(movie_folder, f)
+                    log(f"Found external subtitle in movie folder: {sub_path}", "debug", self)
+                    break
+                    
+        # After fallback or player detection
+        if sub_path:
+            sub_file_name = os.path.basename(sub_path)  # <-- add this line
+        else:
+            log("No external subtitle found. Checking temp folder...", "debug", self)
             self.check_temp_folder_for_srt()
             return
     
@@ -553,6 +566,16 @@ class TranslatarrMonitor(xbmc.Monitor):
         try:
             stat = xbmcvfs.Stat(sub_path)
             current_mtime = stat.st_mtime()
+            
+            # -------------------------------------------------
+            # 🔵 NEW OPTIMIZATION
+            # Skip if same subtitle and live translation disabled
+            # -------------------------------------------------
+            if not self.live_translation and sub_path == getattr(self, "last_auto_sub_path", None):
+                if current_mtime == self.last_auto_sub_mtime:
+                    log("Subtitle unchanged (live translation OFF). Skipping.", "debug", self)
+                    return
+            
         except Exception as e:
             log(f"Failed to stat source subtitle: {e}", "error", self)
             return
@@ -569,6 +592,10 @@ class TranslatarrMonitor(xbmc.Monitor):
         if getattr(self, 'last_auto_sub_path', None) != sub_path:
             # New subtitle file detected
             force_retranslate = True
+            
+            if sub_path:
+                log(f"New subtitle detected: {sub_path}", "debug", self)
+                
             self.last_auto_sub_path = sub_path
     
         # Update last processed mtime
