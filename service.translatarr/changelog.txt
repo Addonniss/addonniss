@@ -1,3 +1,8 @@
+v2.3.6
+- Fixed Kodi crash on plugins / http sources 
+  * works now with Fenlight/POV plugins streaming on Real Debrid / Torbox
+  * works with "local" WebDav folders / like nzbDav
+
 v2.3.0
 - Added Auto Mode
   * no other mandatory setting in Kodi is required
