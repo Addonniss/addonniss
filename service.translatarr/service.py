@@ -58,6 +58,12 @@ def log(msg, level='info', monitor=None, force=False):
             xbmc.log(f"{prefix} {msg}", xbmc.LOGINFO)
 
 # ----------------------------------------------------------
+# Helpers
+# ----------------------------------------------------------
+def normalize_name(name):
+    return re.sub(r'[^a-zA-Z0-9]', '', name.lower())
+    
+# ----------------------------------------------------------
 # Subtitle Processing with TEMP FILES
 # ----------------------------------------------------------
 def process_subtitles(original_path, monitor, force_retranslate=False, save_path=None):
@@ -69,10 +75,10 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
             return False
 
         playing_file = xbmc.Player().getPlayingFile()
-        if not playing_file or playing_file.startswith("plugin://") or playing_file.startswith("http"):
-            log("Streaming source detected. Skipping movie folder scan.", "debug", monitor)
-            monitor.check_temp_folder_for_srt()
-            return
+        
+        if not playing_file:
+            return False
+            
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
         log(f"Video currently playing: {video_name}", "debug", monitor)
 
@@ -88,7 +94,7 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
         # If final SRT exists and not forced, just load it
         if xbmcvfs.exists(save_path) and not force_retranslate:
             log("Subtitle already loaded this session. Skipping reload.", "debug", monitor)
-            xbmc.Player().setSubtitles(save_path)
+            monitor.load_subtitle_if_new(save_path)
             return True
 
         if xbmcvfs.exists(save_path) and force_retranslate:
@@ -130,7 +136,7 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
             # Immediately display new subtitle mid-playback if it's a fresh source
             if not force_retranslate and xbmcvfs.exists(original_path):
                 try:
-                    xbmc.Player().setSubtitles(original_path)
+                    monitor.load_subtitle_if_new(original_path)
                     log("Displayed newly detected source subtitle instantly.", "debug", monitor)
                 except Exception as e:
                     log(f"Failed to instantly display source subtitle: {e}", "error", monitor)
@@ -177,7 +183,7 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
                                 try:
                                     log(f"Live mode: writing partial SRT at {percent_done}%", "debug", monitor)
                                     file_manager.write_srt(temp_path, timestamps[:len(all_translated)], all_translated)
-                                    xbmc.Player().setSubtitles(temp_path)
+                                    monitor.load_subtitle_if_new(temp_path)
                                 except Exception as e:
                                     log(f"Live write failed: {e}", "error", monitor)
                                 monitor.live_reload_index += 1
@@ -207,7 +213,7 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
                 ui.notify(f"Error renaming temp file: {e}", title="Translatarr Error")
                 return False
     
-            xbmc.Player().setSubtitles(save_path)
+            monitor.load_subtitle_if_new(save_path)
             
             monitor.session_translation_created = True
     
@@ -252,11 +258,13 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
 class TranslatarrMonitor(xbmc.Monitor):
 
     def __init__(self):
+        self.known_subtitles = {}
         self.last_temp_folder_mtime = 0   # Track newest temp SRT in special://temp/
         self.last_auto_sub_path = None
         self.last_auto_sub_mtime = 0      # Track last processed auto-detected in-player subtitle
         self.last_processed_source_name = None
         self.last_processed_source_path = None
+        self.last_processed_source_mtime = 0  # track last translated source file mtime
         super().__init__()
         self.polling_active = False
         self.last_source_size = {}
@@ -269,16 +277,26 @@ class TranslatarrMonitor(xbmc.Monitor):
         log("Settings changed → reloading monitor.", "debug", self, force=True)
         self.reload_settings()
 
-    def onAVChange(self):
-        log("AV change detected → checking subtitles instantly.", "debug", self)
+   
+    def load_subtitle_if_new(self, path):
+        try:
+            stat = xbmcvfs.Stat(path)
+            mtime = stat.st_mtime()
 
-        if not xbmc.Player().isPlaying():
-            return
+            # Skip if same file and same modification time
+            if (getattr(self, "last_auto_sub_path", None) == path and
+                getattr(self, "last_auto_sub_mtime", 0) == mtime):
+                return False
 
-        if self.auto_mode:
-            self.check_auto_mode()
-        else:
-            self.check_manual_mode()
+            xbmc.Player().setSubtitles(path)
+            self.last_auto_sub_path = path
+            self.last_auto_sub_mtime = mtime
+            log(f"Loaded subtitle: {path}", "debug", self)
+            return True
+        except Exception as e:
+            log(f"Failed to load subtitle: {e}", "error", self)
+            return False
+    
     
     def reload_settings(self):
         """
@@ -402,20 +420,27 @@ class TranslatarrMonitor(xbmc.Monitor):
         # Final confirmation log
         # ------------------------------------------------------------
         log("Settings reloaded successfully.", "debug", self, force=True)
-        log(
-            f"Settings snapshot → "
+
+        settings_snapshot = (
+            "Settings snapshot → "
+            f"mode={'Auto' if self.auto_mode else 'Manual'}, "
             f"debug={self.debug_mode}, "
             f"notify={self.use_notifications}, "
             f"stats={self.show_stats}, "
-            f"live={self.live_translation}, "
-            f"chunk={self.chunk_size}, "
-            f"src={self.source_lang_name} ({self.source_lang_iso}), "
-            f"trg={self.target_lang_name} ({self.target_lang_iso}), "
-            f"folder={self.sub_folder}",
-            "debug",
-            self,
-            force=True
+            f"live_translation={self.live_translation}, "
+            f"chunk_size={self.chunk_size}, "
+            f"source_lang={self.source_lang_name} ({self.source_lang_iso}), "
+            f"target_lang={self.target_lang_name} ({self.target_lang_iso}), "
+            f"provider={self.provider}, "
+            f"model={self.model}, "
+            f"openai_model={self.openai_model}"
         )
+
+        # Only show subtitle folder in Manual mode
+        if not self.auto_mode:
+            settings_snapshot += f", subtitle_folder={self.sub_folder}"
+
+        log(settings_snapshot, "debug", self, force=True)
 
     def onPlaybackStarted(self):
         log("Playback started. Activating polling.", "debug", self)
@@ -434,30 +459,75 @@ class TranslatarrMonitor(xbmc.Monitor):
         log("Playback ended. Resetting state.", "debug", self)
         self.polling_active = False
 
+        
     def check_for_subs(self):
     
         if self.auto_mode:
+            self.check_temp_folder_for_srt()
             self.check_auto_mode()
         else:
             self.check_manual_mode()
             
     # ------------------------------------------------------------
+    # check_for_subs_sequential_network for Real Debrid Torbox
+    # ------------------------------------------------------------
+    def check_for_subs_sequential_network(self):
+        """
+        Sequential lightweight processing for plugin:// or HTTP streams.
+        Avoids progress dialogs and threads, only works on temp/local SRT files.
+        """
+        sub_file, mtime = None, 0
+
+        # Only scan temp folders 
+        try:
+            temp_folder = xbmcvfs.translatePath("special://temp/")
+            files = [os.path.join(temp_folder, f) for f in os.listdir(temp_folder) if f.lower().endswith(".srt")]
+            if not files:
+                return
+            sub_file = max(files, key=os.path.getmtime)
+            mtime = os.path.getmtime(sub_file)
+
+            if getattr(self, "last_network_sub_mtime", 0) == mtime:
+                return  # already processed
+
+            self.last_network_sub_mtime = mtime
+
+        except Exception as e:
+            log(f"Failed to scan temp SRTs: {e}", "error", self)
+            return
+
+        if sub_file:
+            log(f"Network stream subtitle detected: {sub_file}", "debug", self)
+
+            # Translate sequentially without threads / progress dialog
+            final_file_name = os.path.basename(sub_file).replace(".srt", f".{self.target_lang_iso}.srt")
+            save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
+
+            try:
+                process_subtitles(sub_file, self, save_path=save_path)
+                # Load translated SRT immediately
+                self.load_subtitle_if_new(save_path)
+            except Exception as e:
+                log(f"Failed to process network subtitle: {e}", "error", self)
+    
+    
+    # ------------------------------------------------------------
     # check_temp_folder_for_srt
     # ------------------------------------------------------------
     def check_temp_folder_for_srt(self):
-    
-        def normalize_name(name):
-            """Lowercase, remove spaces and plus signs for matching"""
-            return re.sub(r'[^a-zA-Z0-9]', '', name.lower())
-    
+        
         if not xbmc.Player().isPlaying():
             return
     
         playing_file = xbmc.Player().getPlayingFile()
-        if not playing_file:
-            return
-    
-        movie_folder = os.path.dirname(playing_file)
+
+        movie_folder = None
+
+        if playing_file.startswith("plugin://") or playing_file.startswith("http"):
+            log("Streaming source detected → skipping movie folder scan.", "debug", self)
+        else:
+            movie_folder = os.path.dirname(playing_file)
+            
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
         video_name_normalized = normalize_name(video_name)
     
@@ -467,8 +537,10 @@ class TranslatarrMonitor(xbmc.Monitor):
         folders_to_scan = [
             OPENSUBTITLES_SUB_FOLDER,
             A4K_SUB_FOLDER,
-            movie_folder,
         ]
+        
+        if movie_folder:
+            folders_to_scan.append(movie_folder)
     
         target_srt_path = None
         newest_source_file = None
@@ -514,32 +586,33 @@ class TranslatarrMonitor(xbmc.Monitor):
         # 1️⃣ Load target-language SRT if found
         # -------------------------------------------------
         if target_srt_path:
-            current_sub = xbmc.Player().getSubtitles() or ""
-            if os.path.basename(current_sub) != os.path.basename(target_srt_path):
-                log(f"Target-language subtitle found. Loading: {target_srt_path}", "debug", self)
-                xbmc.Player().setSubtitles(target_srt_path)
-            else:
-                log("Target-language subtitle already active. Skipping reload.", "debug", self)
-            return  # Done, no translation needed
-    
+            self.load_subtitle_if_new(target_srt_path)
+            # DO NOT return here — we still want to check for new source
+
         # -------------------------------------------------
-        # 2️⃣ If new source found → translate
+        # 2️⃣ Translate newest source SRT if it's new
         # -------------------------------------------------
-        if not newest_source_file:
-            return  # Nothing to translate
-    
-        if newest_source_file == getattr(self, "last_processed_source_path", None):
-            log("Source already processed this session. Skipping.", "debug", self)
-            return
-    
-        final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
-        save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
-    
-        log(f"New source subtitle detected: {newest_source_file}", "debug", self)
-        success = process_subtitles(newest_source_file, self, save_path=save_path)
-    
-        if success:
-            self.last_processed_source_path = newest_source_file
+        if newest_source_file:
+            stat = xbmcvfs.Stat(newest_source_file)
+            if stat.st_mtime() > getattr(self, "last_processed_source_mtime", 0):
+                
+                final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
+                save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name)
+                
+                log(f"New source subtitle detected: {newest_source_file}", "debug", self)
+                success = process_subtitles(newest_source_file, self, save_path=save_path)
+                
+                if success:
+                    self.last_processed_source_path = newest_source_file
+                    self.last_processed_source_mtime = stat.st_mtime()
+                    # Optionally: load the newly translated target immediately
+                    self.load_subtitle_if_new(save_path)
+
+        # -------------------------------------------------
+        # 3️⃣ Nothing new found
+        # -------------------------------------------------
+        if not target_srt_path and not newest_source_file:
+            log("No new subtitles found.", "debug", self)
             
     # ------------------------------------------------------------
     # check_auto_mode
@@ -547,24 +620,31 @@ class TranslatarrMonitor(xbmc.Monitor):
     def check_auto_mode(self):
         if not xbmc.Player().isPlaying() or self.is_busy:
             return
-
-        # Fen-style optimization: skip scan if subtitle unchanged
-        if getattr(self, "last_auto_sub_path", None) and not self.live_translation:
-            try:
-                if xbmcvfs.exists(self.last_auto_sub_path):
-                    stat = xbmcvfs.Stat(self.last_auto_sub_path)
-                    if stat.st_mtime() == self.last_auto_sub_mtime:
-                        return
-            except Exception:
-                pass
     
         playing_file = xbmc.Player().getPlayingFile()
-        if not playing_file or playing_file.startswith("plugin://") or playing_file.startswith("http"):
-            log("Streaming source detected. Skipping movie folder scan.", "debug", self)
-            self.check_temp_folder_for_srt()
+        
+        movie_folder = None
+
+        if not playing_file:
             return
+
+        if not (playing_file.startswith("plugin://") or playing_file.startswith("http")):
+            movie_folder = os.path.dirname(playing_file)
+            
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
-        video_name_normalized = re.sub(r'[^a-zA-Z0-9]', '', video_name.lower())
+        video_name_normalized = normalize_name(video_name)
+        
+        # -------------------------------------------------
+        # NEW: If translated subtitle already exists beside the movie
+        # -------------------------------------------------
+        target_in_movie = None
+
+        if movie_folder:
+            target_in_movie = os.path.join(movie_folder, f"{video_name}.{self.target_lang_iso}.srt")
+
+        if target_in_movie and xbmcvfs.exists(target_in_movie):
+            self.load_subtitle_if_new(target_in_movie)
+            
     
         # Do NOT use xbmc.Player().getSubtitles()
         sub_path = None
@@ -582,7 +662,7 @@ class TranslatarrMonitor(xbmc.Monitor):
                     _, files = xbmcvfs.listdir(movie_folder)
 
                     for f in files:
-                        if f.lower().endswith(".srt") and video_name.lower() in f.lower():
+                        if f.lower().endswith(".srt") and video_name_normalized in normalize_name(f):
                             sub_path = os.path.join(movie_folder, f)
                             log(f"Found external subtitle in movie folder: {sub_path}", "debug", self)
                             break
@@ -663,12 +743,8 @@ class TranslatarrMonitor(xbmc.Monitor):
             return
 
         playing_file = xbmc.Player().getPlayingFile()
-        if not playing_file or playing_file.startswith("plugin://") or playing_file.startswith("http"):
-            log("Streaming source detected. Skipping movie folder scan.", "debug", self)
-            self.check_temp_folder_for_srt()
-            return
         video_name = os.path.splitext(os.path.basename(playing_file))[0]
-        video_name_normalized = re.sub(r'[\s+]+', '', video_name.lower())
+        video_name_normalized = normalize_name(video_name)
         log(f"Current video: {video_name}", "debug", self)
 
         custom_dir = self.sub_folder
@@ -688,7 +764,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         for f in files:
             f_lower = f.lower()
             # Normalize filename: remove spaces and '+' signs
-            f_normalized = re.sub(r'[\s+]+', '', f_lower)
+            f_normalized = normalize_name(f_lower)
             # Check if it matches the current video
             if video_name_normalized not in f_normalized:
                 continue  # skip if not the same video
@@ -744,7 +820,7 @@ class TranslatarrMonitor(xbmc.Monitor):
             return  # only process one new file per poll
 
 # ----------------------------------------------------------
-# ENTRY POINT
+# ENTRY POINT (Safe for RD / Torbox)
 # ----------------------------------------------------------
 if __name__ == '__main__':
     window = xbmcgui.Window(10000)
@@ -759,11 +835,25 @@ if __name__ == '__main__':
         monitor = TranslatarrMonitor()
         _global_monitor = monitor
 
-        poll_count = 0
         while not monitor.abortRequested():
-            poll_count += 1
-            log(f"Poll iteration #{poll_count}", "debug", monitor)
-            monitor.check_for_subs()
+            if xbmc.Player().isPlaying():
+                try:
+                    # Check if source is a network/plugin path
+                    playing_file = xbmc.Player().getPlayingFile()
+                    is_network_stream = playing_file.startswith(("plugin://", "http"))
+
+                    # Only heavy GUI dialogs for local files
+                    if is_network_stream:
+                        monitor.check_for_subs_sequential_network()
+                    else:
+                        monitor.check_for_subs()  # original logic for local files
+
+                except Exception as e:
+                    xbmc.log(f"[Translatarr][ERROR] Exception during poll: {e}", xbmc.LOGERROR)
+            else:
+                log("Playback stopped. Skipping poll.", "debug", monitor)
+
+            # Still responsive to abort
             monitor.waitForAbort(3)
 
     finally:
