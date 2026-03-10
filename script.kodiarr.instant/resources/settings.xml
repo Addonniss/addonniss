@@ -30,9 +30,6 @@
                 </setting>
 
                 <setting id="radarr_quality_profile" type="integer" label="30007" help="30008">
-                    <constraints>
-                        <minimum>1</minimum>
-                    </constraints>
                     <control type="edit" format="integer" />
                     <default>1</default>
                 </setting>
@@ -73,9 +70,6 @@
                 </setting>
 
                 <setting id="sonarr_quality_profile" type="integer" label="30018" help="30019">
-                    <constraints>
-                        <minimum>1</minimum>
-                    </constraints>
                     <control type="edit" format="integer" />
                     <default>1</default>
                 </setting>
