@@ -7,7 +7,7 @@ from .common import log, notify
 
 
 def _get_action():
-    argv_text = " ".join(sys.argv).lower()
+    argv_text = " ".join([str(x) for x in sys.argv]).lower()
 
     if "action=test_radarr" in argv_text:
         return "test_radarr"
@@ -24,6 +24,7 @@ def _get_action():
 def run():
     action = _get_action()
     log("Router action={}".format(action))
+    log("sys.argv={}".format(sys.argv))
 
     if action == "test_radarr":
         radarr.test_connection(show_notification=True)
@@ -41,7 +42,6 @@ def run():
         sonarr.run()
         return
 
-    # fallback if script is run without action
     db_type = xbmc.getInfoLabel("ListItem.DBTYPE").lower()
     item_type = xbmc.getInfoLabel("ListItem.Property(item.type)").lower()
 
