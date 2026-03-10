@@ -1,52 +1,41 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.kodiarr.instant"
-       name="KodiARR Instant"
-       version="1.0.1"
-       provider-name="Addonniss">
+# -*- coding: utf-8 -*-
+import xbmc
+import xbmcgui
+import xbmcaddon
 
-    <requires>
-        <import addon="xbmc.python" version="3.0.0"/>
-        <import addon="script.module.requests" version="2.28.0"/>
-    </requires>
+ADDON_ID = "script.kodiarr.instant"
+ADDON = xbmcaddon.Addon(ADDON_ID)
 
-    <extension point="xbmc.python.script" library="launcher.py">
-        <provides>executable</provides>
-    </extension>
 
-    <extension point="kodi.context.item">
-        <menu id="kodi.core.main">
+def log(msg, level=xbmc.LOGINFO):
+    xbmc.log("[KodiARR Instant] {}".format(msg), level)
 
-            <item library="default.py?action=radarr">
-                <label>Add to Radarr</label>
-                <visible>
-                    String.IsEqual(ListItem.DBType,movie) |
-                    String.IsEqual(ListItem.Property(item.type),movie)
-                </visible>
-            </item>
 
-            <item library="default.py?action=sonarr">
-                <label>Add to Sonarr</label>
-                <visible>
-                    String.IsEqual(ListItem.DBType,tvshow) |
-                    String.IsEqual(ListItem.DBType,season) |
-                    String.IsEqual(ListItem.DBType,episode) |
-                    String.IsEqual(ListItem.Property(item.type),tvshow) |
-                    String.IsEqual(ListItem.Property(item.type),season) |
-                    String.IsEqual(ListItem.Property(item.type),episode)
-                </visible>
-            </item>
+def notify(title, message, icon=xbmcgui.NOTIFICATION_INFO):
+    xbmcgui.Dialog().notification(title, message, icon, 5000)
 
-        </menu>
-    </extension>
 
-    <extension point="xbmc.addon.metadata">
-        <summary lang="en_GB">Send Kodi media items to Radarr or Sonarr instantly</summary>
-        <description lang="en_GB">
-            Kodi context menu addon that sends movies to Radarr and TV shows,
-            seasons, or episodes to Sonarr for automatic download.
-        </description>
-        <platform>all</platform>
-        <license>MIT</license>
-    </extension>
+def get_setting(key, default=""):
+    try:
+        value = ADDON.getSetting(key)
+        return value if value != "" else default
+    except Exception:
+        return default
 
-</addon>
+
+def get_int(key, default=0):
+    try:
+        return int(get_setting(key, str(default)))
+    except Exception:
+        return default
+
+
+def clean_url(url):
+    return (url or "").strip().rstrip("/")
+
+
+def open_settings():
+    try:
+        ADDON.openSettings()
+    except Exception:
+        pass
