@@ -1,8 +1,47 @@
+# -*- coding: utf-8 -*-
 import requests
 import xbmcgui
 
-from .common import get_setting, get_int, clean_url, notify, log
+from .common import get_setting, get_int, clean_url, notify, log, open_settings
 from .context import get_movie_id
+
+
+def test_connection(show_notification=True):
+    radarr_url = clean_url(get_setting("radarr_url"))
+    api = get_setting("radarr_api")
+
+    if not radarr_url or not api:
+        if show_notification:
+            notify("Radarr", "Please fill Radarr URL and API key", xbmcgui.NOTIFICATION_ERROR)
+            open_settings()
+        return False
+
+    headers = {"X-Api-Key": api}
+
+    try:
+        resp = requests.get(
+            "{}/api/v3/system/status".format(radarr_url),
+            headers=headers,
+            timeout=10
+        )
+
+        if resp.status_code == 200:
+            data = resp.json()
+            version = data.get("version", "unknown")
+            if show_notification:
+                notify("Radarr", "Connection OK ({})".format(version))
+            return True
+
+        if show_notification:
+            notify("Radarr", "Connection failed: {}".format(resp.status_code), xbmcgui.NOTIFICATION_ERROR)
+        log("Radarr test failed: {}".format(resp.text), xbmcgui.LOGERROR)
+        return False
+
+    except Exception as e:
+        if show_notification:
+            notify("Radarr", "Connection error: {}".format(e), xbmcgui.NOTIFICATION_ERROR)
+        log("Radarr test crash: {}".format(e), xbmcgui.LOGERROR)
+        return False
 
 
 def run():
@@ -13,6 +52,7 @@ def run():
 
     if not radarr_url or not api or not root:
         notify("Radarr", "Please configure settings", xbmcgui.NOTIFICATION_ERROR)
+        open_settings()
         return
 
     id_val, id_type = get_movie_id()
@@ -22,20 +62,20 @@ def run():
         return
 
     headers = {"X-Api-Key": api}
-    term = f"{id_type}:{str(id_val).strip()}"
+    term = "{}:{}".format(id_type, str(id_val).strip())
 
     try:
-        notify("Radarr", f"Searching {term}")
+        notify("Radarr", "Searching {}".format(term))
 
         lookup = requests.get(
-            f"{radarr_url}/api/v3/movie/lookup?term={term}",
+            "{}/api/v3/movie/lookup?term={}".format(radarr_url, term),
             headers=headers,
             timeout=10
         )
 
         if lookup.status_code != 200:
-            notify("Radarr", f"Lookup failed: {lookup.status_code}", xbmcgui.NOTIFICATION_ERROR)
-            log(f"Radarr lookup failed: {lookup.text}")
+            notify("Radarr", "Lookup failed: {}".format(lookup.status_code), xbmcgui.NOTIFICATION_ERROR)
+            log("Radarr lookup failed: {}".format(lookup.text), xbmcgui.LOGERROR)
             return
 
         movies = lookup.json()
@@ -48,28 +88,26 @@ def run():
 
         if not movie.get("tmdbId"):
             notify("Radarr", "Invalid lookup result", xbmcgui.NOTIFICATION_ERROR)
-            log(f"Radarr invalid lookup payload: {movie}")
+            log("Radarr invalid lookup payload: {}".format(movie), xbmcgui.LOGERROR)
             return
 
-        # Already exists in Radarr -> just search
         if movie.get("id", 0) > 0:
             movie_id = movie["id"]
 
             cmd = requests.post(
-                f"{radarr_url}/api/v3/command",
+                "{}/api/v3/command".format(radarr_url),
                 json={"name": "MoviesSearch", "movieIds": [movie_id]},
                 headers=headers,
                 timeout=10
             )
 
             if cmd.status_code in (200, 201):
-                notify("Radarr", f"'{title}' already exists. Search triggered.")
+                notify("Radarr", "'{}' already exists. Search triggered.".format(title))
             else:
                 notify("Radarr", "Movie exists, but search failed", xbmcgui.NOTIFICATION_ERROR)
-                log(f"Radarr command failed: {cmd.text}")
+                log("Radarr command failed: {}".format(cmd.text), xbmcgui.LOGERROR)
             return
 
-        # Missing -> add then search
         payload = {
             "title": movie["title"],
             "qualityProfileId": profile,
@@ -82,7 +120,7 @@ def run():
         }
 
         add_resp = requests.post(
-            f"{radarr_url}/api/v3/movie",
+            "{}/api/v3/movie".format(radarr_url),
             json=payload,
             headers=headers,
             timeout=15
@@ -92,19 +130,18 @@ def run():
             added = add_resp.json()
             new_id = added["id"]
 
-            # extra explicit search
             requests.post(
-                f"{radarr_url}/api/v3/command",
+                "{}/api/v3/command".format(radarr_url),
                 json={"name": "MoviesSearch", "movieIds": [new_id]},
                 headers=headers,
                 timeout=10
             )
 
-            notify("Radarr", f"Added '{title}'. Search started.")
+            notify("Radarr", "Added '{}'. Search started.".format(title))
         else:
-            notify("Radarr", f"Add failed: {add_resp.status_code}", xbmcgui.NOTIFICATION_ERROR)
-            log(f"Radarr add failed: {add_resp.text}")
+            notify("Radarr", "Add failed: {}".format(add_resp.status_code), xbmcgui.NOTIFICATION_ERROR)
+            log("Radarr add failed: {}".format(add_resp.text), xbmcgui.LOGERROR)
 
     except Exception as e:
-        notify("Radarr", f"Error: {e}", xbmcgui.NOTIFICATION_ERROR)
-        log(f"Radarr crash: {e}")
+        notify("Radarr", "Error: {}".format(e), xbmcgui.NOTIFICATION_ERROR)
+        log("Radarr crash: {}".format(e), xbmcgui.LOGERROR)
