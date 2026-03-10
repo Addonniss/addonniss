@@ -36,6 +36,8 @@ jobs:
           ls -la
           echo "Contents of service.translatarr:"
           ls -la service.translatarr || echo "Missing"
+          echo "Contents of script.kodiarr.instant:"
+          ls -la script.kodiarr.instant || echo "Missing"
 
       # 4️⃣ Run repository generation
       - name: Generate Kodi Repo Files
