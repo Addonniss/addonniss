@@ -3,6 +3,7 @@
        name="KodiARR Instant"
        version="1.0.0"
        provider-name="Addonniss">
+
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
     <import addon="script.module.requests" version="2.0.0"/>
@@ -15,7 +16,7 @@
   <extension point="kodi.context.item">
     <menu id="kodi.core.main">
       <item library="default.py">
-        <label>Send to ARR</label>
+        <label>Add to ARR</label>
         <visible>
           String.IsEqual(ListItem.DBType,movie) |
           String.IsEqual(ListItem.DBType,tvshow) |
@@ -31,11 +32,13 @@
   </extension>
 
   <extension point="xbmc.addon.metadata">
-    <summary lang="en_GB">Send Kodi items directly to Radarr or Sonarr</summary>
+    <summary lang="en_GB">Send Kodi media items to Radarr or Sonarr instantly</summary>
     <description lang="en_GB">
-      Context menu addon for sending movies to Radarr and shows, seasons, or episodes to Sonarr.
+      Kodi context menu addon that sends movies to Radarr and TV shows,
+      seasons, or episodes to Sonarr for automatic download.
     </description>
     <platform>all</platform>
     <license>MIT</license>
   </extension>
+
 </addon>
