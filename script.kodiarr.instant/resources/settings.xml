@@ -1,18 +1,118 @@
 <?xml version="1.0" encoding="utf-8"?>
-<settings>
+<settings version="1">
+  <section id="script.kodiarr.instant">
 
-  <category label="Radarr">
-    <setting id="radarr_url" type="text" label="Radarr URL" default="http://127.0.0.1:7878"/>
-    <setting id="radarr_api" type="text" label="Radarr API Key" option="hidden"/>
-    <setting id="radarr_root" type="text" label="Radarr Root Folder"/>
-    <setting id="radarr_quality_profile" type="number" label="Radarr Quality Profile ID" default="1"/>
-  </category>
+    <category id="radarr" label="Radarr">
+      <group id="1">
 
-  <category label="Sonarr">
-    <setting id="sonarr_url" type="text" label="Sonarr URL" default="http://127.0.0.1:8989"/>
-    <setting id="sonarr_api" type="text" label="Sonarr API Key" option="hidden"/>
-    <setting id="sonarr_root" type="text" label="Sonarr Root Folder"/>
-    <setting id="sonarr_quality_profile" type="number" label="Sonarr Quality Profile ID" default="1"/>
-  </category>
+        <setting id="radarr_url" type="string" label="Radarr URL">
+          <level>0</level>
+          <default>http://127.0.0.1:7878</default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+            <heading>Radarr URL</heading>
+          </control>
+        </setting>
 
+        <setting id="radarr_api" type="string" label="Radarr API Key">
+          <level>0</level>
+          <default/>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+            <heading>Radarr API Key</heading>
+            <hidden>true</hidden>
+          </control>
+        </setting>
+
+        <setting id="radarr_root" type="string" label="Radarr Root Folder">
+          <level>0</level>
+          <default/>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+            <heading>Radarr Root Folder</heading>
+          </control>
+        </setting>
+
+        <setting id="radarr_quality_profile" type="integer" label="Radarr Quality Profile ID">
+          <level>0</level>
+          <default>1</default>
+          <control type="edit" format="integer">
+            <heading>Radarr Quality Profile ID</heading>
+          </control>
+        </setting>
+
+        <setting id="test_radarr" type="action" label="Test Radarr Connection">
+          <level>0</level>
+          <data>RunScript(script.kodiarr.instant,action=test_radarr)</data>
+          <control type="button" format="action">
+            <close>false</close>
+          </control>
+        </setting>
+
+      </group>
+    </category>
+
+    <category id="sonarr" label="Sonarr">
+      <group id="1">
+
+        <setting id="sonarr_url" type="string" label="Sonarr URL">
+          <level>0</level>
+          <default>http://127.0.0.1:8989</default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+            <heading>Sonarr URL</heading>
+          </control>
+        </setting>
+
+        <setting id="sonarr_api" type="string" label="Sonarr API Key">
+          <level>0</level>
+          <default/>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+            <heading>Sonarr API Key</heading>
+            <hidden>true</hidden>
+          </control>
+        </setting>
+
+        <setting id="sonarr_root" type="string" label="Sonarr Root Folder">
+          <level>0</level>
+          <default/>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+            <heading>Sonarr Root Folder</heading>
+          </control>
+        </setting>
+
+        <setting id="sonarr_quality_profile" type="integer" label="Sonarr Quality Profile ID">
+          <level>0</level>
+          <default>1</default>
+          <control type="edit" format="integer">
+            <heading>Sonarr Quality Profile ID</heading>
+          </control>
+        </setting>
+
+        <setting id="test_sonarr" type="action" label="Test Sonarr Connection">
+          <level>0</level>
+          <data>RunScript(script.kodiarr.instant,action=test_sonarr)</data>
+          <control type="button" format="action">
+            <close>false</close>
+          </control>
+        </setting>
+
+      </group>
+    </category>
+
+  </section>
 </settings>
