@@ -13,8 +13,12 @@ def _get_action():
         return "test_radarr"
     if "action=test_sonarr" in argv_text:
         return "test_sonarr"
+    if "action=radarr" in argv_text:
+        return "radarr"
+    if "action=sonarr" in argv_text:
+        return "sonarr"
 
-    return "add"
+    return None
 
 
 def run():
@@ -29,18 +33,23 @@ def run():
         sonarr.test_connection(show_notification=True)
         return
 
+    if action == "radarr":
+        radarr.run()
+        return
+
+    if action == "sonarr":
+        sonarr.run()
+        return
+
+    # fallback if script is run without action
     db_type = xbmc.getInfoLabel("ListItem.DBTYPE").lower()
     item_type = xbmc.getInfoLabel("ListItem.Property(item.type)").lower()
 
-    log("DBTYPE={} item.type={}".format(db_type, item_type))
-
     if db_type == "movie" or item_type == "movie":
-        log("Routing to Radarr")
         radarr.run()
         return
 
     if db_type in ["tvshow", "season", "episode"] or item_type in ["tvshow", "season", "episode"]:
-        log("Routing to Sonarr")
         sonarr.run()
         return
 
