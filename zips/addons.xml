@@ -10,7 +10,7 @@
         <import addon="script.module.requests" version="2.28.0"/>
     </requires>
 
-    <extension point="xbmc.python.script" library="default.py">
+    <extension point="xbmc.python.script" library="launcher.py">
         <provides>executable</provides>
     </extension>
 
