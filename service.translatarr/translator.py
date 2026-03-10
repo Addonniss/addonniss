@@ -98,9 +98,9 @@ class BaseTranslator:
 class GeminiTranslator(BaseTranslator):
 
     PRICING = {
-        "gemini-2.0-flash": (0.0000005, 0.0000015),
-        "gemini-1.5-flash": (0.0000005, 0.0000015),
-        "gemini-2.5-flash": (0.0000007, 0.0000020),
+        "gemini-2.0-flash": (0.0000001, 0.0000004),
+        "gemini-1.5-flash": (0.0000000, 0.0000000),
+        "gemini-2.5-flash": (0.0000003, 0.0000025),
     }
 
     def __init__(self):
@@ -165,7 +165,7 @@ class GeminiTranslator(BaseTranslator):
         try:
             r = requests.post(url, json=payload, timeout=30)
             if r.status_code != 200:
-                log(f"Gemini error: {r.status_code}")
+                log(f"Gemini error ({self.model}): {r.status_code} | {r.text[:500]}")
                 return None, 0, 0
 
             data = r.json()
@@ -189,7 +189,7 @@ class GeminiTranslator(BaseTranslator):
             return translated, in_t, out_t
 
         except Exception as e:
-            log(f"Gemini exception: {e}")
+            log(f"Gemini exception ({self.model}): {e}")
             return None, 0, 0
 
     def calculate_cost(self, input_tokens, output_tokens):
@@ -207,7 +207,7 @@ class OpenAITranslator(BaseTranslator):
 
     PRICING = {
         "gpt-4o-mini": (0.00000015, 0.00000060),
-        "gpt-4o": (0.000005, 0.000015),
+        "gpt-4o": (0.0000025, 0.0000100),
         "gpt-5-mini": (0.00000025, 0.0000020),
     }
 
@@ -279,7 +279,7 @@ class OpenAITranslator(BaseTranslator):
             )
 
             if r.status_code != 200:
-                log(f"OpenAI error: {r.status_code}")
+                log(f"OpenAI error ({self.model}): {r.status_code} | {r.text[:500]}")
                 return None, 0, 0
 
             data = r.json()
@@ -302,7 +302,7 @@ class OpenAITranslator(BaseTranslator):
             return translated, in_t, out_t
 
         except Exception as e:
-            log(f"OpenAI exception: {e}")
+            log(f"OpenAI exception ({self.model}): {e}")
             return None, 0, 0
 
     def calculate_cost(self, input_tokens, output_tokens):
