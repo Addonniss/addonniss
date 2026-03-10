@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<settings>
+  <category label="Radarr">
+    <setting id="radarr_url" type="text" label="Radarr URL" default="http://192.168.0.202:7878"/>
+    <setting id="radarr_api" type="text" label="Radarr API Key" option="hidden" default=""/>
+    <setting id="radarr_root" type="text" label="Radarr Root Folder" default="/data/media/movies/"/>
+    <setting id="radarr_quality_profile" type="number" label="Radarr Quality Profile ID" default="8"/>
+  </category>
+
+  <category label="Sonarr">
+    <setting id="sonarr_url" type="text" label="Sonarr URL" default="http://192.168.0.203:8989"/>
+    <setting id="sonarr_api" type="text" label="Sonarr API Key" option="hidden" default=""/>
+    <setting id="sonarr_root" type="text" label="Sonarr Root Folder" default="/data/media/tv/"/>
+    <setting id="sonarr_quality_profile" type="number" label="Sonarr Quality Profile ID" default="8"/>
+  </category>
+</settings>
