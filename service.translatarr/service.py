@@ -133,7 +133,7 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
                 content = f.read()
 
             if not content:
-                log("Source SRT is empty.", "debug", monitor)
+                log("Source SRT is empty.", "error", monitor)
                 return False
 
             timestamps, texts = file_manager.parse_srt(content)
@@ -635,10 +635,20 @@ class TranslatarrMonitor(xbmc.Monitor):
             if newest_source_mtime > getattr(self, "last_processed_source_mtime", 0):
                 final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
                 save_path = vfs_join(TRANSLATARR_SUB_FOLDER, final_file_name)
-                
+
+                force_retranslate = (
+                    newest_source_file != getattr(self, "last_processed_source_path", None)
+                    or newest_source_mtime != getattr(self, "last_processed_source_mtime", 0)
+                )
+
                 log(f"New source detected in temp: {newest_source_file}", "debug", self)
-                success = process_subtitles(newest_source_file, self, save_path=save_path)
-                
+                success = process_subtitles(
+                    newest_source_file,
+                    self,
+                    force_retranslate=force_retranslate,
+                    save_path=save_path
+                )
+
                 if success:
                     self.last_processed_source_path = newest_source_file
                     self.last_processed_source_mtime = newest_source_mtime
@@ -715,11 +725,14 @@ class TranslatarrMonitor(xbmc.Monitor):
             current_mtime = stat.st_mtime()
             
             # Optimization check
-            if getattr(self, 'last_auto_sub_path', None) == sub_path and current_mtime == self.last_auto_sub_mtime:
+            previous_path = getattr(self, 'last_auto_sub_path', None)
+            previous_mtime = getattr(self, 'last_auto_sub_mtime', 0)
+
+            if previous_path == sub_path and current_mtime == previous_mtime:
                 return
 
-            force_retranslate = (getattr(self, 'last_auto_sub_path', None) != sub_path)
-            
+            force_retranslate = (previous_path != sub_path or current_mtime != previous_mtime)
+
             self.last_auto_sub_path = sub_path
             self.last_auto_sub_mtime = current_mtime
 
