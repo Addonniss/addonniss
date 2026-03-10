@@ -1,49 +1,47 @@
+# -*- coding: utf-8 -*-
 import requests
-import xbmc
 import xbmcgui
 
-from .common import get_setting, get_int, clean_url, notify, log
-from .context import find_series_id
+from .common import get_setting, get_int, clean_url, notify, log, open_settings
+from .context import get_sonarr_context
 
 
-def get_context_info():
-    info = {}
-    info["series_id"], info["id_type"] = find_series_id()
+def test_connection(show_notification=True):
+    sonarr_url = clean_url(get_setting("sonarr_url"))
+    api = get_setting("sonarr_api")
 
-    raw_season = xbmc.getInfoLabel("ListItem.Season")
-    raw_episode = xbmc.getInfoLabel("ListItem.Episode")
-    db_type = xbmc.getInfoLabel("ListItem.DBTYPE").lower()
+    if not sonarr_url or not api:
+        if show_notification:
+            notify("Sonarr", "Please fill Sonarr URL and API key", xbmcgui.NOTIFICATION_ERROR)
+            open_settings()
+        return False
 
-    if db_type == "tvshow":
-        info["type"] = "tvshow"
-        info["season"] = None
-        info["episode"] = None
+    headers = {"X-Api-Key": api}
 
-    elif db_type == "season":
-        info["type"] = "season"
-        info["season"] = raw_season
-        info["episode"] = None
+    try:
+        resp = requests.get(
+            "{}/api/v3/system/status".format(sonarr_url),
+            headers=headers,
+            timeout=10
+        )
 
-    elif db_type == "episode":
-        info["type"] = "episode"
-        info["season"] = raw_season
-        info["episode"] = raw_episode
+        if resp.status_code == 200:
+            data = resp.json()
+            version = data.get("version", "unknown")
+            if show_notification:
+                notify("Sonarr", "Connection OK ({})".format(version))
+            return True
 
-    else:
-        if raw_season.isdigit() and raw_episode.isdigit():
-            info["type"] = "episode"
-            info["season"] = raw_season
-            info["episode"] = raw_episode
-        elif raw_season.isdigit():
-            info["type"] = "season"
-            info["season"] = raw_season
-            info["episode"] = None
-        else:
-            info["type"] = "tvshow"
-            info["season"] = None
-            info["episode"] = None
+        if show_notification:
+            notify("Sonarr", "Connection failed: {}".format(resp.status_code), xbmcgui.NOTIFICATION_ERROR)
+        log("Sonarr test failed: {}".format(resp.text), xbmcgui.LOGERROR)
+        return False
 
-    return info
+    except Exception as e:
+        if show_notification:
+            notify("Sonarr", "Connection error: {}".format(e), xbmcgui.NOTIFICATION_ERROR)
+        log("Sonarr test crash: {}".format(e), xbmcgui.LOGERROR)
+        return False
 
 
 def run():
@@ -54,9 +52,10 @@ def run():
 
     if not sonarr_url or not api or not root:
         notify("Sonarr", "Please configure settings", xbmcgui.NOTIFICATION_ERROR)
+        open_settings()
         return
 
-    info = get_context_info()
+    info = get_sonarr_context()
     series_id = info.get("series_id")
 
     if not series_id:
@@ -64,18 +63,18 @@ def run():
         return
 
     headers = {"X-Api-Key": api}
-    term = f"{info['id_type']}:{series_id}"
+    term = "{}:{}".format(info["id_type"], series_id)
 
     try:
         lookup = requests.get(
-            f"{sonarr_url}/api/v3/series/lookup?term={term}",
+            "{}/api/v3/series/lookup?term={}".format(sonarr_url, term),
             headers=headers,
             timeout=10
         )
 
         if lookup.status_code != 200:
-            notify("Sonarr", f"Lookup failed: {lookup.status_code}", xbmcgui.NOTIFICATION_ERROR)
-            log(f"Sonarr lookup failed: {lookup.text}")
+            notify("Sonarr", "Lookup failed: {}".format(lookup.status_code), xbmcgui.NOTIFICATION_ERROR)
+            log("Sonarr lookup failed: {}".format(lookup.text), xbmcgui.LOGERROR)
             return
 
         results = lookup.json()
@@ -87,7 +86,6 @@ def run():
         title = series.get("title", "Unknown")
         series_db_id = series.get("id")
 
-        # Missing -> add first
         if not series_db_id:
             should_search_missing = (info["type"] == "tvshow")
 
@@ -102,38 +100,36 @@ def run():
             })
 
             add_resp = requests.post(
-                f"{sonarr_url}/api/v3/series",
+                "{}/api/v3/series".format(sonarr_url),
                 json=payload,
                 headers=headers,
                 timeout=15
             )
 
             if add_resp.status_code != 201:
-                notify("Sonarr", f"Add failed: {add_resp.status_code}", xbmcgui.NOTIFICATION_ERROR)
-                log(f"Sonarr add failed: {add_resp.text}")
+                notify("Sonarr", "Add failed: {}".format(add_resp.status_code), xbmcgui.NOTIFICATION_ERROR)
+                log("Sonarr add failed: {}".format(add_resp.text), xbmcgui.LOGERROR)
                 return
 
             series_db_id = add_resp.json()["id"]
 
-            # if user clicked the show itself, adding with searchForMissingEpisodes=True is enough
             if info["type"] == "tvshow":
-                notify("Sonarr", f"Added '{title}'. Search started.")
+                notify("Sonarr", "Added '{}'. Search started.".format(title))
                 return
 
-        # Already exists, or was added for season/episode
         if info["type"] == "tvshow":
             cmd = requests.post(
-                f"{sonarr_url}/api/v3/command",
+                "{}/api/v3/command".format(sonarr_url),
                 json={"name": "SeriesSearch", "seriesId": series_db_id},
                 headers=headers,
                 timeout=10
             )
 
             if cmd.status_code in (200, 201):
-                notify("Sonarr", f"Series search started: {title}")
+                notify("Sonarr", "Series search started: {}".format(title))
             else:
                 notify("Sonarr", "Series search failed", xbmcgui.NOTIFICATION_ERROR)
-                log(f"Sonarr series search failed: {cmd.text}")
+                log("Sonarr series search failed: {}".format(cmd.text), xbmcgui.LOGERROR)
             return
 
         if info["type"] == "season":
@@ -142,7 +138,7 @@ def run():
                 return
 
             cmd = requests.post(
-                f"{sonarr_url}/api/v3/command",
+                "{}/api/v3/command".format(sonarr_url),
                 json={
                     "name": "SeasonSearch",
                     "seriesId": series_db_id,
@@ -153,10 +149,10 @@ def run():
             )
 
             if cmd.status_code in (200, 201):
-                notify("Sonarr", f"Season {info['season']} search started")
+                notify("Sonarr", "Season {} search started".format(info["season"]))
             else:
                 notify("Sonarr", "Season search failed", xbmcgui.NOTIFICATION_ERROR)
-                log(f"Sonarr season search failed: {cmd.text}")
+                log("Sonarr season search failed: {}".format(cmd.text), xbmcgui.LOGERROR)
             return
 
         if info["type"] == "episode":
@@ -165,14 +161,14 @@ def run():
                 return
 
             ep_resp = requests.get(
-                f"{sonarr_url}/api/v3/episode?seriesId={series_db_id}",
+                "{}/api/v3/episode?seriesId={}".format(sonarr_url, series_db_id),
                 headers=headers,
                 timeout=15
             )
 
             if ep_resp.status_code != 200:
-                notify("Sonarr", f"Episode lookup failed: {ep_resp.status_code}", xbmcgui.NOTIFICATION_ERROR)
-                log(f"Sonarr episode lookup failed: {ep_resp.text}")
+                notify("Sonarr", "Episode lookup failed: {}".format(ep_resp.status_code), xbmcgui.NOTIFICATION_ERROR)
+                log("Sonarr episode lookup failed: {}".format(ep_resp.text), xbmcgui.LOGERROR)
                 return
 
             episodes = ep_resp.json()
@@ -190,21 +186,24 @@ def run():
                 return
 
             cmd = requests.post(
-                f"{sonarr_url}/api/v3/command",
+                "{}/api/v3/command".format(sonarr_url),
                 json={"name": "EpisodeSearch", "episodeIds": [target["id"]]},
                 headers=headers,
                 timeout=10
             )
 
             if cmd.status_code in (200, 201):
-                notify("Sonarr", f"S{int(info['season']):02d}E{int(info['episode']):02d} search started")
+                notify(
+                    "Sonarr",
+                    "S{:02d}E{:02d} search started".format(int(info["season"]), int(info["episode"]))
+                )
             else:
                 notify("Sonarr", "Episode search failed", xbmcgui.NOTIFICATION_ERROR)
-                log(f"Sonarr episode search failed: {cmd.text}")
+                log("Sonarr episode search failed: {}".format(cmd.text), xbmcgui.LOGERROR)
             return
 
         notify("Sonarr", "Unsupported TV item", xbmcgui.NOTIFICATION_ERROR)
 
     except Exception as e:
-        notify("Sonarr", f"Error: {e}", xbmcgui.NOTIFICATION_ERROR)
-        log(f"Sonarr crash: {e}")
+        notify("Sonarr", "Error: {}".format(e), xbmcgui.NOTIFICATION_ERROR)
+        log("Sonarr crash: {}".format(e), xbmcgui.LOGERROR)
