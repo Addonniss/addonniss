@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="script.kodiarr.instant"
+       name="KodiARR Instant"
+       version="1.0.0"
+       provider-name="Addonniss">
+  <requires>
+    <import addon="xbmc.python" version="3.0.0"/>
+    <import addon="script.module.requests" version="2.0.0"/>
+  </requires>
+
+  <extension point="xbmc.python.script" library="default.py">
+    <provides>executable</provides>
+  </extension>
+
+  <extension point="kodi.context.item">
+    <menu id="kodi.core.main">
+      <item library="default.py">
+        <label>Send to ARR</label>
+        <visible>
+          String.IsEqual(ListItem.DBType,movie) |
+          String.IsEqual(ListItem.DBType,tvshow) |
+          String.IsEqual(ListItem.DBType,season) |
+          String.IsEqual(ListItem.DBType,episode) |
+          String.IsEqual(ListItem.Property(item.type),movie) |
+          String.IsEqual(ListItem.Property(item.type),tvshow) |
+          String.IsEqual(ListItem.Property(item.type),season) |
+          String.IsEqual(ListItem.Property(item.type),episode)
+        </visible>
+      </item>
+    </menu>
+  </extension>
+
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Send Kodi items directly to Radarr or Sonarr</summary>
+    <description lang="en_GB">
+      Context menu addon for sending movies to Radarr and shows, seasons, or episodes to Sonarr.
+    </description>
+    <platform>all</platform>
+    <license>MIT</license>
+  </extension>
+</addon>
