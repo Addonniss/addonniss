@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import xbmc
 from urllib.parse import urlparse, parse_qs
 
@@ -53,3 +54,43 @@ def find_series_id():
             pass
 
     return None, None
+
+
+def get_sonarr_context():
+    info = {}
+    info["series_id"], info["id_type"] = find_series_id()
+
+    raw_season = xbmc.getInfoLabel("ListItem.Season")
+    raw_episode = xbmc.getInfoLabel("ListItem.Episode")
+    db_type = xbmc.getInfoLabel("ListItem.DBTYPE").lower()
+
+    if db_type == "tvshow":
+        info["type"] = "tvshow"
+        info["season"] = None
+        info["episode"] = None
+
+    elif db_type == "season":
+        info["type"] = "season"
+        info["season"] = raw_season
+        info["episode"] = None
+
+    elif db_type == "episode":
+        info["type"] = "episode"
+        info["season"] = raw_season
+        info["episode"] = raw_episode
+
+    else:
+        if raw_season.isdigit() and raw_episode.isdigit():
+            info["type"] = "episode"
+            info["season"] = raw_season
+            info["episode"] = raw_episode
+        elif raw_season.isdigit():
+            info["type"] = "season"
+            info["season"] = raw_season
+            info["episode"] = None
+        else:
+            info["type"] = "tvshow"
+            info["season"] = None
+            info["episode"] = None
+
+    return info
