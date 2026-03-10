@@ -1,5 +1,12 @@
+v2.3.8
+- Major stability improvements for Real-Debrid / Torbox streams
+- Improved subtitle detection in temp folders
+- Prevented duplicate translations and unnecessary API usage
+- Added safer VFS path handling across platforms
+- Improved subtitle write detection to avoid incomplete files
+
 v2.3.6
-- Fixed Kodi crash on plugins / http sources 
+- Fixed Kodi crash on plugin:// and http:// sources 
   * works now with Fenlight/POV plugins streaming on Real Debrid / Torbox
   * works with "local" WebDav folders / like nzbDav
 
