@@ -117,11 +117,23 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
             progress = ui.TranslationProgress(model_name=model_name, title=video_name[:30] + "...")
             
             # Read source - xbmcvfs is essential for special:// and plugin://
+            # Wait briefly for subtitle to finish writing
+            try:
+                stat1 = xbmcvfs.Stat(original_path).st_size()
+                time.sleep(0.25)
+                stat2 = xbmcvfs.Stat(original_path).st_size()
+
+                if stat1 != stat2:
+                    log("Subtitle still being written. Skipping this poll.", "debug", monitor)
+                    return False
+            except:
+                pass
+
             with xbmcvfs.File(original_path, 'r') as f:
                 content = f.read()
-            
+
             if not content:
-                log("Source SRT is empty.", "error", monitor)
+                log("Source SRT is empty.", "debug", monitor)
                 return False
 
             timestamps, texts = file_manager.parse_srt(content)
@@ -479,65 +491,67 @@ class TranslatarrMonitor(xbmc.Monitor):
             self.check_auto_mode()
         else:
             self.check_manual_mode()
-        
-    def check_for_subs_override(self):
-        if not xbmc.Player().isPlaying():
-            return
-
-        if self.is_playing_network_stream():
-            log("Network stream detected. Running sequential check.", "debug", self)
-            self.check_for_subs_sequential_network()
-        else:
-            # Normal local file logic
-            if self.auto_mode:
-                self.check_auto_mode()
-            else:
-                self.check_manual_mode()
-            
+    # ------------------------------------------------------------
+    # check_for_subs_override just a backup/falloff if case I dont use/call check_for_subs_sequential_network()
+    # ------------------------------------------------------------    
+    #def check_for_subs_override(self):
+    #    if not xbmc.Player().isPlaying():
+    #        return
+    #
+    #    if self.is_playing_network_stream():
+    #        log("Network stream detected. Running sequential check.", "debug", self)
+    #        self.check_for_subs_sequential_network()
+    #    else:
+    #        # Normal local file logic
+    #        if self.auto_mode:
+    #            self.check_auto_mode()
+    #        else:
+    #            self.check_manual_mode()
+    #       
     # ------------------------------------------------------------
     # check_for_subs_sequential_network for Real Debrid Torbox
     # ------------------------------------------------------------
-    def check_for_subs_sequential_network(self):
-        if self.is_busy: return
-        
-        # 1. Get safe name
-        video_name = xbmc.getInfoLabel('Player.Title') or "Streamed_Video"
-        
-        # 2. Only scan local temp folders (where A4k/OS save their results)
-        try:
-            temp_folder = xbmcvfs.translatePath("special://temp/")
-            # Unpack listdir properly: returns (dirs, files)
-            _, files = xbmcvfs.listdir(temp_folder)
-            srt_files = [vfs_join(temp_folder, f) for f in files if f.lower().endswith(".srt")]
-            
-            if not srt_files:
-                return
-                
-            # Get the most recent one
-            sub_file = max(srt_files, key=lambda x: xbmcvfs.Stat(x).st_mtime())
-            mtime = xbmcvfs.Stat(sub_file).st_mtime()
-            size = xbmcvfs.Stat(sub_file).st_size()
-            if size < 50:
-                log("Temp subtitle still being written.", "debug", self)
-                return
-
-            if getattr(self, "last_network_sub_mtime", 0) == mtime:
-                return 
-
-            self.last_network_sub_mtime = mtime
-            log(f"Network stream subtitle detected in temp: {sub_file}", "debug", self)
-
-            # 3. Process
-            final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
-            save_path = os.path.join(TRANSLATARR_SUB_FOLDER, final_file_name).replace('\\', '/')
-            
-            self.is_busy = True
-            process_subtitles(sub_file, self, save_path=save_path)
-            self.is_busy = False
-
-        except Exception as e:
-            log(f"Failed sequential network check: {e}", "error", self)
-            self.is_busy = False
+    #def check_for_subs_sequential_network(self):
+    #   if self.is_busy: return
+    #   
+    #   # 1. Get safe name
+    #   video_name = xbmc.getInfoLabel('Player.Title') or "Streamed_Video"
+    #   
+    #   # 2. Only scan local temp folders (where A4k/OS save their results)
+    #   try:
+    #       temp_folder = xbmcvfs.translatePath("special://temp/")
+    #       # Unpack listdir properly: returns (dirs, files)
+    #       _, files = xbmcvfs.listdir(temp_folder)
+    #       srt_files = [vfs_join(temp_folder, f) for f in files if f.lower().endswith(".srt")]
+    #       
+    #       if not srt_files:
+    #           return
+    #           
+    #       # Get the most recent one
+    #       sub_file = max(srt_files, key=lambda x: xbmcvfs.Stat(x).st_mtime())
+    #       mtime = xbmcvfs.Stat(sub_file).st_mtime()
+    #       size = xbmcvfs.Stat(sub_file).st_size()
+    #       if size < 50:
+    #           log("Temp subtitle still being written.", "debug", self)
+    #           return
+    #
+    #       if getattr(self, "last_network_sub_mtime", 0) == mtime:
+    #           return 
+    #
+    #       self.last_network_sub_mtime = mtime
+    #       log(f"Network stream subtitle detected in temp: {sub_file}", "debug", self)
+    #
+    #       # 3. Process
+    #       final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
+    #       save_path = vfs_join(TRANSLATARR_SUB_FOLDER, final_file_name)
+    #       
+    #       self.is_busy = True
+    #       process_subtitles(sub_file, self, save_path=save_path)
+    #       self.is_busy = False
+    #
+    #   except Exception as e:
+    #       log(f"Failed sequential network check: {e}", "error", self)
+    #       self.is_busy = False
     
     
     # ------------------------------------------------------------
@@ -580,7 +594,7 @@ class TranslatarrMonitor(xbmc.Monitor):
 
             try:
                 # listdir returns (directories, files)
-                dirs, files = xbmcvfs.listdir(folder)
+                _, files = xbmcvfs.listdir(folder)
                 srt_files = [f for f in files if f.lower().endswith(".srt")]
             except Exception as e:
                 log(f"Failed to list folder {folder}: {e}", "debug", self)
@@ -620,7 +634,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         if newest_source_file:
             if newest_source_mtime > getattr(self, "last_processed_source_mtime", 0):
                 final_file_name = f"{video_name}.{self.target_lang_iso}.srt"
-                save_path = f"{TRANSLATARR_SUB_FOLDER.rstrip('/')}/{final_file_name}"
+                save_path = vfs_join(TRANSLATARR_SUB_FOLDER, final_file_name)
                 
                 log(f"New source detected in temp: {newest_source_file}", "debug", self)
                 success = process_subtitles(newest_source_file, self, save_path=save_path)
@@ -774,7 +788,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         # 3. Sorting by mtime (using xbmcvfs)
         def safe_mtime(f):
             try:
-                return xbmcvfs.Stat(f"{custom_dir.rstrip('/')}/{f}").st_mtime()
+                return xbmcvfs.Stat(vfs_join(custom_dir, f)).st_mtime()
             except: return 0
         
         candidate_files.sort(key=safe_mtime, reverse=True)
@@ -797,16 +811,20 @@ class TranslatarrMonitor(xbmc.Monitor):
                     continue # Unchanged
 
                 self.is_busy = True
-                success = process_subtitles(full_path, self, force_retranslate)
-                self.is_busy = False
+                try:
+                    success = process_subtitles(full_path, self, force_retranslate)
+                finally:
+                    self.is_busy = False
 
                 if success:
                     self.last_source_size[f.lower()] = size
-                    return # Done for this poll
+                
+                return # always stop after trying the newest valid candidate
 
             except Exception as e:
                 log(f"Manual poll processing error: {e}", "error", self)
-                self.is_busy = False
+                return
+ 
 
 # ----------------------------------------------------------
 # ENTRY POINT (Safe for RD / Torbox)
