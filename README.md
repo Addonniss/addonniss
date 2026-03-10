@@ -7,6 +7,10 @@ Welcome to the official **Addonniss Repository**! This repository hosts AI-power
 ## 📥 How to Install
 
 ### 1. Download the Repository
+Add repo as source in File Manager; `https://addonniss.github.io/repository.addonniss/zips/repository.addonniss/`
+
+OR
+
 Click the link below to download the latest repository zip file to your device:
 
 👉 **[Download Addonniss Repo v1.0.1](https://addonniss.github.io/repository.addonniss/zips/repository.addonniss/repository.addonniss-1.0.1.zip)**
@@ -19,7 +23,7 @@ Click the link below to download the latest repository zip file to your device:
 3. Enable **Unknown sources** (if not already on).
 4. Go back to the **Add-ons** menu and click the **Box Icon** (Add-on Browser).
 5. Select **Install from zip file**.
-6. Locate and select the `repository.addonniss-1.0.1.zip` file you downloaded.
+6. Locate and select the `repository.addonniss-1.0.1.zip` file you downloaded or browsing to the source you just added!
 7. Once installed, select **Install from repository**.
 8. Choose **Addonniss Repository** > **Program add-ons** > **Translatarr** > **Install**.
 
