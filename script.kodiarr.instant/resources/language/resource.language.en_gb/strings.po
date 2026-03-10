@@ -1,0 +1,90 @@
+msgid ""
+msgstr ""
+
+msgctxt "#30000"
+msgid "Radarr"
+msgstr ""
+
+msgctxt "#30001"
+msgid "Radarr URL"
+msgstr ""
+
+msgctxt "#30002"
+msgid "Base address of your Radarr instance, for example http://192.168.1.10:7878"
+msgstr ""
+
+msgctxt "#30003"
+msgid "Radarr API Key"
+msgstr ""
+
+msgctxt "#30004"
+msgid "API key from Radarr Settings > General."
+msgstr ""
+
+msgctxt "#30005"
+msgid "Radarr Root Folder"
+msgstr ""
+
+msgctxt "#30006"
+msgid "Root folder path Radarr should use when adding new movies."
+msgstr ""
+
+msgctxt "#30007"
+msgid "Radarr Quality Profile ID"
+msgstr ""
+
+msgctxt "#30008"
+msgid "Numeric quality profile ID used when adding movies."
+msgstr ""
+
+msgctxt "#30009"
+msgid "Test Radarr Connection"
+msgstr ""
+
+msgctxt "#30010"
+msgid "Checks whether the Radarr URL and API key are valid."
+msgstr ""
+
+msgctxt "#30011"
+msgid "Sonarr"
+msgstr ""
+
+msgctxt "#30012"
+msgid "Sonarr URL"
+msgstr ""
+
+msgctxt "#30013"
+msgid "Base address of your Sonarr instance, for example http://192.168.1.11:8989"
+msgstr ""
+
+msgctxt "#30014"
+msgid "Sonarr API Key"
+msgstr ""
+
+msgctxt "#30015"
+msgid "API key from Sonarr Settings > General."
+msgstr ""
+
+msgctxt "#30016"
+msgid "Sonarr Root Folder"
+msgstr ""
+
+msgctxt "#30017"
+msgid "Root folder path Sonarr should use when adding new series."
+msgstr ""
+
+msgctxt "#30018"
+msgid "Sonarr Quality Profile ID"
+msgstr ""
+
+msgctxt "#30019"
+msgid "Numeric quality profile ID used when adding series."
+msgstr ""
+
+msgctxt "#30020"
+msgid "Test Sonarr Connection"
+msgstr ""
+
+msgctxt "#30021"
+msgid "Checks whether the Sonarr URL and API key are valid."
+msgstr ""
