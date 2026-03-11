@@ -2,7 +2,7 @@
 <addons>
 <addon id="script.kodiarr.instant"
        name="KodiARR Instant"
-       version="1.0.3"
+       version="1.0.4"
        provider-name="Addonniss">
 
     <requires>
@@ -15,30 +15,30 @@
     </extension>
 
     <extension point="kodi.context.item">
-        <menu id="kodi.core.main">
+		<menu id="kodi.core.main">
 
-            <item library="default.py?action=radarr">
-                <label>Add to Radarr</label>
-                <visible>
-                    String.IsEqual(ListItem.DBType,movie) |
-                    String.IsEqual(ListItem.Property(item.type),movie)
-                </visible>
-            </item>
+			<item library="default.py" args="radarr">
+				<label>Add to Radarr</label>
+				<visible>
+					String.IsEqual(ListItem.DBType,movie) |
+					String.IsEqual(ListItem.Property(item.type),movie)
+				</visible>
+			</item>
 
-            <item library="default.py?action=sonarr">
-                <label>Add to Sonarr</label>
-                <visible>
-                    String.IsEqual(ListItem.DBType,tvshow) |
-                    String.IsEqual(ListItem.DBType,season) |
-                    String.IsEqual(ListItem.DBType,episode) |
-                    String.IsEqual(ListItem.Property(item.type),tvshow) |
-                    String.IsEqual(ListItem.Property(item.type),season) |
-                    String.IsEqual(ListItem.Property(item.type),episode)
-                </visible>
-            </item>
+			<item library="default.py" args="sonarr">
+				<label>Add to Sonarr</label>
+				<visible>
+					String.IsEqual(ListItem.DBType,tvshow) |
+					String.IsEqual(ListItem.DBType,season) |
+					String.IsEqual(ListItem.DBType,episode) |
+					String.IsEqual(ListItem.Property(item.type),tvshow) |
+					String.IsEqual(ListItem.Property(item.type),season) |
+					String.IsEqual(ListItem.Property(item.type),episode)
+				</visible>
+			</item>
 
-        </menu>
-    </extension>
+		</menu>
+	</extension>
 
     <extension point="xbmc.addon.metadata">
         <summary lang="en_GB">Send Kodi media items to Radarr or Sonarr instantly</summary>
