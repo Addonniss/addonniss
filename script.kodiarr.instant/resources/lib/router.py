@@ -7,12 +7,19 @@ from .common import log, notify
 
 
 def _get_action():
-    argv_text = " ".join([str(x) for x in sys.argv]).lower()
+    argv = [str(x).lower() for x in sys.argv]
+    argv_text = " ".join(argv)
 
     if "action=test_radarr" in argv_text:
         return "test_radarr"
     if "action=test_sonarr" in argv_text:
         return "test_sonarr"
+
+    if "radarr" in argv:
+        return "radarr"
+    if "sonarr" in argv:
+        return "sonarr"
+
     if "action=radarr" in argv_text:
         return "radarr"
     if "action=sonarr" in argv_text:
@@ -35,10 +42,12 @@ def run():
         return
 
     if action == "radarr":
+        log("Calling radarr.run()")
         radarr.run()
         return
 
     if action == "sonarr":
+        log("Calling sonarr.run()")
         sonarr.run()
         return
 
@@ -46,10 +55,12 @@ def run():
     item_type = xbmc.getInfoLabel("ListItem.Property(item.type)").lower()
 
     if db_type == "movie" or item_type == "movie":
+        log("Fallback routing to Radarr")
         radarr.run()
         return
 
     if db_type in ["tvshow", "season", "episode"] or item_type in ["tvshow", "season", "episode"]:
+        log("Fallback routing to Sonarr")
         sonarr.run()
         return
 
