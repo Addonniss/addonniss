@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import requests
+import xbmc
 import xbmcgui
 
-from .common import get_setting, get_int, clean_url, notify, log, open_settings
+from .common import get_setting, get_int, clean_url, notify, alert, log, open_settings
 from .context import get_sonarr_context
 
 
@@ -12,11 +13,37 @@ def test_connection(show_notification=True):
 
     if not sonarr_url or not api:
         if show_notification:
-            notify("Sonarr", "Please fill Sonarr URL and API key", xbmcgui.NOTIFICATION_ERROR)
-            open_settings()
+            alert("Sonarr", "Please fill Sonarr URL and API key.")
+        log("Sonarr test: missing URL or API key", xbmc.LOGERROR)
         return False
 
     headers = {"X-Api-Key": api}
+
+    try:
+        resp = requests.get(
+            "{}/api/v3/system/status".format(sonarr_url),
+            headers=headers,
+            timeout=10
+        )
+
+        if resp.status_code == 200:
+            data = resp.json()
+            version = data.get("version", "unknown")
+            if show_notification:
+                alert("Sonarr", "Connection OK ({})".format(version))
+            return True
+
+        if show_notification:
+            alert("Sonarr", "Connection failed: HTTP {}".format(resp.status_code))
+        log("Sonarr test failed: {}".format(resp.text), xbmc.LOGERROR)
+        return False
+
+    except Exception as e:
+        if show_notification:
+            alert("Sonarr", "Connection error:\n{}".format(e))
+        log("Sonarr test crash: {}".format(e), xbmc.LOGERROR)
+        return False
+
 
     try:
         resp = requests.get(
