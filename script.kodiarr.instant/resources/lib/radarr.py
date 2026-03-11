@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import requests
+import xbmc
 import xbmcgui
 
-from .common import get_setting, get_int, clean_url, notify, log, open_settings
+from .common import get_setting, get_int, clean_url, notify, alert, log, open_settings
 from .context import get_movie_id
 
 
@@ -12,11 +13,37 @@ def test_connection(show_notification=True):
 
     if not radarr_url or not api:
         if show_notification:
-            notify("Radarr", "Please fill Radarr URL and API key", xbmcgui.NOTIFICATION_ERROR)
-            open_settings()
+            alert("Radarr", "Please fill Radarr URL and API key.")
+        log("Radarr test: missing URL or API key", xbmc.LOGERROR)
         return False
 
     headers = {"X-Api-Key": api}
+
+    try:
+        resp = requests.get(
+            "{}/api/v3/system/status".format(radarr_url),
+            headers=headers,
+            timeout=10
+        )
+
+        if resp.status_code == 200:
+            data = resp.json()
+            version = data.get("version", "unknown")
+            if show_notification:
+                alert("Radarr", "Connection OK ({})".format(version))
+            return True
+
+        if show_notification:
+            alert("Radarr", "Connection failed: HTTP {}".format(resp.status_code))
+        log("Radarr test failed: {}".format(resp.text), xbmc.LOGERROR)
+        return False
+
+    except Exception as e:
+        if show_notification:
+            alert("Radarr", "Connection error:\n{}".format(e))
+        log("Radarr test crash: {}".format(e), xbmc.LOGERROR)
+        return False
+
 
     try:
         resp = requests.get(
