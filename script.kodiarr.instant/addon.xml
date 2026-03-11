@@ -47,6 +47,10 @@
         </description>
         <platform>all</platform>
         <license>MIT</license>
+		<assets>
+            <icon>icon.png</icon>
+            <fanart>fanart.jpg</fanart>
+        </assets>
     </extension>
 
 </addon>
