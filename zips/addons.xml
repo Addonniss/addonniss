@@ -2,7 +2,7 @@
 <addons>
 <addon id="script.kodiarr.instant"
        name="KodiARR Instant"
-       version="1.0.5"
+       version="1.0.6"
        provider-name="Addonniss">
 
     <requires>
