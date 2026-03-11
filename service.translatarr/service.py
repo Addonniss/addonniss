@@ -71,6 +71,26 @@ def safe_filename(name):
     name = re.sub(r'\s+', ' ', name).strip()
     return name.rstrip('. ')
     
+def get_best_playing_path(self):
+    candidates = [
+        xbmc.getInfoLabel("Player.Filenameandpath"),
+        xbmc.getInfoLabel("ListItem.FileNameAndPath"),
+        xbmc.Player().getPlayingFile(),
+    ]
+
+    for path in candidates:
+        if not path:
+            continue
+        path = path.strip()
+
+        # Prefer real playable paths over plugin paths
+        if path.startswith(("smb://", "nfs://", "dav://", "ftp://", "sftp://")):
+            return path
+        if path.startswith("/") or ":\\" in path:
+            return path
+
+    return xbmc.Player().getPlayingFile()
+    
 # ----------------------------------------------------------
 # Subtitle Processing with TEMP FILES
 # ----------------------------------------------------------
@@ -613,14 +633,23 @@ class TranslatarrMonitor(xbmc.Monitor):
         if newest_target_file:
             self.load_subtitle_if_new(newest_target_file)
 
-        # 2. Translate newest source only if source path or mtime changed
+        # 2. Translate newest source only when needed
         last_processed_source_path = getattr(self, "last_processed_source_path", None)
         last_processed_source_mtime = getattr(self, "last_processed_source_mtime", 0)
 
-        if newest_source_file and (
-            newest_source_file != last_processed_source_path
-            or newest_source_mtime != last_processed_source_mtime
-        ):
+        source_changed = (
+            newest_source_file and (
+                newest_source_file != last_processed_source_path
+                or newest_source_mtime != last_processed_source_mtime
+            )
+        )
+
+        target_covers_source = (
+            newest_target_file is not None and
+            newest_target_mtime >= newest_source_mtime
+        )
+
+        if source_changed and not target_covers_source:
             safe_video_name = safe_filename(video_name)
             final_file_name = f"{safe_video_name}.{self.target_lang_iso}.srt"
             save_path = vfs_join(TRANSLATARR_SUB_FOLDER, final_file_name)
@@ -643,6 +672,8 @@ class TranslatarrMonitor(xbmc.Monitor):
                 self.last_processed_source_path = newest_source_file
                 self.last_processed_source_mtime = newest_source_mtime
                 self.load_subtitle_if_new(save_path)
+        elif newest_source_file and newest_target_file and newest_target_mtime >= newest_source_mtime:
+            log("Target subtitle already exists and is same-age or newer than source. Skipping translation.", "debug", self)
 
         if not newest_target_file and not newest_source_file:
             log("No subtitles found in auto mode.", "debug", self)
@@ -763,6 +794,23 @@ class TranslatarrMonitor(xbmc.Monitor):
                 
                 if size < 500: 
                     continue
+                    
+                # Skip translation if an existing target already covers this source
+                if target_candidates:
+                    newest_target_path = vfs_join(custom_dir, target_candidates[0])
+                    try:
+                        target_stat = xbmcvfs.Stat(newest_target_path)
+                        target_mtime = target_stat.st_mtime()
+
+                        if target_stat.st_size > 100 and target_mtime >= mtime:
+                            log(
+                                f"Target subtitle already exists and is same-age or newer than source. Skipping translation for: {full_path}",
+                                "debug",
+                                self
+                            )
+                            return
+                    except Exception as e:
+                        log(f"Failed to stat target subtitle for source comparison: {e}", "error", self)
 
                 force_retranslate = False
                 last_state = self.last_source_state.get(f.lower())
