@@ -15,6 +15,10 @@ def notify(title, message, icon=xbmcgui.NOTIFICATION_INFO):
     xbmcgui.Dialog().notification(title, message, icon, 5000)
 
 
+def alert(title, message):
+    xbmcgui.Dialog().ok(title, message)
+
+
 def get_setting(key, default=""):
     try:
         value = ADDON.getSetting(key)
