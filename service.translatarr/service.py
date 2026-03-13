@@ -213,8 +213,7 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
             start_time = time.time()
             min_chunk = 5
     
-            if getattr(monitor, 'live_translation', False):
-                monitor.live_reload_index = 0
+            monitor.live_reload_index = 0
     
             # Immediately display new subtitle mid-playback if it's a fresh source
             if show_source_immediately and xbmcvfs.exists(original_path):
@@ -280,17 +279,16 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
                         )
     
                         # Live translation progressive reload
-                        if getattr(monitor, 'live_translation', False):
-                            percent_done = int((idx / total_lines) * 100)
-                            if (monitor.live_reload_index < len(monitor.live_reload_points) and
-                                percent_done >= monitor.live_reload_points[monitor.live_reload_index]):
-                                try:
-                                    log(f"Live mode: writing partial SRT at {percent_done}%", "debug", monitor)
-                                    file_manager.write_srt(temp_path, timestamps[:len(all_translated)], all_translated)
-                                    monitor.load_subtitle_if_new(temp_path)
-                                except Exception as e:
-                                    log(f"Live write failed: {e}", "error", monitor)
-                                monitor.live_reload_index += 1
+                        percent_done = int((idx / total_lines) * 100)
+                        if (monitor.live_reload_index < len(monitor.live_reload_points) and
+                            percent_done >= monitor.live_reload_points[monitor.live_reload_index]):
+                            try:
+                                log(f"Live mode: writing partial SRT at {percent_done}%", "debug", monitor)
+                                file_manager.write_srt(temp_path, timestamps[:len(all_translated)], all_translated)
+                                monitor.load_subtitle_if_new(temp_path)
+                            except Exception as e:
+                                log(f"Live write failed: {e}", "error", monitor)
+                            monitor.live_reload_index += 1
     
                     else:
                         retries += 1
@@ -563,7 +561,6 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.debug_mode = safe_bool('debug_mode', False)
         self.use_notifications = safe_bool('notify_mode', True)
         self.show_stats = safe_bool('show_stats', True)
-        self.live_translation = safe_bool('live_translation', True)
     
         # ------------------------------------------------------------
         # Numeric / string settings
@@ -605,14 +602,9 @@ class TranslatarrMonitor(xbmc.Monitor):
         # Live translation runtime state handling
         # Prevent stale values when feature is disabled
         # ------------------------------------------------------------
-        if self.live_translation:
-            self.live_reload_points = [5, 15, 35, 60, 85]
-            self.live_reload_index = 0
-            log("Live translation enabled.", "debug", self)
-        else:
-            self.live_reload_points = []
-            self.live_reload_index = 0
-            log("Live translation disabled. Runtime state cleared.", "debug", self)
+        self.live_reload_points = [5, 15, 35, 60, 85]
+        self.live_reload_index = 0
+        log("Live translation is always enabled.", "debug", self)
     
         # ------------------------------------------------------------
         # Validate subtitle folder path
@@ -644,7 +636,6 @@ class TranslatarrMonitor(xbmc.Monitor):
             f"debug={self.debug_mode}, "
             f"notify={self.use_notifications}, "
             f"stats={self.show_stats}, "
-            f"live_translation={self.live_translation}, "
             f"chunk_size={self.chunk_size}, "
             f"source_lang={self.source_lang_name} ({self.source_lang_iso}), "
             f"target_lang={self.target_lang_name} ({self.target_lang_iso}), "
@@ -735,7 +726,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         kodi_temp_folders = get_kodi_temp_scan_folders()
         kodi_temp_folder_set = set(kodi_temp_folders)
         temp_like_folders = set(kodi_temp_folders + [A4K_SUB_FOLDER])
-        folders_to_scan = kodi_temp_folders + [A4K_SUB_FOLDER]
+        folders_to_scan = [TRANSLATARR_SUB_FOLDER] + kodi_temp_folders + [A4K_SUB_FOLDER]
         kodi_custom_path = getattr(self, "kodi_subtitle_custom_path", None)
         kodi_storage_mode = getattr(self, "kodi_subtitle_storage_mode", None)
         playback_started_at = getattr(self, "playback_started_at", 0)
@@ -864,6 +855,8 @@ class TranslatarrMonitor(xbmc.Monitor):
 
         # 1. Load newest translated target if one already exists
         if newest_target_file:
+            if newest_target_file.startswith(TRANSLATARR_SUB_FOLDER.replace("\\", "/")):
+                log(f"Auto found existing translated subtitle in Translatarr folder: {newest_target_file}", "debug", self)
             self.load_subtitle_if_new(newest_target_file)
 
         # 2. Translate newest source only when needed

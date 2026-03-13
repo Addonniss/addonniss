@@ -21,14 +21,6 @@ msgctxt "#30004"
 msgid "Kodi must use same path for 'Custom Subtitle Location'"
 msgstr ""
 
-msgctxt "#30005"
-msgid "Enable Real-Time Translation"
-msgstr ""
-
-msgctxt "#30006"
-msgid "ON: Progressive translation during playback. OFF: Wait for full file processing."
-msgstr ""
-
 msgctxt "#30007"
 msgid "AI Engine"
 msgstr ""

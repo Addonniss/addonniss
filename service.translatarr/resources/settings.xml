@@ -38,12 +38,6 @@
                     </dependencies>
                 </setting>
 
-                <setting type="lsep" label="" />
-
-                <setting id="live_translation" type="boolean" label="30005" help="30006">
-                    <control type="toggle" />
-                    <default>true</default>
-                </setting>
             </group>
         </category>
 

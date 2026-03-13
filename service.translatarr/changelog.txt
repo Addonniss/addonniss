@@ -1,3 +1,8 @@
+v2.4.0
+- Live translation is now always enabled for a faster playback experience
+- Removed the Real-Time Translation toggle from settings
+- Auto mode now reuses translated subtitles from the Translatarr subtitles folder across playback sessions
+
 v2.3.14
 - Fixed auto mode playback session detection for temp subtitle scanning
 - Improved compatibility with reused generic temp subtitle filenames in Kodi temp folders 

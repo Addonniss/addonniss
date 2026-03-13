@@ -1,4 +1,4 @@
-# 🎬 Translatarr v2.3.12
+# 🎬 Translatarr v2.4.0
 ## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
@@ -22,7 +22,7 @@ Unlike traditional word-by-word translators, it understands:
 
 ---
 
-# 🚀 What’s New (v2.3.12)
+# 🚀 What’s New (v2.4.0)
 
 ✔ SMARTER AUTO MODE
 ✔ STRONGER MANUAL MODE
@@ -31,8 +31,10 @@ Unlike traditional word-by-word translators, it understands:
 
 Recent updates include:
 
+- Real-time translation is now always active during processing
 - Auto mode detects subtitles from next-to-video, Kodi temp folders, A4K temp folders, and Kodi Custom subtitle folder when active
 - Auto mode handles generic temp subtitle names and UUID-style filenames more safely
+- Auto mode now reloads existing translated subtitles from the Translatarr subtitle folder on replay
 - Manual mode still prioritizes exact video-name matches, but can now fall back to fresh session subtitles in the configured folder
 - Translation aborts safely if the subtitle file changes while it is being translated
 - Polling runs only during active video playback
@@ -81,6 +83,7 @@ Translatarr will:
 
 - Detect the subtitle automatically in the active mode  
 - Translate it  
+- Show progressive real-time subtitle updates while translation is running
 - Save a new file (e.g. `.ro.srt`, `.fr.srt`)  
 - Activate it instantly  
 
