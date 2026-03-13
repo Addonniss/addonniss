@@ -936,24 +936,44 @@ class TranslatarrMonitor(xbmc.Monitor):
         trg_variants = get_iso_variants(self.target_lang_name)
         target_exts = [f".{v}.srt" for v in trg_variants]
 
-        source_candidates = []
-        target_candidates = []
+        matched_source_candidates = []
+        matched_target_candidates = []
+        fallback_source_candidates = []
+        fallback_target_candidates = []
+        playback_started_at = getattr(self, "playback_started_at", 0)
 
         for f in files:
             f_lower = f.lower()
             f_normalized = normalize_name(f_lower)
+            full_path = vfs_join(custom_dir, f)
 
-            # Match normalized names
-            if video_name_normalized not in f_normalized:
-                continue
+            try:
+                f_stat = xbmcvfs.Stat(full_path)
+                f_mtime = f_stat.st_mtime()
+            except Exception:
+                f_mtime = 0
+
+            name_match = video_name_normalized in f_normalized
+            recent_session_file = bool(playback_started_at) and (
+                f_mtime >= playback_started_at - TEMP_SUBTITLE_TOLERANCE_SECONDS
+            )
 
             is_target = any(f_lower.endswith(ext) for ext in target_exts)
             is_source = any(f_lower.endswith(f".{v}.srt") for v in src_variants)
 
             if is_target:
-                target_candidates.append(f)
+                if name_match:
+                    matched_target_candidates.append(f)
+                elif recent_session_file:
+                    fallback_target_candidates.append(f)
             elif is_source:
-                source_candidates.append(f)
+                if name_match:
+                    matched_source_candidates.append(f)
+                elif recent_session_file:
+                    fallback_source_candidates.append(f)
+
+        target_candidates = matched_target_candidates or fallback_target_candidates
+        source_candidates = matched_source_candidates or fallback_source_candidates
 
         # 3. Sorting by mtime (using xbmcvfs)
         def safe_mtime(f):
@@ -1000,7 +1020,7 @@ class TranslatarrMonitor(xbmc.Monitor):
                 size = stat.st_size()
                 mtime = stat.st_mtime()
 
-                if getattr(self, "playback_started_at", 0) and mtime < self.playback_started_at - 10:
+                if playback_started_at and mtime < playback_started_at - TEMP_SUBTITLE_TOLERANCE_SECONDS:
                     log(f"Skipping stale manual subtitle from older session: {full_path}", "debug", self)
                     continue
                 

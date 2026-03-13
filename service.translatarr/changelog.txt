@@ -4,7 +4,10 @@ v2.3.12
 - Auto mode now discovers Kodi temp subfolders dynamically under `special://temp/`
 - Improved detection of provider temp subtitles with generic names like `TempSubtitle.*.srt`
 - Improved handling for UUID-style subtitle filenames in Kodi custom subtitle folders
+- Manual mode now safely falls back to recent-session generic or UUID-style subtitle filenames in the configured folder
+- Manual mode still prioritizes exact video-name subtitle matches before using the recent-session fallback
 - Reduced false positives from stale reused temp subtitle files across playback sessions
+- Manual mode now reuses the shared subtitle session-age tolerance window
 - Active translation now aborts if the source subtitle file changes mid-job
 - Improved path resolution for plugin playback that exposes real SMB/local paths
 - Reduced Kodi subtitle setting log noise during active polling

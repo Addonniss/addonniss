@@ -1,4 +1,4 @@
-# 🎬 Translatarr v2.3.0
+# 🎬 Translatarr v2.3.12
 ## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
@@ -22,12 +22,20 @@ Unlike traditional word-by-word translators, it understands:
 
 ---
 
-# 🚀 What’s New (v2.3.0)
+# 🚀 What’s New (v2.3.12)
 
-✔ AUTO MODE
+✔ SMARTER AUTO MODE
+✔ STRONGER MANUAL MODE
 ✔ REAL-TIME TRANSLATION
+✔ GEMINI 2.5 FLASH FAST MODE
 
-Translations are now safer, smarter, and protected against duplicates, unwanted overwrites, and unnecessary API usage — while allowing you to download and switch subtitles freely during playback.
+Recent updates include:
+
+- Auto mode detects subtitles from next-to-video, Kodi temp folders, A4K temp folders, and Kodi Custom subtitle folder when active
+- Auto mode handles generic temp subtitle names and UUID-style filenames more safely
+- Manual mode still prioritizes exact video-name matches, but can now fall back to fresh session subtitles in the configured folder
+- Translation aborts safely if the subtitle file changes while it is being translated
+- Polling runs only during active video playback
 
 ---
 
@@ -53,12 +61,13 @@ Kodi → Add-ons → Programs → Translatarr → Settings
 
 Set:
 
+- Translation Mode (`Auto` or `Manual`)
 - Provider (Gemini or OpenAI)
 - API Key
 - Model
 - Source Language
 - Target Language
-- Subtitle Folder (IMPORTANT – see below)
+- Subtitle Folder (IMPORTANT for Manual mode – see below)
 
 ---
 
@@ -70,7 +79,7 @@ Set:
 
 Translatarr will:
 
-- Detect the subtitle automatically  
+- Detect the subtitle automatically in the active mode  
 - Translate it  
 - Save a new file (e.g. `.ro.srt`, `.fr.srt`)  
 - Activate it instantly  
@@ -122,11 +131,11 @@ Both **Source** and **Target** languages must be selected explicitly for maximum
 
 ---
 
-# 📁 Subtitle Folder (IMPORTANT IN MANUAL MODE ONLY)
+# 📁 Subtitle Folder (IMPORTANT IN MANUAL MODE)
 
 This is the most important setup step for manual mode.
 
-Translatarr monitors a specific folder and automatically processes any new subtitle that appears there.
+In Manual mode, Translatarr monitors a specific folder and processes subtitle files that appear there during playback.
 
 If this folder is not configured correctly, translation will not start.
 
@@ -174,7 +183,7 @@ Set:
 - **Subtitle storage location** → `Custom location`  
 - **Custom subtitle folder** → Select the folder path you created  
 
-Both settings must point to the same folder.
+Both settings should point to the same folder for the most reliable Manual mode behavior.
 
 ---
 
@@ -191,9 +200,35 @@ Now both:
 - Kodi subtitle system  
 - Translatarr  
 
-are using the exact same location.
+are using the same location.
 
-That’s the key.
+This matters because some subtitle add-ons save subtitles there using generic temporary names or UUID-like filenames instead of the movie title. Translatarr now handles those cases more safely if the files belong to the current playback session.
+
+---
+
+# 🤖 Auto Mode vs Manual Mode
+
+## Auto Mode
+
+Auto mode looks for subtitles during playback from locations such as:
+
+- next to the video file
+- Kodi temp subtitle folders
+- A4K temporary subtitle folder
+- Kodi Custom subtitle folder when that storage mode is active
+
+It is designed for users who want subtitle add-ons to work normally and have Translatarr react automatically.
+
+## Manual Mode
+
+Manual mode watches only your configured subtitle folder.
+
+Priority order:
+
+- exact video-name matches first
+- fresh current-session subtitles in that folder as a fallback
+
+This keeps Manual mode predictable while still supporting subtitle add-ons that save files with generic names.
 
 ---
 
@@ -242,14 +277,17 @@ Higher linguistic refinement (especially GPT-4o).
 
 ### 🔹 Gemini Models
 
-- **Gemini 2.0 Flash (recommended)**  
-  Best balance of speed, cost, and subtitle quality.
+- **Gemini 2.5 Flash (recommended)**  
+  Best default balance of speed, quality, and subtitle nuance.
 
-- **Gemini 1.5 Flash**  
-  Stable and budget-friendly.
+- **Fast Mode - Gemini 2.5 Flash**  
+  Uses Gemini 2.5 Flash with thinking disabled for faster responses.
 
-- **Gemini 2.5 Flash**  
-  Stronger contextual understanding and nuance.
+- **Gemini 2.0 Flash (Legacy)**  
+  Older model kept for compatibility with existing saved settings.
+
+- **Gemini 1.5 Flash (Legacy)**  
+  Older budget model kept for compatibility with existing saved settings.
 
 ---
 
@@ -336,9 +374,9 @@ Estimated Cost: $0.0124
 
 ---
 
-### Example (Gemini – Gemini 2.0 Flash)
+### Example (Gemini – Gemini 2.5 Flash)
 
-Model: Gemini 2.0 Flash  
+Model: Gemini 2.5 Flash  
 Total Tokens: 52,000  
 Estimated Cost: $0.0080  
 
@@ -346,7 +384,7 @@ Estimated Cost: $0.0080
 
 For lowest cost per movie, use:
 
-- Gemini 2.0 Flash  
+- Fast Mode - Gemini 2.5 Flash  
 - gpt-4o-mini  
 
 Both are extremely affordable for full-length films.
@@ -375,7 +413,7 @@ If still failing:
 
 Use:
 
-- Gemini 2.0 Flash  
+- Fast Mode - Gemini 2.5 Flash  
 - gpt-4o-mini  
 
 ---
