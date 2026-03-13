@@ -811,7 +811,7 @@ class TranslatarrMonitor(xbmc.Monitor):
 
                 is_temp_folder = folder in temp_like_folders
                 recent_session_file = bool(playback_started_at) and f_mtime >= playback_started_at - TEMP_SUBTITLE_TOLERANCE_SECONDS
-                current_session_temp_file = bool(playback_started_at) and f_mtime >= playback_started_at
+                current_session_temp_file = recent_session_file
                 name_match = video_name_normalized in f_normalized
                 allow_nonmatching_custom = folder == custom_folder and recent_session_file
 
@@ -819,11 +819,23 @@ class TranslatarrMonitor(xbmc.Monitor):
                     continue
 
                 if is_temp_folder and not name_match and not current_session_temp_file:
-                    log(f"Skipping non-matching temp subtitle from before current playback: {full_path}", "debug", self)
+                    log(
+                        "Skipping non-matching temp subtitle from before current playback: "
+                        f"{full_path} | file_mtime={f_mtime} | playback_started_at={playback_started_at} "
+                        f"| tolerance={TEMP_SUBTITLE_TOLERANCE_SECONDS}",
+                        "debug",
+                        self
+                    )
                     continue
-
+ 
                 if is_temp_folder and playback_started_at and f_mtime < playback_started_at - TEMP_SUBTITLE_TOLERANCE_SECONDS:
-                    log(f"Skipping stale temp subtitle from older session: {full_path}", "debug", self)
+                    log(
+                        "Skipping stale temp subtitle from older session: "
+                        f"{full_path} | file_mtime={f_mtime} | playback_started_at={playback_started_at} "
+                        f"| tolerance={TEMP_SUBTITLE_TOLERANCE_SECONDS}",
+                        "debug",
+                        self
+                    )
                     continue
 
                 if f_size < 50:
