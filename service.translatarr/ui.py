@@ -34,7 +34,7 @@ def format_time(seconds):
 # -----------------------------------
 # Statistics Popup
 # -----------------------------------
-def show_stats_box(src_file, trg_file, trg_name,
+def show_stats_box(src_file, trg_file, trg_name, save_path,
                    cost, tokens, chunks, chunk_size,
                    model_name, total_time):
     """
@@ -61,6 +61,7 @@ def show_stats_box(src_file, trg_file, trg_name,
         f"[B]Provider:[/B] {provider_badge}\n"
         f"[B]Source:[/B] {src_file}\n"
         f"[B]Target:[/B] {trg_file}\n"
+        f"[B]Saved To:[/B] {save_path}\n"
         f"[B]Language:[/B] {trg_name}\n"
         f"[B]Model:[/B]  [COLOR {model_color}]{model_name}[/COLOR]\n"
         f"[B]Time:[/B] {format_time(total_time)}\n\n"

@@ -149,6 +149,8 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
             save_path = save_path.replace('\\', '/')
             clean_name = os.path.splitext(os.path.basename(save_path))[0]
 
+        target_display_name = os.path.basename(save_path)
+
         temp_path = save_path + ".tmp"
         initial_source_mtime = 0
         initial_source_size = 0
@@ -319,8 +321,9 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
                 if monitor.show_stats:
                     ui.show_stats_box(
                         os.path.basename(original_path),
-                        clean_name,
+                        target_display_name,
                         trg_name,
+                        save_path,
                         cost,
                         cum_in + cum_out,
                         total_chunks_est,
@@ -671,23 +674,29 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.is_busy = False
         self.playback_started_at = 0
         
-    
-    def onPlaybackStarted(self):
-        log("Playback started. Activating polling.", "debug", self)
+    def mark_playback_started(self, reason="Playback started"):
+        if getattr(self, "playback_started_at", 0) and xbmc.Player().isPlayingVideo():
+            log(
+                f"{reason}. Playback session already active at {self.playback_started_at}. Keeping current marker.",
+                "debug",
+                self
+            )
+            return
+
+        log(f"{reason}. Activating polling.", "debug", self)
         self.reset_playback_state()
         self.playback_started_at = time.time()
 
-    def onPlaybackStopped(self):
-        log("Playback stopped. Resetting state.", "debug", self)
-        self.reset_playback_state()
-
-    def onPlaybackEnded(self):
-        log("Playback ended. Resetting state.", "debug", self)
+    def mark_playback_stopped(self, reason="Playback stopped"):
+        log(f"{reason}. Resetting state.", "debug", self)
         self.reset_playback_state()
 
     def check_for_subs(self):
         if not xbmc.Player().isPlayingVideo():
             return
+
+        if not getattr(self, "playback_started_at", 0):
+            self.mark_playback_started("Playback session inferred during poll")
 
         self.refresh_kodi_subtitle_location_settings_if_changed()
     
@@ -1093,6 +1102,32 @@ class TranslatarrMonitor(xbmc.Monitor):
  
 
 # ----------------------------------------------------------
+# Player Callbacks
+# ----------------------------------------------------------
+class TranslatarrPlayer(xbmc.Player):
+
+    def __init__(self, monitor):
+        super().__init__()
+        self.monitor = monitor
+
+    def onAVStarted(self):
+        self.monitor.mark_playback_started("AV started")
+
+    def onPlayBackStarted(self):
+        self.monitor.mark_playback_started("Playback started")
+
+    def onPlayBackResumed(self):
+        if not getattr(self.monitor, "playback_started_at", 0):
+            self.monitor.mark_playback_started("Playback resumed")
+
+    def onPlayBackStopped(self):
+        self.monitor.mark_playback_stopped("Playback stopped")
+
+    def onPlayBackEnded(self):
+        self.monitor.mark_playback_stopped("Playback ended")
+
+
+# ----------------------------------------------------------
 # ENTRY POINT (Safe for RD / Torbox)
 # ----------------------------------------------------------
 if __name__ == '__main__':
@@ -1107,6 +1142,7 @@ if __name__ == '__main__':
     try:
         monitor = TranslatarrMonitor()
         set_global_monitor(monitor)
+        player = TranslatarrPlayer(monitor)
 
         while not monitor.abortRequested():
             if xbmc.Player().isPlayingVideo():

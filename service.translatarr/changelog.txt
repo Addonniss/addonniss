@@ -1,3 +1,9 @@
+v2.3.14
+- Fixed auto mode playback session detection for temp subtitle scanning
+- Improved compatibility with reused generic temp subtitle filenames in Kodi temp folders 
+- AKA OPENSUBTITLES overwritting the same tempsubtitle file fixed finally!!! ENJOY!
+- Success statistics popup now shows where the translated subtitle was saved
+
 v2.3.12
 - Auto mode now also detects Kodi Custom subtitle folder when active
 - Auto mode continues to scan next-to-video and temp subtitle locations
