@@ -8,6 +8,7 @@ import time
 import math
 import sys
 import re
+import json
 
 import translator
 import file_manager
@@ -26,7 +27,7 @@ A4K_SUB_FOLDER = xbmcvfs.translatePath(
     "special://profile/addon_data/service.subtitles.a4ksubtitles/temp/"
 )
 
-OPENSUBTITLES_SUB_FOLDER = xbmcvfs.translatePath(
+KODI_TEMP_SUB_FOLDER = xbmcvfs.translatePath(
     "special://temp/"
 )
 
@@ -70,6 +71,13 @@ def safe_filename(name):
     name = re.sub(r'[<>:"/\\|?*]+', '_', name)
     name = re.sub(r'\s+', ' ', name).strip()
     return name.rstrip('. ')
+
+TEMP_SUBTITLE_TOLERANCE_SECONDS = 10
+
+def is_vfs_network_path(path):
+    return bool(path) and path.startswith(
+        ("smb://", "nfs://", "dav://", "ftp://", "sftp://")
+    )
     
 def get_best_playing_path(self):
     candidates = [
@@ -84,12 +92,26 @@ def get_best_playing_path(self):
         path = path.strip()
 
         # Prefer real playable paths over plugin paths
-        if path.startswith(("smb://", "nfs://", "dav://", "ftp://", "sftp://")):
+        if is_vfs_network_path(path):
             return path
         if path.startswith("/") or ":\\" in path:
             return path
 
     return xbmc.Player().getPlayingFile()
+
+def get_kodi_temp_scan_folders():
+    folders = [KODI_TEMP_SUB_FOLDER]
+
+    try:
+        subdirs, _ = xbmcvfs.listdir(KODI_TEMP_SUB_FOLDER)
+    except Exception:
+        return folders
+
+    for subdir in subdirs:
+        subfolder = vfs_join(KODI_TEMP_SUB_FOLDER, subdir)
+        folders.append(subfolder)
+
+    return folders
     
 # ----------------------------------------------------------
 # Subtitle Processing with TEMP FILES
@@ -98,7 +120,7 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
     log(f"process_subtitles called with: {original_path}, force_retranslate={force_retranslate}", "debug", monitor)
 
     try:
-        if not xbmc.Player().isPlaying():
+        if not xbmc.Player().isPlayingVideo():
             return False
 
         playing_file = xbmc.Player().getPlayingFile()
@@ -128,6 +150,8 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
             clean_name = os.path.splitext(os.path.basename(save_path))[0]
 
         temp_path = save_path + ".tmp"
+        initial_source_mtime = 0
+        initial_source_size = 0
 
         # Check existing
         if xbmcvfs.exists(save_path) and not force_retranslate:
@@ -153,6 +177,13 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
                 if stat1 != stat2:
                     log("Subtitle still being written. Skipping this poll.", "debug", monitor)
                     return False
+            except Exception:
+                pass
+
+            try:
+                initial_stat = xbmcvfs.Stat(original_path)
+                initial_source_mtime = initial_stat.st_mtime()
+                initial_source_size = initial_stat.st_size()
             except Exception:
                 pass
 
@@ -196,7 +227,20 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
                     log("Playback target changed during translation. Aborting current job.", "debug", monitor)
                     return False
 
-                if progress.is_canceled() or not xbmc.Player().isPlaying():
+                if initial_source_mtime or initial_source_size:
+                    try:
+                        current_stat = xbmcvfs.Stat(original_path)
+                        if (
+                            current_stat.st_mtime() != initial_source_mtime or
+                            current_stat.st_size() != initial_source_size
+                        ):
+                            log("Source subtitle changed during translation. Aborting current job.", "debug", monitor)
+                            return False
+                    except Exception:
+                        log("Source subtitle is no longer accessible during translation. Aborting current job.", "debug", monitor)
+                        return False
+
+                if progress.is_canceled() or not xbmc.Player().isPlayingVideo():
                     log("Playback stopped or user canceled.", "debug", monitor)
                     return False
     
@@ -346,6 +390,124 @@ class TranslatarrMonitor(xbmc.Monitor):
         except Exception as e:
             log(f"Failed to load subtitle: {e}", "error", self)
             return False
+
+    def kodi_rpc(self, method, params=None):
+        try:
+            payload = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": method,
+                "params": params or {}
+            }
+            raw = xbmc.executeJSONRPC(json.dumps(payload))
+            data = json.loads(raw) if raw else {}
+            if "error" in data:
+                log(f"Kodi JSON-RPC error for {method}: {data['error']}", "debug", self)
+                return {}
+            return data.get("result", {})
+        except Exception as e:
+            log(f"Kodi JSON-RPC exception for {method}: {e}", "debug", self)
+            return {}
+
+    def inspect_kodi_subtitle_location_settings(self, emit_logs=True):
+        self.kodi_subtitle_storage_mode = None
+        self.kodi_subtitle_custom_path = None
+
+        result = self.kodi_rpc("Settings.GetSettings", {"level": "advanced"})
+        settings = result.get("settings", [])
+        if not settings:
+            if emit_logs:
+                log("Kodi subtitle settings probe returned no settings.", "debug", self)
+            return
+
+        relevant = []
+
+        for setting in settings:
+            sid = str(setting.get("id", "") or "")
+            label = str(setting.get("label", "") or "")
+            value = setting.get("value")
+            haystack = f"{sid} {label}".lower()
+
+            if "subtitle" not in haystack:
+                continue
+
+            if not any(token in haystack for token in ("storage", "location", "folder", "path", "save")):
+                continue
+
+            option_label = None
+            options = setting.get("options") or []
+            if isinstance(value, int) and isinstance(options, list) and 0 <= value < len(options):
+                option = options[value]
+                if isinstance(option, dict):
+                    option_label = option.get("label")
+                else:
+                    option_label = option
+
+            relevant.append({
+                "id": sid,
+                "label": label,
+                "value": value,
+                "option_label": option_label
+            })
+
+            mode_text = ""
+            if option_label is not None:
+                mode_text = str(option_label).lower()
+            elif isinstance(value, str):
+                mode_text = value.lower()
+
+            if any(token in haystack for token in ("storage", "location", "save")):
+                if "next" in mode_text and "video" in mode_text:
+                    self.kodi_subtitle_storage_mode = "next_to_video"
+                elif "custom" in mode_text:
+                    self.kodi_subtitle_storage_mode = "custom"
+
+            if any(token in haystack for token in ("folder", "path", "custom")) and isinstance(value, str):
+                if value.startswith("special://") or "/" in value or "\\" in value:
+                    self.kodi_subtitle_custom_path = value
+
+        if relevant:
+            if emit_logs:
+                for item in relevant:
+                    log(
+                        "Kodi subtitle setting → "
+                        f"id={item['id']}, label={item['label']}, value={item['value']}, option={item['option_label']}",
+                        "debug",
+                        self,
+                        force=True
+                    )
+
+                log(
+                    "Kodi subtitle location summary → "
+                    f"mode={self.kodi_subtitle_storage_mode}, custom_path={self.kodi_subtitle_custom_path}",
+                    "debug",
+                    self,
+                    force=True
+                )
+        elif emit_logs:
+            log("No Kodi subtitle location-related settings were discovered via JSON-RPC.", "debug", self, force=True)
+
+    def refresh_kodi_subtitle_location_settings_if_changed(self):
+        previous_mode = getattr(self, "kodi_subtitle_storage_mode", None)
+        previous_path = getattr(self, "kodi_subtitle_custom_path", None)
+
+        self.inspect_kodi_subtitle_location_settings(emit_logs=False)
+
+        changed = (
+            previous_mode != getattr(self, "kodi_subtitle_storage_mode", None)
+            or previous_path != getattr(self, "kodi_subtitle_custom_path", None)
+        )
+
+        if changed:
+            log(
+                "Kodi subtitle location changed → "
+                f"mode={self.kodi_subtitle_storage_mode}, custom_path={self.kodi_subtitle_custom_path}",
+                "debug",
+                self,
+                force=True
+            )
+
+        return changed
     
     
     def reload_settings(self):
@@ -465,6 +627,8 @@ class TranslatarrMonitor(xbmc.Monitor):
                 log(f"Exception creating subtitle folder: {self.sub_folder} | Error: {e}", "error", self)
         else:
             log(f"Subtitle folder already exists: {self.sub_folder}", "debug", self)
+
+        self.inspect_kodi_subtitle_location_settings()
     
         # ------------------------------------------------------------
         # Final confirmation log
@@ -522,8 +686,10 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.reset_playback_state()
 
     def check_for_subs(self):
-        if not xbmc.Player().isPlaying():
+        if not xbmc.Player().isPlayingVideo():
             return
+
+        self.refresh_kodi_subtitle_location_settings_if_changed()
     
         if self.auto_mode:
             self.check_auto_mode_unified()
@@ -534,17 +700,19 @@ class TranslatarrMonitor(xbmc.Monitor):
     # check_auto_mode_unified
     # ------------------------------------------------------------
     def check_auto_mode_unified(self):
-        if not xbmc.Player().isPlaying() or self.is_busy:
+        if not xbmc.Player().isPlayingVideo() or self.is_busy:
             return
 
         playing_file = xbmc.Player().getPlayingFile()
-        if not playing_file:
+        best_playing_path = get_best_playing_path(self)
+
+        if not playing_file and not best_playing_path:
             return
 
         raw_name = xbmc.getInfoLabel('Player.Title')
         if not raw_name or raw_name == "":
-            if not self.is_playing_network_stream():
-                video_name = os.path.splitext(os.path.basename(playing_file))[0]
+            if best_playing_path and not best_playing_path.startswith(("plugin://", "http://", "https://")):
+                video_name = os.path.splitext(os.path.basename(best_playing_path))[0]
             else:
                 video_name = "Streamed_Video"
         else:
@@ -555,13 +723,43 @@ class TranslatarrMonitor(xbmc.Monitor):
         trg_variants = get_iso_variants(self.target_lang_name)
         target_exts = [f".{v}.srt" for v in trg_variants]
 
-        folders_to_scan = [OPENSUBTITLES_SUB_FOLDER, A4K_SUB_FOLDER]
-        
-        if not self.is_playing_network_stream():
-            movie_folder = os.path.dirname(playing_file)
-            if movie_folder and xbmcvfs.exists(movie_folder):
+        kodi_temp_folders = get_kodi_temp_scan_folders()
+        kodi_temp_folder_set = set(kodi_temp_folders)
+        temp_like_folders = set(kodi_temp_folders + [A4K_SUB_FOLDER])
+        folders_to_scan = kodi_temp_folders + [A4K_SUB_FOLDER]
+        kodi_custom_path = getattr(self, "kodi_subtitle_custom_path", None)
+        kodi_storage_mode = getattr(self, "kodi_subtitle_storage_mode", None)
+        playback_started_at = getattr(self, "playback_started_at", 0)
+        custom_folder = None
+
+        if best_playing_path and not best_playing_path.startswith(("plugin://", "http://", "https://")):
+            movie_folder = os.path.dirname(best_playing_path)
+            if movie_folder:
                 folders_to_scan.insert(0, movie_folder)
-                
+
+        if kodi_storage_mode == "custom" and kodi_custom_path and xbmcvfs.exists(kodi_custom_path):
+            custom_folder = kodi_custom_path
+            folders_to_scan.insert(0, kodi_custom_path)
+
+        deduped_folders = []
+        seen_folders = set()
+        for folder in folders_to_scan:
+            if not folder:
+                continue
+            normalized_folder = folder.rstrip("/\\").replace("\\", "/").lower()
+            if normalized_folder in seen_folders:
+                continue
+            seen_folders.add(normalized_folder)
+            deduped_folders.append(folder)
+        folders_to_scan = deduped_folders
+
+        if best_playing_path != playing_file:
+            log(
+                f"Resolved playable path for auto mode: {best_playing_path}",
+                "debug",
+                self
+            )
+
         log(f"Auto scan folders: {folders_to_scan}", "debug", self)
         log(f"Auto current video: {video_name} | normalized: {video_name_normalized}", "debug", self)
 
@@ -572,7 +770,14 @@ class TranslatarrMonitor(xbmc.Monitor):
         newest_source_mtime = 0
 
         for folder in folders_to_scan:
-            if not folder or not xbmcvfs.exists(folder):
+            if not folder:
+                continue
+
+            if (
+                folder not in kodi_temp_folder_set and
+                not is_vfs_network_path(folder) and
+                not xbmcvfs.exists(folder)
+            ):
                 continue
 
             try:
@@ -588,10 +793,6 @@ class TranslatarrMonitor(xbmc.Monitor):
 
                 f_lower = f.lower()
                 f_normalized = normalize_name(f)
-
-                if video_name_normalized not in f_normalized:
-                    continue
-
                 full_path = vfs_join(folder, f)
 
                 try:
@@ -608,9 +809,20 @@ class TranslatarrMonitor(xbmc.Monitor):
                 except Exception:
                     continue
 
-                is_temp_folder = folder in (OPENSUBTITLES_SUB_FOLDER, A4K_SUB_FOLDER)                
-                
-                if is_temp_folder and getattr(self, "playback_started_at", 0) and f_mtime < self.playback_started_at - 10:
+                is_temp_folder = folder in temp_like_folders
+                recent_session_file = bool(playback_started_at) and f_mtime >= playback_started_at - TEMP_SUBTITLE_TOLERANCE_SECONDS
+                current_session_temp_file = bool(playback_started_at) and f_mtime >= playback_started_at
+                name_match = video_name_normalized in f_normalized
+                allow_nonmatching_custom = folder == custom_folder and recent_session_file
+
+                if not name_match and not is_temp_folder and not allow_nonmatching_custom:
+                    continue
+
+                if is_temp_folder and not name_match and not current_session_temp_file:
+                    log(f"Skipping non-matching temp subtitle from before current playback: {full_path}", "debug", self)
+                    continue
+
+                if is_temp_folder and playback_started_at and f_mtime < playback_started_at - TEMP_SUBTITLE_TOLERANCE_SECONDS:
                     log(f"Skipping stale temp subtitle from older session: {full_path}", "debug", self)
                     continue
 
@@ -685,7 +897,7 @@ class TranslatarrMonitor(xbmc.Monitor):
     def check_manual_mode(self):
         log("Polling for subtitles...", "debug", self)
 
-        if not xbmc.Player().isPlaying() or self.is_busy:
+        if not xbmc.Player().isPlayingVideo() or self.is_busy:
             return
 
         playing_file = xbmc.Player().getPlayingFile()
@@ -865,7 +1077,7 @@ if __name__ == '__main__':
         set_global_monitor(monitor)
 
         while not monitor.abortRequested():
-            if xbmc.Player().isPlaying():
+            if xbmc.Player().isPlayingVideo():
                 monitor.check_for_subs()
             else:
                 log("Playback stopped. Skipping poll.", "debug", monitor)

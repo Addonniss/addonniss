@@ -106,14 +106,20 @@ class GeminiTranslator(BaseTranslator):
     def __init__(self):
         self.api_key = ADDON.getSetting('api_key')
         self.temperature = self._get_temperature()
+        self.fast_mode = False
 
         model_map = {
+            "Gemini 2.5 Flash": "gemini-2.5-flash",
+            "Fast Mode - Gemini 2.5 Flash": "gemini-2.5-flash",
             "Gemini 2.0 Flash": "gemini-2.0-flash",
+            "Gemini 2.0 Flash (Legacy)": "gemini-2.0-flash",
             "Gemini 1.5 Flash": "gemini-1.5-flash",
-            "Gemini 2.5 Flash": "gemini-2.5-flash"
+            "Gemini 1.5 Flash (Legacy)": "gemini-1.5-flash"
         }
 
-        self.model = model_map.get(ADDON.getSetting('model'), "gemini-2.0-flash")
+        selected_model = ADDON.getSetting('model')
+        self.model = model_map.get(selected_model, "gemini-2.5-flash")
+        self.fast_mode = selected_model == "Fast Mode - Gemini 2.5 Flash"
 
     def translate_batch(self, text_list, expected_count):
 
@@ -162,6 +168,11 @@ class GeminiTranslator(BaseTranslator):
             }
         }
 
+        if self.fast_mode and self.model == "gemini-2.5-flash":
+            payload["generationConfig"]["thinkingConfig"] = {
+                "thinkingBudget": 0
+            }
+
         try:
             r = requests.post(url, json=payload, timeout=30)
             if r.status_code != 200:
@@ -197,7 +208,8 @@ class GeminiTranslator(BaseTranslator):
         return (input_tokens * in_price) + (output_tokens * out_price)
 
     def get_model_string(self):
-        return f"Gemini ({self.model})"
+        suffix = " Fast" if self.fast_mode else ""
+        return f"Gemini ({self.model}{suffix})"
 
 
 # ==========================================================

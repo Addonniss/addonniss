@@ -1,3 +1,21 @@
+v2.3.12
+- Auto mode now also detects Kodi Custom subtitle folder when active
+- Auto mode continues to scan next-to-video and temp subtitle locations
+- Auto mode now discovers Kodi temp subfolders dynamically under `special://temp/`
+- Improved detection of provider temp subtitles with generic names like `TempSubtitle.*.srt`
+- Improved handling for UUID-style subtitle filenames in Kodi custom subtitle folders
+- Reduced false positives from stale reused temp subtitle files across playback sessions
+- Active translation now aborts if the source subtitle file changes mid-job
+- Improved path resolution for plugin playback that exposes real SMB/local paths
+- Reduced Kodi subtitle setting log noise during active polling
+- Subtitle polling now runs only during video playback
+- Gemini 2.5 Flash Fast Mode added
+  * uses Gemini 2.5 Flash with thinking budget disabled
+  * still respects the user-configured temperature
+- Gemini 2.5 Flash is now the default Gemini model for new selections
+- Gemini 2.0 Flash and Gemini 1.5 Flash are now marked as legacy in settings
+- Preserved compatibility with existing saved Gemini model selections
+
 v2.3.9
 - Major stability improvements for Real-Debrid / Torbox streams
 - Improved subtitle detection in temp folders

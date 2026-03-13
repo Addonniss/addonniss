@@ -72,13 +72,14 @@
                 <setting id="model" type="string" label="30012" help="30013">
                     <constraints>
                         <options>
-                            <option label="Gemini 2.0 Flash">Gemini 2.0 Flash</option>
-                            <option label="Gemini 1.5 Flash">Gemini 1.5 Flash</option>
                             <option label="Gemini 2.5 Flash">Gemini 2.5 Flash</option>
+                            <option label="Fast Mode - Gemini 2.5 Flash">Fast Mode - Gemini 2.5 Flash</option>
+                            <option label="Gemini 2.0 Flash (Legacy)">Gemini 2.0 Flash (Legacy)</option>
+                            <option label="Gemini 1.5 Flash (Legacy)">Gemini 1.5 Flash (Legacy)</option>
                         </options>
                     </constraints>
                     <control type="list" format="string" />
-                    <default>Gemini 2.0 Flash</default>
+                    <default>Gemini 2.5 Flash</default>
                     <dependencies>
                         <dependency type="visible" setting="provider">Gemini</dependency>
                     </dependencies>
