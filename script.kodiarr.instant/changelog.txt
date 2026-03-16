@@ -1,0 +1,19 @@
+v1.0.7
+- Replaced the old settings flow with a custom Radarr/Sonarr settings UI so connection testing works correctly without reopening settings
+- Added direct Radarr and Sonarr custom settings entry points from addon launch and settings
+- Improved the custom setup dialog with better navigation, clearer actions, footer help text, and visual polish
+
+v1.0.6
+- Added search trigger support in Radarr and Sonarr after sending items to download managers
+- Improved add flow so existing and newly added items can immediately start searching
+
+v1.0.5
+- Added connection test actions for Radarr and Sonarr
+
+v1.0.3
+- UI polish update
+- Added tooltips and improved settings clarity
+
+v1.0.0
+- Initial release
+- Added instant context menu actions for Radarr and Sonarr from Kodi media items

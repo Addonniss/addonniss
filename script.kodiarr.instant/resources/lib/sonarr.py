@@ -45,32 +45,6 @@ def test_connection(show_notification=True):
         return False
 
 
-    try:
-        resp = requests.get(
-            "{}/api/v3/system/status".format(sonarr_url),
-            headers=headers,
-            timeout=10
-        )
-
-        if resp.status_code == 200:
-            data = resp.json()
-            version = data.get("version", "unknown")
-            if show_notification:
-                notify("Sonarr", "Connection OK ({})".format(version))
-            return True
-
-        if show_notification:
-            notify("Sonarr", "Connection failed: {}".format(resp.status_code), xbmcgui.NOTIFICATION_ERROR)
-        log("Sonarr test failed: {}".format(resp.text), xbmcgui.LOGERROR)
-        return False
-
-    except Exception as e:
-        if show_notification:
-            notify("Sonarr", "Connection error: {}".format(e), xbmcgui.NOTIFICATION_ERROR)
-        log("Sonarr test crash: {}".format(e), xbmcgui.LOGERROR)
-        return False
-
-
 def run():
     sonarr_url = clean_url(get_setting("sonarr_url"))
     api = get_setting("sonarr_api")
