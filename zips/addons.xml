@@ -2,7 +2,7 @@
 <addons>
 <addon id="script.kodiarr.instant"
        name="KodiARR Instant"
-       version="1.0.6"
+       version="1.0.7"
        provider-name="Addonniss">
 
     <requires>
@@ -50,7 +50,6 @@
         <license>MIT</license>
 		<assets>
             <icon>icon.png</icon>
-            <fanart>fanart.jpg</fanart>
         </assets>
     </extension>
 
