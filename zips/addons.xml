@@ -54,7 +54,7 @@
     </extension>
 
 </addon>
-<addon id="service.translatarr" name="Translatarr" version="2.4.1" provider-name="Addonniss">
+<addon id="service.translatarr" name="Translatarr" version="2.4.2" provider-name="Addonniss">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" version="2.25.1"/>
@@ -64,8 +64,8 @@
         <provides>executable</provides>
     </extension>
     <extension point="kodi.addon.metadata">
-        <summary lang="en_GB">Subtitle Translator using Gemini, OpenAI, or DeepL Free machine translation</summary>
-        <description lang="en_GB">Automatically detects and translates movie subtitles into your preferred language using Gemini, OpenAI, or DeepL Free machine translation. DeepL Free is very fast, includes 500,000 characters per month, and can translate roughly 9 full movies on average.</description>
+        <summary lang="en_GB">Subtitle Translator using Gemini, OpenAI, DeepL Free, or LibreTranslate</summary>
+        <description lang="en_GB">Automatically detects and translates movie subtitles into your preferred language using Gemini, OpenAI, DeepL Free machine translation, or LibreTranslate. LibreTranslate adds a free self-hosted offline or home-network translation option, giving users more privacy, LAN-speed access, and independence from paid cloud APIs.</description>
         <platform>all</platform>
         <license>GPL-2.0-only</license>
         <assets>
