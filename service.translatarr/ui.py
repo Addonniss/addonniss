@@ -51,9 +51,15 @@ def show_stats_box(src_file, trg_file, trg_name, save_path,
     if "gemini" in model_name.lower():
         model_color = "mediumpurple"
         provider_badge = "[Gemini]"
+        usage_label = "Total Tokens"
+    elif "deepl" in model_name.lower():
+        model_color = "darkorange"
+        provider_badge = "[DeepL]"
+        usage_label = "Total Characters"
     else:
         model_color = "deepskyblue"
         provider_badge = "[OpenAI]"
+        usage_label = "Total Tokens"
 
     stats_msg = (
         "[B][COLOR gold]TRANSLATARR SUCCESS[/COLOR][/B]\n"
@@ -67,7 +73,7 @@ def show_stats_box(src_file, trg_file, trg_name, save_path,
         f"[B]Time:[/B] {format_time(total_time)}\n\n"
         "[B]USAGE DETAILS[/B]\n"
         "------------------------------------------------------------\n"
-        f"• Total Tokens:   {tokens:,}\n"
+        f"• {usage_label}:   {tokens:,}\n"
         f"• Total Chunks:   {chunks} (Size: {chunk_size})\n"
         f"• Estimated Cost: ${cost:.4f}"
     )
@@ -91,6 +97,8 @@ class TranslationProgress:
         # Provider badge
         if "gemini" in self.model_name:
             self.provider = "Gemini"
+        elif "deepl" in self.model_name:
+            self.provider = "DeepL"
         elif "openai" in self.model_name or "gpt" in self.model_name:
             self.provider = "OpenAI"
         else:

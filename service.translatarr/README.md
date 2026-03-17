@@ -1,8 +1,8 @@
-# 🎬 Translatarr v2.4.0
+# 🎬 Translatarr v2.4.1
 ## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
-Powered by Google Gemini or OpenAI  
+Powered by Google Gemini, OpenAI, or DeepL Free machine translation  
 
 ---
 
@@ -22,22 +22,19 @@ Unlike traditional word-by-word translators, it understands:
 
 ---
 
-# 🚀 What’s New (v2.4.0)
+# 🚀 What’s New (v2.4.1)
 
-✔ SMARTER AUTO MODE
-✔ STRONGER MANUAL MODE
-✔ REAL-TIME TRANSLATION
-✔ GEMINI 2.5 FLASH FAST MODE
+✔ DEEPL FREE SUPPORT
+✔ PROVIDER-AWARE LANGUAGE PICKERS
+✔ FIXED DEEPL CHUNK REQUESTS
+✔ UPDATED PROVIDER DOCUMENTATION
 
 Recent updates include:
 
-- Real-time translation is now always active during processing
-- Auto mode detects subtitles from next-to-video, Kodi temp folders, A4K temp folders, and Kodi Custom subtitle folder when active
-- Auto mode handles generic temp subtitle names and UUID-style filenames more safely
-- Auto mode now reloads existing translated subtitles from the Translatarr subtitle folder on replay
-- Manual mode still prioritizes exact video-name matches, but can now fall back to fresh session subtitles in the configured folder
-- Translation aborts safely if the subtitle file changes while it is being translated
-- Polling runs only during active video playback
+- DeepL Free machine translation is now available as a provider alongside Gemini and OpenAI
+- DeepL now shows only the source and target languages it actually supports
+- DeepL chunk requests were fixed so valid subtitle batches no longer fail with a bad request payload
+- Existing Gemini/OpenAI translation flow and provider-specific language selections remain supported
 
 ---
 
@@ -53,6 +50,9 @@ https://aistudio.google.com/
 🔹 OpenAI  
 https://platform.openai.com/api-keys
 
+🔹 DeepL Free  
+https://www.deepl.com/pro-api
+
 Create an API key and copy it.
 
 ---
@@ -64,11 +64,11 @@ Kodi → Add-ons → Programs → Translatarr → Settings
 Set:
 
 - Translation Mode (`Auto` or `Manual`)
-- Provider (Gemini or OpenAI)
+- Provider (Gemini, OpenAI, or DeepL Free machine translation)
 - API Key
-- Model
 - Source Language
 - Target Language
+- Model (Gemini/OpenAI only)
 - Subtitle Folder (IMPORTANT for Manual mode – see below)
 
 ---
@@ -274,6 +274,10 @@ Fast and very cost-effective.
 **OpenAI**  
 Higher linguistic refinement (especially GPT-4o).
 
+**DeepL Free**  
+Very fast machine translation with a provider-limited language list.  
+The Free tier includes 500,000 characters per month, which is enough for roughly 9 full movies on average.
+
 ---
 
 ## 🤖 Model AI Options
@@ -304,6 +308,18 @@ Higher linguistic refinement (especially GPT-4o).
 
 - **gpt-4o (premium quality)**  
   Highest refinement and emotional accuracy.
+
+---
+
+### 🔹 DeepL Free
+
+- No model selection required
+- Machine translation, not an LLM
+- Very fast
+- Free tier includes 500,000 characters per month
+- Allows roughly 9 full movies per month on average
+- Uses DeepL-supported source and target languages only
+- Best if you want a straightforward translation provider without model tuning
 
 ---
 
@@ -359,7 +375,7 @@ You are paying only for meaningful dialogue — not technical subtitle metadata.
 
 After each translation, Translatarr shows:
 
-- Total tokens used  
+- Total tokens or characters used  
 - Estimated API cost  
 - Model selected  
 - Total chunks  
@@ -389,6 +405,7 @@ For lowest cost per movie, use:
 
 - Fast Mode - Gemini 2.5 Flash  
 - gpt-4o-mini  
+- DeepL Free (when supported languages fit your use case)
 
 Both are extremely affordable for full-length films.
 
@@ -400,6 +417,7 @@ Both are extremely affordable for full-length films.
 
 - Check API key  
 - Check provider selected  
+- If using DeepL, verify the selected languages are available in the DeepL-only pickers
 - Verify subtitle folder exists  
 - Verify Kodi subtitle location matches Translatarr folder  
 - Make sure a video is playing  
@@ -418,6 +436,7 @@ Use:
 
 - Fast Mode - Gemini 2.5 Flash  
 - gpt-4o-mini  
+- DeepL Free for supported-language subtitle translation
 
 ---
 

@@ -3,7 +3,7 @@ import os
 import re
 import xbmcvfs
 import xbmcaddon
-from languages import get_lang_params
+from languages import get_lang_params, get_active_language_setting
 
 ADDON = xbmcaddon.Addon('service.translatarr')
 
@@ -41,8 +41,9 @@ def get_target_path(original_path, video_name):
     Determine where the translated SRT should be saved.
     Handles source/target language, Windows-safe names.
     """
-    _, src_iso = get_lang_params(ADDON.getSetting('source_lang'))
-    _, trg_iso = get_lang_params(ADDON.getSetting('target_lang'))
+    provider = ADDON.getSetting('provider')
+    _, src_iso = get_lang_params(get_active_language_setting(ADDON, provider, 'source'))
+    _, trg_iso = get_lang_params(get_active_language_setting(ADDON, provider, 'target'))
     if trg_iso == "auto":
         trg_iso = "ro"
 

@@ -1,3 +1,9 @@
+v2.4.1
+- Added DeepL Free machine translation as a very fast provider with 500,000 free characters per month, enough for roughly 9 full movies on average
+- Added provider-aware language selection so DeepL only shows supported languages
+- Fixed DeepL request payload rejection during chunk translation
+- Updated addon metadata and README for DeepL support
+
 v2.4.0
 - Live translation is now always enabled for a faster playback experience
 - Removed the Real-Time Translation toggle from settings

@@ -30,7 +30,7 @@ msgid "Active Engine"
 msgstr ""
 
 msgctxt "#30009"
-msgid "Choose between Gemini or OpenAI for processing."
+msgid "Choose between Gemini, OpenAI, or DeepL Free machine translation for processing."
 msgstr ""
 
 msgctxt "#30010"
@@ -171,4 +171,28 @@ msgstr ""
 
 msgctxt "#30044"
 msgid "Monitors custom folder..."
+msgstr ""
+
+msgctxt "#30045"
+msgid "DeepL API Key"
+msgstr ""
+
+msgctxt "#30046"
+msgid "Enter your DeepL API Free key. DeepL Free is machine translation, very fast, and includes 500,000 characters per month."
+msgstr ""
+
+msgctxt "#30047"
+msgid "Source Language (DeepL Supported)"
+msgstr ""
+
+msgctxt "#30048"
+msgid "Only DeepL-supported source languages are shown here for DeepL Free machine translation."
+msgstr ""
+
+msgctxt "#30049"
+msgid "Target Language (DeepL Supported)"
+msgstr ""
+
+msgctxt "#30050"
+msgid "Only DeepL-supported target languages are shown here for DeepL Free machine translation."
 msgstr ""

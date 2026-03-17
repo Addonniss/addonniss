@@ -74,6 +74,34 @@ ISO_VARIANTS = {
     "vi": ["vi", "vie"]
 }
 
+PROVIDER_LANGUAGE_CODES = {
+    "DeepL": {
+        "Arabic": "AR",
+        "Chinese": "ZH",
+        "Czech": "CS",
+        "Danish": "DA",
+        "Dutch": "NL",
+        "English": "EN",
+        "Finnish": "FI",
+        "French": "FR",
+        "German": "DE",
+        "Greek": "EL",
+        "Hungarian": "HU",
+        "Italian": "IT",
+        "Japanese": "JA",
+        "Korean": "KO",
+        "Norwegian": "NB",
+        "Polish": "PL",
+        "Portuguese": "PT",
+        "Romanian": "RO",
+        "Russian": "RU",
+        "Slovenian": "SL",
+        "Spanish": "ES",
+        "Swedish": "SV",
+        "Turkish": "TR",
+    }
+}
+
 # -----------------------------
 # Functions
 # -----------------------------
@@ -103,3 +131,41 @@ def get_iso_variants(value):
     """
     _, iso = get_lang_params(value)
     return ISO_VARIANTS.get(iso, [iso])
+
+
+def get_provider_language_code(provider, value, allow_auto_detect=False):
+    """
+    Return the provider-specific language code for a saved setting value.
+
+    Accepts either the old numeric setting value or the newer language name.
+    Returns:
+      - provider code string when supported
+      - None when the provider does not support that language
+    """
+    name, _ = get_lang_params(value)
+
+    if allow_auto_detect and isinstance(name, str) and name.lower() == "auto-detect":
+        return None
+
+    provider_map = PROVIDER_LANGUAGE_CODES.get(provider, {})
+    return provider_map.get(name)
+
+
+def get_active_language_setting(addon, provider, kind):
+    """
+    Return the currently active language setting value for the selected provider.
+
+    `kind` must be either 'source' or 'target'.
+    """
+    provider_keys = {
+        "DeepL": f"deepl_{kind}_lang",
+        "OpenAI": f"{kind}_lang_openai",
+    }
+
+    provider_key = provider_keys.get(provider)
+    if provider_key:
+        provider_value = addon.getSetting(provider_key)
+        if provider_value:
+            return provider_value
+
+    return addon.getSetting(f"{kind}_lang")

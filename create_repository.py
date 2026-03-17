@@ -3,7 +3,6 @@ import os
 import re
 import hashlib
 import zipfile
-import shutil
 
 PAGES_URL = "https://addonniss.github.io/repository.addonniss/zips"
 REPO_ID = "repository.addonniss"
@@ -148,10 +147,7 @@ def zip_repository_addon(version, zips_path):
 
 def create_repo():
     zips_path = "zips"
-
-    if os.path.exists(zips_path):
-        shutil.rmtree(zips_path)
-    os.makedirs(zips_path)
+    os.makedirs(zips_path, exist_ok=True)
 
     addon_dirs = find_addon_dirs()
     print("Detected addon folders:", addon_dirs)

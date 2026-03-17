@@ -13,7 +13,7 @@ import json
 import translator
 import file_manager
 import ui
-from languages import get_lang_params, get_iso_variants
+from languages import get_lang_params, get_iso_variants, get_active_language_setting
 
 ADDON_ID = 'service.translatarr'
 ADDON = xbmcaddon.Addon(ADDON_ID)
@@ -509,8 +509,7 @@ class TranslatarrMonitor(xbmc.Monitor):
             )
 
         return changed
-    
-    
+
     def reload_settings(self):
         """
         Reload addon settings safely.
@@ -567,12 +566,13 @@ class TranslatarrMonitor(xbmc.Monitor):
         # ------------------------------------------------------------
         self.chunk_size = safe_int('chunk_size', 100)
         self.sub_folder = addon.getSetting('sub_folder') or "/storage/emulated/0/Download/"
+        self.provider = addon.getSetting('provider')
         
         # ------------------------------------------------------------
         # Language settings (new select-aware, ISO-respecting)
         # ------------------------------------------------------------
-        raw_source = addon.getSetting('source_lang') or "Romanian"
-        raw_target = addon.getSetting('target_lang') or "Romanian"
+        raw_source = get_active_language_setting(addon, self.provider, 'source') or "Romanian"
+        raw_target = get_active_language_setting(addon, self.provider, 'target') or "Romanian"
         
         # Convert to full name and ISO
         self.source_lang_name, self.source_lang_iso = get_lang_params(raw_source)
@@ -587,12 +587,12 @@ class TranslatarrMonitor(xbmc.Monitor):
             force=True
         )
         
-        self.provider = addon.getSetting('provider')
         self.model = addon.getSetting('model')
         self.openai_model = addon.getSetting('openai_model')
+        self.deepl_api_key = addon.getSetting('deepl_api_key')
         
         log(
-            f"AI snapshot → provider={self.provider}, model={self.model}, openai_model={self.openai_model}",
+            f"AI snapshot → provider={self.provider}, model={self.model}, openai_model={self.openai_model}, deepl_key={'set' if self.deepl_api_key else 'missing'}",
             "debug",
             self,
             force=True
@@ -645,6 +645,8 @@ class TranslatarrMonitor(xbmc.Monitor):
         # Show only the active provider model
         if self.provider == "OpenAI":
             settings_snapshot += f"openai_model={self.openai_model}"
+        elif self.provider == "DeepL":
+            settings_snapshot += "model=DeepL Free"
         else:
             settings_snapshot += f"model={self.model}"
 

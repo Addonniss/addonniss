@@ -48,6 +48,7 @@
                         <options>
                             <option label="Gemini">Gemini</option>
                             <option label="OpenAI">OpenAI</option>
+                            <option label="DeepL Free">DeepL</option>
                         </options>
                     </constraints>
                     <control type="list" format="string" />
@@ -102,6 +103,15 @@
                         <dependency type="visible" setting="provider">OpenAI</dependency>
                     </dependencies>
                 </setting>
+
+                <setting id="deepl_api_key" type="string" label="30045" help="30046">
+                    <constraints><allowempty>true</allowempty></constraints>
+                    <control type="edit" format="string" />
+                    <default />
+                    <dependencies>
+                        <dependency type="visible" setting="provider">DeepL</dependency>
+                    </dependencies>
+                </setting>
             </group>
         </category>
 
@@ -143,6 +153,9 @@
                     </constraints>
                     <control type="list" format="string" />
                     <default>English</default>
+                    <dependencies>
+                        <dependency type="visible" setting="provider">Gemini</dependency>
+                    </dependencies>
                 </setting>
 
                 <setting id="target_lang" type="string" label="30017" help="30018">
@@ -181,6 +194,161 @@
                     </constraints>
                     <control type="list" format="string" />
                     <default>Romanian</default>
+                    <dependencies>
+                        <dependency type="visible" setting="provider">Gemini</dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="source_lang_openai" type="string" label="30015" help="30016">
+                    <constraints>
+                        <options>
+                            <option label="Arabic">Arabic</option>
+                            <option label="Catalan">Catalan</option>
+                            <option label="Chinese">Chinese</option>
+                            <option label="Croatian">Croatian</option>
+                            <option label="Czech">Czech</option>
+                            <option label="Danish">Danish</option>
+                            <option label="Dutch">Dutch</option>
+                            <option label="English">English</option>
+                            <option label="Finnish">Finnish</option>
+                            <option label="French">French</option>
+                            <option label="German">German</option>
+                            <option label="Greek">Greek</option>
+                            <option label="Hebrew">Hebrew</option>
+                            <option label="Hindi">Hindi</option>
+                            <option label="Hungarian">Hungarian</option>
+                            <option label="Italian">Italian</option>
+                            <option label="Japanese">Japanese</option>
+                            <option label="Korean">Korean</option>
+                            <option label="Norwegian">Norwegian</option>
+                            <option label="Polish">Polish</option>
+                            <option label="Portuguese">Portuguese</option>
+                            <option label="Romanian">Romanian</option>
+                            <option label="Russian">Russian</option>
+                            <option label="Slovenian">Slovenian</option>
+                            <option label="Spanish">Spanish</option>
+                            <option label="Swedish">Swedish</option>
+                            <option label="Thai">Thai</option>
+                            <option label="Turkish">Turkish</option>
+                            <option label="Vietnamese">Vietnamese</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                    <default>English</default>
+                    <dependencies>
+                        <dependency type="visible" setting="provider">OpenAI</dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="target_lang_openai" type="string" label="30017" help="30018">
+                    <constraints>
+                        <options>
+                            <option label="Arabic">Arabic</option>
+                            <option label="Catalan">Catalan</option>
+                            <option label="Chinese">Chinese</option>
+                            <option label="Croatian">Croatian</option>
+                            <option label="Czech">Czech</option>
+                            <option label="Danish">Danish</option>
+                            <option label="Dutch">Dutch</option>
+                            <option label="English">English</option>
+                            <option label="Finnish">Finnish</option>
+                            <option label="French">French</option>
+                            <option label="German">German</option>
+                            <option label="Greek">Greek</option>
+                            <option label="Hebrew">Hebrew</option>
+                            <option label="Hindi">Hindi</option>
+                            <option label="Hungarian">Hungarian</option>
+                            <option label="Italian">Italian</option>
+                            <option label="Japanese">Japanese</option>
+                            <option label="Korean">Korean</option>
+                            <option label="Norwegian">Norwegian</option>
+                            <option label="Polish">Polish</option>
+                            <option label="Portuguese">Portuguese</option>
+                            <option label="Romanian">Romanian</option>
+                            <option label="Russian">Russian</option>
+                            <option label="Slovenian">Slovenian</option>
+                            <option label="Spanish">Spanish</option>
+                            <option label="Swedish">Swedish</option>
+                            <option label="Thai">Thai</option>
+                            <option label="Turkish">Turkish</option>
+                            <option label="Vietnamese">Vietnamese</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                    <default>Romanian</default>
+                    <dependencies>
+                        <dependency type="visible" setting="provider">OpenAI</dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="deepl_source_lang" type="string" label="30047" help="30048">
+                    <constraints>
+                        <options>
+                            <option label="Arabic">Arabic</option>
+                            <option label="Chinese">Chinese</option>
+                            <option label="Czech">Czech</option>
+                            <option label="Danish">Danish</option>
+                            <option label="Dutch">Dutch</option>
+                            <option label="English">English</option>
+                            <option label="Finnish">Finnish</option>
+                            <option label="French">French</option>
+                            <option label="German">German</option>
+                            <option label="Greek">Greek</option>
+                            <option label="Hungarian">Hungarian</option>
+                            <option label="Italian">Italian</option>
+                            <option label="Japanese">Japanese</option>
+                            <option label="Korean">Korean</option>
+                            <option label="Norwegian">Norwegian</option>
+                            <option label="Polish">Polish</option>
+                            <option label="Portuguese">Portuguese</option>
+                            <option label="Romanian">Romanian</option>
+                            <option label="Russian">Russian</option>
+                            <option label="Slovenian">Slovenian</option>
+                            <option label="Spanish">Spanish</option>
+                            <option label="Swedish">Swedish</option>
+                            <option label="Turkish">Turkish</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                    <default>English</default>
+                    <dependencies>
+                        <dependency type="visible" setting="provider">DeepL</dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="deepl_target_lang" type="string" label="30049" help="30050">
+                    <constraints>
+                        <options>
+                            <option label="Arabic">Arabic</option>
+                            <option label="Chinese">Chinese</option>
+                            <option label="Czech">Czech</option>
+                            <option label="Danish">Danish</option>
+                            <option label="Dutch">Dutch</option>
+                            <option label="English">English</option>
+                            <option label="Finnish">Finnish</option>
+                            <option label="French">French</option>
+                            <option label="German">German</option>
+                            <option label="Greek">Greek</option>
+                            <option label="Hungarian">Hungarian</option>
+                            <option label="Italian">Italian</option>
+                            <option label="Japanese">Japanese</option>
+                            <option label="Korean">Korean</option>
+                            <option label="Norwegian">Norwegian</option>
+                            <option label="Polish">Polish</option>
+                            <option label="Portuguese">Portuguese</option>
+                            <option label="Romanian">Romanian</option>
+                            <option label="Russian">Russian</option>
+                            <option label="Slovenian">Slovenian</option>
+                            <option label="Spanish">Spanish</option>
+                            <option label="Swedish">Swedish</option>
+                            <option label="Turkish">Turkish</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                    <default>Romanian</default>
+                    <dependencies>
+                        <dependency type="visible" setting="provider">DeepL</dependency>
+                    </dependencies>
                 </setting>
 
                 <setting id="translation_style" type="string" label="30030" help="30031">

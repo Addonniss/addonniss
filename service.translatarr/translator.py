@@ -50,7 +50,6 @@ def build_style_instruction(trg_name):
         "- Keep dialogue suitable for general audiences.\n"
     )
 
-
 # ----------------------------------------------------------
 # Base Translator
 # ----------------------------------------------------------
@@ -127,9 +126,9 @@ class GeminiTranslator(BaseTranslator):
             log("Gemini API key missing")
             return None, 0, 0
 
-        from languages import get_lang_params
-        src_name, _ = get_lang_params(ADDON.getSetting('source_lang'))
-        trg_name, _ = get_lang_params(ADDON.getSetting('target_lang'))
+        from languages import get_lang_params, get_active_language_setting
+        src_name, _ = get_lang_params(get_active_language_setting(ADDON, "Gemini", 'source'))
+        trg_name, _ = get_lang_params(get_active_language_setting(ADDON, "Gemini", 'target'))
 
         if src_name.lower() != "auto-detect":
             lang_instruction = f"Translate from {src_name} to {trg_name}."
@@ -241,9 +240,9 @@ class OpenAITranslator(BaseTranslator):
             log("OpenAI API key missing")
             return None, 0, 0
 
-        from languages import get_lang_params
-        src_name, _ = get_lang_params(ADDON.getSetting('source_lang'))
-        trg_name, _ = get_lang_params(ADDON.getSetting('target_lang'))
+        from languages import get_lang_params, get_active_language_setting
+        src_name, _ = get_lang_params(get_active_language_setting(ADDON, "OpenAI", 'source'))
+        trg_name, _ = get_lang_params(get_active_language_setting(ADDON, "OpenAI", 'target'))
 
         if src_name.lower() != "auto-detect":
             lang_instruction = f"Translate from {src_name} to {trg_name}."
@@ -326,11 +325,118 @@ class OpenAITranslator(BaseTranslator):
 
 
 # ==========================================================
+# DEEPL TRANSLATOR
+# ==========================================================
+class DeepLTranslator(BaseTranslator):
+
+    PRICE_PER_CHARACTER = 0.0
+    STATUS_MESSAGES = {
+        400: "Bad request. Check source and target language settings.",
+        403: "Authorization failed. Check your DeepL API key.",
+        413: "Request too large for DeepL.",
+        429: "Too many requests. DeepL rate limit reached.",
+        456: "Quota exceeded on the DeepL account.",
+        503: "DeepL service is temporarily unavailable.",
+    }
+
+    def __init__(self):
+        self.api_key = ADDON.getSetting('deepl_api_key')
+
+    def _get_lang_codes(self):
+        from languages import get_lang_params, get_provider_language_code, get_active_language_setting
+
+        source_value = get_active_language_setting(ADDON, "DeepL", 'source')
+        target_value = get_active_language_setting(ADDON, "DeepL", 'target')
+
+        src_name, _ = get_lang_params(source_value)
+        trg_name, _ = get_lang_params(target_value)
+
+        src_code = get_provider_language_code("DeepL", source_value, allow_auto_detect=True)
+        trg_code = get_provider_language_code("DeepL", target_value)
+
+        if not trg_code:
+            log(f"DeepL target language not supported: {trg_name}")
+            return None, None, src_name, trg_name
+
+        return src_code, trg_code, src_name, trg_name
+
+    def translate_batch(self, text_list, expected_count):
+
+        if not self.api_key:
+            log("DeepL API key missing")
+            return None, 0, 0
+
+        src_code, trg_code, src_name, trg_name = self._get_lang_codes()
+        if not trg_code:
+            return None, 0, 0
+
+        if src_name.lower() != "auto-detect" and not src_code:
+            log(f"DeepL source language not supported: {src_name}")
+            return None, 0, 0
+
+        prefixed = [f"L{i:03}: {t}" for i, t in enumerate(text_list)]
+
+        payload = {
+            "text": prefixed,
+            "target_lang": trg_code,
+            "split_sentences": "0",
+        }
+
+        if src_code:
+            payload["source_lang"] = src_code
+
+        headers = {
+            "Authorization": "DeepL-Auth-Key " + self.api_key,
+            "Content-Type": "application/json",
+        }
+
+        try:
+            r = requests.post(
+                "https://api-free.deepl.com/v2/translate",
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+
+            if r.status_code != 200:
+                error_msg = self.STATUS_MESSAGES.get(r.status_code, r.text[:300])
+                log(f"DeepL error: {r.status_code} | {error_msg}")
+                return None, 0, 0
+
+            data = r.json()
+            translated = [
+                item.get("text", "").strip()
+                for item in data.get("translations", [])
+            ]
+
+            if len(translated) != expected_count or any(not line for line in translated):
+                log("DeepL returned an unexpected number of translated lines")
+                return None, 0, 0
+
+            billed_characters = data.get("billed_characters", 0)
+            return translated, billed_characters, 0
+
+        except Exception as e:
+            log(f"DeepL exception: {e}")
+            return None, 0, 0
+
+    def calculate_cost(self, input_tokens, output_tokens):
+        return float(input_tokens) * self.PRICE_PER_CHARACTER
+
+    def get_model_string(self):
+        return "DeepL Free"
+
+
+# ==========================================================
 # PUBLIC API
 # ==========================================================
 def _get_translator():
     provider = ADDON.getSetting('provider')
-    return OpenAITranslator() if provider == "OpenAI" else GeminiTranslator()
+    if provider == "OpenAI":
+        return OpenAITranslator()
+    if provider == "DeepL":
+        return DeepLTranslator()
+    return GeminiTranslator()
 
 
 def translate_batch(text_list, expected_count):
