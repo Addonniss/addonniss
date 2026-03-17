@@ -428,6 +428,100 @@ class DeepLTranslator(BaseTranslator):
 
 
 # ==========================================================
+# LIBRETRANSLATE TRANSLATOR
+# ==========================================================
+class LibreTranslateTranslator(BaseTranslator):
+
+    STATUS_MESSAGES = {
+        400: "Bad request. Check LibreTranslate URL and language settings.",
+        403: "Authorization failed. Check your LibreTranslate API key.",
+        429: "Too many requests. LibreTranslate rate limit reached.",
+        500: "LibreTranslate server error.",
+        503: "LibreTranslate service is temporarily unavailable.",
+    }
+
+    def __init__(self):
+        self.base_url = (ADDON.getSetting('libretranslate_url') or '').strip()
+        self.api_key = (ADDON.getSetting('libretranslate_api_key') or '').strip()
+
+    def _get_endpoint(self):
+        if not self.base_url:
+            log("LibreTranslate URL missing")
+            return None
+
+        if not (self.base_url.startswith("http://") or self.base_url.startswith("https://")):
+            log("LibreTranslate URL must start with http:// or https://")
+            return None
+
+        return self.base_url.rstrip("/") + "/translate"
+
+    def translate_batch(self, text_list, expected_count):
+        endpoint = self._get_endpoint()
+        if not endpoint:
+            return None, 0, 0
+
+        from languages import get_lang_params, get_active_language_setting
+
+        source_value = get_active_language_setting(ADDON, "LibreTranslate", 'source')
+        target_value = get_active_language_setting(ADDON, "LibreTranslate", 'target')
+
+        _, src_code = get_lang_params(source_value)
+        _, trg_code = get_lang_params(target_value)
+
+        prefixed = [f"L{i:03}: {t}" for i, t in enumerate(text_list)]
+        payload = {
+            "q": prefixed,
+            "source": src_code,
+            "target": trg_code,
+            "format": "text",
+        }
+
+        if self.api_key:
+            payload["api_key"] = self.api_key
+
+        headers = {
+            "Content-Type": "application/json",
+        }
+
+        try:
+            r = requests.post(
+                endpoint,
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+
+            if r.status_code != 200:
+                error_msg = self.STATUS_MESSAGES.get(r.status_code, r.text[:300])
+                log(f"LibreTranslate error: {r.status_code} | {error_msg}")
+                return None, 0, 0
+
+            data = r.json()
+            translated = data.get("translatedText", [])
+            if isinstance(translated, str):
+                translated = self._scrub(translated, expected_count)
+            else:
+                translated = [str(item).strip() for item in translated]
+
+            if not translated or len(translated) != expected_count or any(not line for line in translated):
+                log("LibreTranslate returned an unexpected number of translated lines")
+                return None, 0, 0
+
+            billed_characters = sum(len(item) for item in prefixed)
+            return translated, billed_characters, 0
+
+        except Exception as e:
+            log(f"LibreTranslate exception: {e}")
+            return None, 0, 0
+
+    def calculate_cost(self, input_tokens, output_tokens):
+        return 0.0
+
+    def get_model_string(self):
+        return "LibreTranslate"
+
+
+# ==========================================================
 # PUBLIC API
 # ==========================================================
 def _get_translator():
@@ -436,6 +530,8 @@ def _get_translator():
         return OpenAITranslator()
     if provider == "DeepL":
         return DeepLTranslator()
+    if provider == "LibreTranslate":
+        return LibreTranslateTranslator()
     return GeminiTranslator()
 
 

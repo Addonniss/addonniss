@@ -1,8 +1,8 @@
-# 🎬 Translatarr v2.4.1
+# 🎬 Translatarr v2.4.2
 ## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
-Powered by Google Gemini, OpenAI, or DeepL Free machine translation  
+Powered by Google Gemini, OpenAI, DeepL Free machine translation, or LibreTranslate  
 
 ---
 
@@ -22,19 +22,20 @@ Unlike traditional word-by-word translators, it understands:
 
 ---
 
-# 🚀 What’s New (v2.4.1)
+# 🚀 What’s New (v2.4.2)
 
-✔ DEEPL FREE SUPPORT
-✔ PROVIDER-AWARE LANGUAGE PICKERS
-✔ FIXED DEEPL CHUNK REQUESTS
+✔ LIBRETRANSLATE SUPPORT
+✔ SELF-HOSTED OFFLINE / HOME NETWORK OPTION
+✔ MORE PRIVACY AND NO-COST FLEXIBILITY
 ✔ UPDATED PROVIDER DOCUMENTATION
 
 Recent updates include:
 
-- DeepL Free machine translation is now available as a provider alongside Gemini and OpenAI
-- DeepL now shows only the source and target languages it actually supports
-- DeepL chunk requests were fixed so valid subtitle batches no longer fail with a bad request payload
-- Existing Gemini/OpenAI translation flow and provider-specific language selections remain supported
+- LibreTranslate is now available as a free self-hosted translation provider
+- Users can run subtitle translation on their own home network or offline environment instead of depending only on external cloud providers
+- LibreTranslate brings better privacy for local deployments, avoids paid API usage, and can be very fast on LAN setups
+- Dedicated LibreTranslate URL, optional API key, and separate language settings were added
+- Existing Gemini, OpenAI, and DeepL provider flows remain supported
 
 ---
 
@@ -53,19 +54,103 @@ https://platform.openai.com/api-keys
 🔹 DeepL Free  
 https://www.deepl.com/pro-api
 
-Create an API key and copy it.
+🔹 LibreTranslate  
+https://libretranslate.com/
+
+Create an API key if your provider needs one and copy it.
 
 ---
 
-## 2️⃣ Configure Translatarr
+## 2️⃣ Choose AI Models and Machine Translation Options
+
+### 🧠 Provider Overview
+
+**Gemini**  
+Fast and very cost-effective.
+
+**OpenAI**  
+Higher linguistic refinement (especially GPT-4o).
+
+**DeepL Free**  
+Very fast machine translation with a provider-limited language list.  
+The Free tier includes 500,000 characters per month, which is enough for roughly 9 full movies on average.
+
+**LibreTranslate**  
+Free self-hosted translation for offline or home-network setups.  
+Good for users who want local control, better privacy, and no paid cloud dependency.
+
+---
+
+### 🤖 AI Models
+
+#### 🔹 Gemini Models
+
+- **Gemini 2.5 Flash (recommended)**  
+  Best default balance of speed, quality, and subtitle nuance.
+
+- **Fast Mode - Gemini 2.5 Flash**  
+  Uses Gemini 2.5 Flash with thinking disabled for faster responses.
+
+- **Gemini 2.0 Flash (Legacy)**  
+  Older model kept for compatibility with existing saved settings.
+
+- **Gemini 1.5 Flash (Legacy)**  
+  Older budget model kept for compatibility with existing saved settings.
+
+#### 🔹 OpenAI Models
+
+- **gpt-4o-mini (cheap + fast)**  
+  Budget-friendly and very fast.
+
+- **gpt-5-mini**  
+  Improved nuance while remaining cost-efficient.
+
+- **gpt-4o (premium quality)**  
+  Highest refinement and emotional accuracy.
+
+---
+
+### 🌐 Machine Translation Options
+
+#### 🔹 DeepL Free
+
+- No model selection required
+- Machine translation, not an LLM
+- Very fast
+- Free tier includes 500,000 characters per month
+- Allows roughly 9 full movies per month on average
+- Uses DeepL-supported source and target languages only
+- Best if you want a straightforward translation provider without model tuning
+
+#### 🔹 LibreTranslate
+
+- Free self-hosted translation option
+- Can run on a home server or local network
+- Good fit for offline / LAN-first environments
+- Better privacy because translations can stay inside your own network
+- No paid cloud API required
+- Can be very fast on local network setups
+- Requires a full base URL including `http://` or `https://`
+- Source and target languages must exist on your LibreTranslate server
+
+Example use case:
+
+- a local server such as `http://192.168.x.x:5000`
+- language loading restricted with something like `LT_LOAD_ONLY=en,ro`
+- batch limit set above the selected chunk size
+
+---
+
+## 3️⃣ Configure Translatarr
 
 Kodi → Add-ons → Programs → Translatarr → Settings
 
 Set:
 
 - Translation Mode (`Auto` or `Manual`)
-- Provider (Gemini, OpenAI, or DeepL Free machine translation)
+- Provider (Gemini, OpenAI, DeepL Free machine translation, or LibreTranslate)
 - API Key
+- Base URL for LibreTranslate if using a self-hosted server
 - Source Language
 - Target Language
 - Model (Gemini/OpenAI only)
@@ -73,7 +158,7 @@ Set:
 
 ---
 
-## 3️⃣ Play a Movie 🎥
+## 4️⃣ Play a Movie 🎥
 
 1. Start playing a movie.  
 2. Download subtitles using any Kodi subtitle addon  
@@ -266,63 +351,6 @@ It only modifies the AI instruction prompt.
 
 # ⚙️ Full Configuration Guide
 
-## 🧠 Provider
-
-**Gemini**  
-Fast and very cost-effective.
-
-**OpenAI**  
-Higher linguistic refinement (especially GPT-4o).
-
-**DeepL Free**  
-Very fast machine translation with a provider-limited language list.  
-The Free tier includes 500,000 characters per month, which is enough for roughly 9 full movies on average.
-
----
-
-## 🤖 Model AI Options
-
-### 🔹 Gemini Models
-
-- **Gemini 2.5 Flash (recommended)**  
-  Best default balance of speed, quality, and subtitle nuance.
-
-- **Fast Mode - Gemini 2.5 Flash**  
-  Uses Gemini 2.5 Flash with thinking disabled for faster responses.
-
-- **Gemini 2.0 Flash (Legacy)**  
-  Older model kept for compatibility with existing saved settings.
-
-- **Gemini 1.5 Flash (Legacy)**  
-  Older budget model kept for compatibility with existing saved settings.
-
----
-
-### 🔹 OpenAI Models
-
-- **gpt-4o-mini (cheap + fast)**  
-  Budget-friendly and very fast.
-
-- **gpt-5-mini**  
-  Improved nuance while remaining cost-efficient.
-
-- **gpt-4o (premium quality)**  
-  Highest refinement and emotional accuracy.
-
----
-
-### 🔹 DeepL Free
-
-- No model selection required
-- Machine translation, not an LLM
-- Very fast
-- Free tier includes 500,000 characters per month
-- Allows roughly 9 full movies per month on average
-- Uses DeepL-supported source and target languages only
-- Best if you want a straightforward translation provider without model tuning
-
----
-
 ## 📦 Dialogue Lines Per Chunk
 
 How many subtitle lines are sent per API request.
@@ -383,6 +411,8 @@ After each translation, Translatarr shows:
 
 You always know exactly what you spend.
 
+For LibreTranslate self-hosted setups, estimated API cost remains $0.0000 inside Translatarr because the provider itself is intended as a no-cost self-hosted option.
+
 ---
 
 ### Example (OpenAI – gpt-4o-mini)
@@ -406,6 +436,7 @@ For lowest cost per movie, use:
 - Fast Mode - Gemini 2.5 Flash  
 - gpt-4o-mini  
 - DeepL Free (when supported languages fit your use case)
+- LibreTranslate on your own server for a no-cost self-hosted workflow
 
 Both are extremely affordable for full-length films.
 
@@ -418,6 +449,8 @@ Both are extremely affordable for full-length films.
 - Check API key  
 - Check provider selected  
 - If using DeepL, verify the selected languages are available in the DeepL-only pickers
+- If using LibreTranslate, verify the full URL starts with `http://` or `https://`
+- If using LibreTranslate, verify the server actually loaded the selected languages
 - Verify subtitle folder exists  
 - Verify Kodi subtitle location matches Translatarr folder  
 - Make sure a video is playing  
@@ -437,6 +470,7 @@ Use:
 - Fast Mode - Gemini 2.5 Flash  
 - gpt-4o-mini  
 - DeepL Free for supported-language subtitle translation
+- LibreTranslate on your own LAN or offline server
 
 ---
 

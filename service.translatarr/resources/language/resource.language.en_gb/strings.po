@@ -196,3 +196,35 @@ msgstr ""
 msgctxt "#30050"
 msgid "Only DeepL-supported target languages are shown here for DeepL Free machine translation."
 msgstr ""
+
+msgctxt "#30051"
+msgid "LibreTranslate Base URL"
+msgstr ""
+
+msgctxt "#30052"
+msgid "Enter the full LibreTranslate URL starting with http:// or https://. Example: http://192.168.x.x:5000 . Make sure your server loaded the needed languages, for example LT_LOAD_ONLY=en,ro. Batch limit also matters: set LT_BATCH_LIMIT above your selected chunk size. 1000 is a good setting."
+msgstr ""
+
+msgctxt "#30053"
+msgid "LibreTranslate API Key"
+msgstr ""
+
+msgctxt "#30054"
+msgid "Optional. Leave empty if your self-hosted LibreTranslate server does not require an API key."
+msgstr ""
+
+msgctxt "#30055"
+msgid "Source Language (LibreTranslate Server)"
+msgstr ""
+
+msgctxt "#30056"
+msgid "Select a source language that exists on your LibreTranslate server. Match this with the languages loaded on the server, for example LT_LOAD_ONLY=en,ro."
+msgstr ""
+
+msgctxt "#30057"
+msgid "Target Language (LibreTranslate Server)"
+msgstr ""
+
+msgctxt "#30058"
+msgid "Select a target language that exists on your LibreTranslate server. Match this with the languages loaded on the server, for example LT_LOAD_ONLY=en,ro."
+msgstr ""

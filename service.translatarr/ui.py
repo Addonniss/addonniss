@@ -56,6 +56,10 @@ def show_stats_box(src_file, trg_file, trg_name, save_path,
         model_color = "darkorange"
         provider_badge = "[DeepL]"
         usage_label = "Total Characters"
+    elif "libretranslate" in model_name.lower():
+        model_color = "limegreen"
+        provider_badge = "[LibreTranslate]"
+        usage_label = "Total Characters"
     else:
         model_color = "deepskyblue"
         provider_badge = "[OpenAI]"
@@ -99,6 +103,8 @@ class TranslationProgress:
             self.provider = "Gemini"
         elif "deepl" in self.model_name:
             self.provider = "DeepL"
+        elif "libretranslate" in self.model_name:
+            self.provider = "LibreTranslate"
         elif "openai" in self.model_name or "gpt" in self.model_name:
             self.provider = "OpenAI"
         else:

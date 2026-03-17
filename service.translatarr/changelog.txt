@@ -1,3 +1,10 @@
+v2.4.2
+- Added LibreTranslate as a free self-hosted translation provider for offline or home-network use
+- LibreTranslate support lets users keep subtitle translation on their own server for more privacy and independence from paid cloud APIs
+- LibreTranslate can be very fast on a local network and gives users another no-cost option alongside DeepL Free
+- Added dedicated LibreTranslate URL, optional API key, and separate source/target language settings
+- Added LibreTranslate setup guidance, including full URL requirement and server language-loading notes
+
 v2.4.1
 - Added DeepL Free machine translation as a very fast provider with 500,000 free characters per month, enough for roughly 9 full movies on average
 - Added provider-aware language selection so DeepL only shows supported languages

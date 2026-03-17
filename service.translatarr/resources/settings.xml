@@ -49,6 +49,7 @@
                             <option label="Gemini">Gemini</option>
                             <option label="OpenAI">OpenAI</option>
                             <option label="DeepL Free">DeepL</option>
+                            <option label="LibreTranslate">LibreTranslate</option>
                         </options>
                     </constraints>
                     <control type="list" format="string" />
@@ -110,6 +111,24 @@
                     <default />
                     <dependencies>
                         <dependency type="visible" setting="provider">DeepL</dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="libretranslate_url" type="string" label="30051" help="30052">
+                    <constraints><allowempty>true</allowempty></constraints>
+                    <control type="edit" format="string" />
+                    <default />
+                    <dependencies>
+                        <dependency type="visible" setting="provider">LibreTranslate</dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="libretranslate_api_key" type="string" label="30053" help="30054">
+                    <constraints><allowempty>true</allowempty></constraints>
+                    <control type="edit" format="string" />
+                    <default />
+                    <dependencies>
+                        <dependency type="visible" setting="provider">LibreTranslate</dependency>
                     </dependencies>
                 </setting>
             </group>
@@ -348,6 +367,88 @@
                     <default>Romanian</default>
                     <dependencies>
                         <dependency type="visible" setting="provider">DeepL</dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="libre_source_lang" type="string" label="30055" help="30056">
+                    <constraints>
+                        <options>
+                            <option label="Arabic">Arabic</option>
+                            <option label="Catalan">Catalan</option>
+                            <option label="Chinese">Chinese</option>
+                            <option label="Croatian">Croatian</option>
+                            <option label="Czech">Czech</option>
+                            <option label="Danish">Danish</option>
+                            <option label="Dutch">Dutch</option>
+                            <option label="English">English</option>
+                            <option label="Finnish">Finnish</option>
+                            <option label="French">French</option>
+                            <option label="German">German</option>
+                            <option label="Greek">Greek</option>
+                            <option label="Hebrew">Hebrew</option>
+                            <option label="Hindi">Hindi</option>
+                            <option label="Hungarian">Hungarian</option>
+                            <option label="Italian">Italian</option>
+                            <option label="Japanese">Japanese</option>
+                            <option label="Korean">Korean</option>
+                            <option label="Norwegian">Norwegian</option>
+                            <option label="Polish">Polish</option>
+                            <option label="Portuguese">Portuguese</option>
+                            <option label="Romanian">Romanian</option>
+                            <option label="Russian">Russian</option>
+                            <option label="Slovenian">Slovenian</option>
+                            <option label="Spanish">Spanish</option>
+                            <option label="Swedish">Swedish</option>
+                            <option label="Thai">Thai</option>
+                            <option label="Turkish">Turkish</option>
+                            <option label="Vietnamese">Vietnamese</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                    <default>English</default>
+                    <dependencies>
+                        <dependency type="visible" setting="provider">LibreTranslate</dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="libre_target_lang" type="string" label="30057" help="30058">
+                    <constraints>
+                        <options>
+                            <option label="Arabic">Arabic</option>
+                            <option label="Catalan">Catalan</option>
+                            <option label="Chinese">Chinese</option>
+                            <option label="Croatian">Croatian</option>
+                            <option label="Czech">Czech</option>
+                            <option label="Danish">Danish</option>
+                            <option label="Dutch">Dutch</option>
+                            <option label="English">English</option>
+                            <option label="Finnish">Finnish</option>
+                            <option label="French">French</option>
+                            <option label="German">German</option>
+                            <option label="Greek">Greek</option>
+                            <option label="Hebrew">Hebrew</option>
+                            <option label="Hindi">Hindi</option>
+                            <option label="Hungarian">Hungarian</option>
+                            <option label="Italian">Italian</option>
+                            <option label="Japanese">Japanese</option>
+                            <option label="Korean">Korean</option>
+                            <option label="Norwegian">Norwegian</option>
+                            <option label="Polish">Polish</option>
+                            <option label="Portuguese">Portuguese</option>
+                            <option label="Romanian">Romanian</option>
+                            <option label="Russian">Russian</option>
+                            <option label="Slovenian">Slovenian</option>
+                            <option label="Spanish">Spanish</option>
+                            <option label="Swedish">Swedish</option>
+                            <option label="Thai">Thai</option>
+                            <option label="Turkish">Turkish</option>
+                            <option label="Vietnamese">Vietnamese</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                    <default>Romanian</default>
+                    <dependencies>
+                        <dependency type="visible" setting="provider">LibreTranslate</dependency>
                     </dependencies>
                 </setting>
 
