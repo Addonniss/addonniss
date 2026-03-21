@@ -200,12 +200,37 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
             if not timestamps:
                 log("Invalid SRT format.", "error", monitor)
                 return False
-    
+
+            cleaned_texts = []
+            work_items = []
+            for idx, text in enumerate(texts):
+                if monitor.remove_sdh_hi_cues:
+                    cleaned = file_manager.clean_sdh_hi_text(text)
+                    cleaned_texts.append(cleaned)
+                    if cleaned is not None:
+                        work_items.append((idx, cleaned))
+                else:
+                    cleaned_texts.append(text)
+                    work_items.append((idx, text))
+
             total_lines = len(texts)
-            total_chunks_est = math.ceil(total_lines / initial_chunk)
-            log(f"Total lines to translate: {total_lines}, estimated chunks: {total_chunks_est}", "debug", monitor)
-    
-            all_translated = []
+            total_translatable = len(work_items)
+            removed_line_count = total_lines - total_translatable if monitor.remove_sdh_hi_cues else 0
+            if total_translatable == 0:
+                log("No translatable dialogue remained after SDH/HI cue removal.", "debug", monitor)
+                return False
+             
+            total_chunks_est = math.ceil(total_translatable / initial_chunk)
+            log(
+                f"Total lines: {total_lines}, translatable lines: {total_translatable}, removed by SDH/HI cleanup: {removed_line_count}, estimated chunks: {total_chunks_est}",
+                "debug",
+                monitor
+            )
+     
+            all_translated = [None] * total_lines
+            for idx, cleaned in enumerate(cleaned_texts):
+                if cleaned is None:
+                    all_translated[idx] = ""
             cum_in = 0
             cum_out = 0
             idx = 0
@@ -223,7 +248,7 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
                 except Exception as e:
                     log(f"Failed to instantly display source subtitle: {e}", "error", monitor)
     
-            while idx < total_lines:
+            while idx < total_translatable:
                 if xbmc.Player().getPlayingFile() != session_playing_file:
                     log("Playback target changed during translation. Aborting current job.", "debug", monitor)
                     return False
@@ -254,19 +279,22 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
                         log("Playback target changed during retry. Aborting current job.", "debug", monitor)
                         return False
                         
-                    curr_size = min(chunk_size, total_lines - idx)
+                    curr_size = min(chunk_size, total_translatable - idx)
                     log(f"Translating chunk {idx}-{idx+curr_size}, size: {curr_size}", "debug", monitor)
-    
-                    res, in_t, out_t = translator.translate_batch(texts[idx:idx + curr_size], curr_size)
-    
+     
+                    batch_items = work_items[idx:idx + curr_size]
+                    batch_texts = [item[1] for item in batch_items]
+                    res, in_t, out_t = translator.translate_batch(batch_texts, curr_size)
+     
                     if res:
-                        all_translated.extend(res)
+                        for (line_index, _), translated_line in zip(batch_items, res):
+                            all_translated[line_index] = translated_line
                         cum_in += in_t
                         cum_out += out_t
                         idx += curr_size
                         completed_chunks += 1
                         success = True
-                        percent = int((idx / total_lines) * 100)
+                        percent = int((idx / total_translatable) * 100)
                         log(f"Chunk translated. Progress: {percent}%", "debug", monitor)
                         progress.update(
                             percent,
@@ -275,17 +303,21 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
                             chunk_num=completed_chunks,
                             total_chunks=total_chunks_est,
                             lines_done=idx,
-                            total_lines=total_lines
+                            total_lines=total_translatable
                         )
-    
+     
                         # Live translation progressive reload
-                        percent_done = int((idx / total_lines) * 100)
+                        percent_done = int((idx / total_translatable) * 100)
                         if (monitor.live_reload_index < len(monitor.live_reload_points) and
                             percent_done >= monitor.live_reload_points[monitor.live_reload_index]):
                             try:
+                                prefix_count = 0
+                                while prefix_count < total_lines and all_translated[prefix_count] is not None:
+                                    prefix_count += 1
                                 log(f"Live mode: writing partial SRT at {percent_done}%", "debug", monitor)
-                                file_manager.write_srt(temp_path, timestamps[:len(all_translated)], all_translated)
-                                monitor.load_subtitle_if_new(temp_path)
+                                if prefix_count:
+                                    file_manager.write_srt(temp_path, timestamps[:prefix_count], all_translated[:prefix_count])
+                                    monitor.load_subtitle_if_new(temp_path)
                             except Exception as e:
                                 log(f"Live write failed: {e}", "error", monitor)
                             monitor.live_reload_index += 1
@@ -300,7 +332,11 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
                     ui.notify("Critical failure: API rejected all chunk sizes.")
                     log("Aborting translation: all retries failed.", "error", monitor)
                     return False
-    
+     
+            if any(line is None for line in all_translated):
+                log("Translated subtitle assembly incomplete after chunk processing.", "error", monitor)
+                return False
+
             log("Writing translated SRT TEMP file.", "debug", monitor)
             file_manager.write_srt(temp_path, timestamps, all_translated)
     
@@ -560,6 +596,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.debug_mode = safe_bool('debug_mode', False)
         self.use_notifications = safe_bool('notify_mode', True)
         self.show_stats = safe_bool('show_stats', True)
+        self.remove_sdh_hi_cues = safe_bool('remove_sdh_hi_cues', False)
     
         # ------------------------------------------------------------
         # Numeric / string settings
@@ -637,6 +674,7 @@ class TranslatarrMonitor(xbmc.Monitor):
             f"debug={self.debug_mode}, "
             f"notify={self.use_notifications}, "
             f"stats={self.show_stats}, "
+            f"sdh_hi_removal={self.remove_sdh_hi_cues}, "
             f"chunk_size={self.chunk_size}, "
             f"source_lang={self.source_lang_name} ({self.source_lang_iso}), "
             f"target_lang={self.target_lang_name} ({self.target_lang_iso}), "

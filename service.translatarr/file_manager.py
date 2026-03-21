@@ -7,6 +7,8 @@ from languages import get_lang_params, get_active_language_setting
 
 ADDON = xbmcaddon.Addon('service.translatarr')
 
+MUSIC_NOTE_CHARS = u"\u266a\u266b\u266c\u2669"
+
 
 # -----------------------------------
 # Filename Sanitization
@@ -67,6 +69,99 @@ def get_target_path(original_path, video_name):
     return full_path, clean_name
 
 
+def _normalize_sdh_hi_fragment(fragment):
+    cleaned = fragment.strip().strip("[](){}")
+    cleaned = re.sub(r'\s+', ' ', cleaned)
+    return cleaned.strip()
+
+
+def _looks_like_spoken_dialogue_fragment(fragment):
+    cleaned = _normalize_sdh_hi_fragment(fragment)
+    if not cleaned:
+        return False
+
+    words = re.findall(r"[A-Za-z0-9']+", cleaned)
+    if not words:
+        return False
+
+    if any(ch in cleaned for ch in '"?!'):
+        return True
+
+    if "..." in cleaned or "\u2026" in cleaned:
+        return False
+
+    if "," in cleaned or ";" in cleaned:
+        return True
+
+    if "." in cleaned and len(words) <= 2:
+        return True
+
+    return False
+
+
+def _clean_sdh_hi_line(line):
+    stripped = line.strip()
+    if not stripped:
+        return ""
+
+    no_music = stripped.translate({ord(ch): None for ch in MUSIC_NOTE_CHARS}).strip()
+    if stripped != no_music:
+        if not no_music:
+            return ""
+        if stripped.startswith(tuple(MUSIC_NOTE_CHARS)) or stripped.endswith(tuple(MUSIC_NOTE_CHARS)):
+            return ""
+
+    if re.match(r'^\s*(\[[^\[\]]{1,80}\]|\([^\(\)]{1,80}\))\s*$', stripped):
+        if not _looks_like_spoken_dialogue_fragment(stripped):
+            return ""
+
+    working = stripped
+    prefix_pattern = r'^\s*(\[[^\[\]]{1,80}\]|\([^\(\)]{1,80}\))\s*'
+    while True:
+        match = re.match(prefix_pattern, working)
+        if not match:
+            break
+        fragment = match.group(1)
+        if _looks_like_spoken_dialogue_fragment(fragment):
+            break
+        working = working[match.end():].lstrip()
+
+    suffix_pattern = r'\s*(\[[^\[\]]{1,80}\]|\([^\(\)]{1,80}\))\s*$'
+    while True:
+        match = re.search(suffix_pattern, working)
+        if not match:
+            break
+        fragment = match.group(1)
+        if _looks_like_spoken_dialogue_fragment(fragment):
+            break
+        working = working[:match.start()].rstrip()
+
+    speaker_match = re.match(r"^\s*[A-Z][A-Z0-9 .'\-]{1,24}:\s+(.+)$", working)
+    if speaker_match:
+        working = speaker_match.group(1).strip()
+
+    return working.strip()
+
+
+def clean_sdh_hi_text(text):
+    """
+    Conservatively remove high-confidence SDH/HI cues while preserving dialogue.
+    Returns None when the entry is cue-only and should be skipped.
+    """
+    lines = text.split(' [BR] ')
+    cleaned_lines = []
+
+    for line in lines:
+        cleaned = _clean_sdh_hi_line(line)
+        if cleaned:
+            cleaned_lines.append(cleaned)
+
+    if not cleaned_lines:
+        return None
+
+    return ' [BR] '.join(cleaned_lines)
+
+
 # -----------------------------------
 # Parse SRT
 # -----------------------------------
@@ -106,6 +201,8 @@ def write_srt(path, timestamps, translated_texts):
         scrubbed_txt = re.sub(r'^[ \t]*L\d{1,4}[:\-\s\.]*', '', txt, flags=re.IGNORECASE).strip()
         # Convert [BR] back to newline
         final_txt = scrubbed_txt.replace(' [BR] ', nl).strip()
+        if not final_txt:
+            continue
         # Build SRT block
         final_srt.append(f"{t[0]}{nl}{t[1]}{nl}{final_txt}{nl}")
 

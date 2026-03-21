@@ -50,6 +50,14 @@ def build_style_instruction(trg_name):
         "- Keep dialogue suitable for general audiences.\n"
     )
 
+
+def build_localization_instruction():
+    return (
+        "LOCALIZATION REQUIREMENT:\n"
+        "- Translate idiomatic expressions by meaning rather than word-for-word when needed.\n"
+        "- Use context to choose grammatical gender correctly when the target language requires it.\n"
+    )
+
 # ----------------------------------------------------------
 # Base Translator
 # ----------------------------------------------------------
@@ -139,6 +147,7 @@ class GeminiTranslator(BaseTranslator):
         input_text = "\n".join(prefixed)
 
         style_block = build_style_instruction(trg_name)
+        localization_block = build_localization_instruction()
 
         url = (
             f"https://generativelanguage.googleapis.com/v1beta/models/"
@@ -157,6 +166,7 @@ class GeminiTranslator(BaseTranslator):
                         f"3. Return EXACTLY {expected_count} lines.\n"
                         "4. Return ONLY prefixed translated lines.\n"
                         "5. Do NOT add commentary.\n\n"
+                        f"{localization_block}\n"
                         f"{style_block}\n"
                         f"{input_text}"
                     )
@@ -253,6 +263,7 @@ class OpenAITranslator(BaseTranslator):
         input_text = "\n".join(prefixed)
 
         style_block = build_style_instruction(trg_name)
+        localization_block = build_localization_instruction()
 
         payload = {
             "model": self.model,
@@ -268,6 +279,7 @@ class OpenAITranslator(BaseTranslator):
                         f"3. Return EXACTLY {expected_count} lines.\n"
                         "4. Return ONLY prefixed translated lines.\n"
                         "5. Do NOT add commentary.\n\n"
+                        f"{localization_block}\n"
                         f"{style_block}"
                     )
                 },
@@ -342,6 +354,9 @@ class DeepLTranslator(BaseTranslator):
     def __init__(self):
         self.api_key = ADDON.getSetting('deepl_api_key')
 
+    def _count_submitted_characters(self, text_list):
+        return sum(len(item) for item in text_list)
+
     def _get_lang_codes(self):
         from languages import get_lang_params, get_provider_language_code, get_active_language_setting
 
@@ -375,6 +390,7 @@ class DeepLTranslator(BaseTranslator):
             return None, 0, 0
 
         prefixed = [f"L{i:03}: {t}" for i, t in enumerate(text_list)]
+        submitted_characters = self._count_submitted_characters(prefixed)
 
         payload = {
             "text": prefixed,
@@ -414,6 +430,14 @@ class DeepLTranslator(BaseTranslator):
                 return None, 0, 0
 
             billed_characters = data.get("billed_characters", 0)
+            try:
+                billed_characters = int(billed_characters)
+            except (TypeError, ValueError):
+                billed_characters = 0
+
+            if billed_characters <= 0:
+                billed_characters = submitted_characters
+
             return translated, billed_characters, 0
 
         except Exception as e:

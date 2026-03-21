@@ -1,4 +1,4 @@
-# 🎬 Translatarr v2.4.2
+# 🎬 Translatarr v2.4.3
 ## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
@@ -22,20 +22,26 @@ Unlike traditional word-by-word translators, it understands:
 
 ---
 
-# 🚀 What’s New (v2.4.2)
+# 🚀 What’s New (v2.4.3)
 
-✔ LIBRETRANSLATE SUPPORT
-✔ SELF-HOSTED OFFLINE / HOME NETWORK OPTION
-✔ MORE PRIVACY AND NO-COST FLEXIBILITY
-✔ UPDATED PROVIDER DOCUMENTATION
+✔ SDH/HI CUE REMOVAL OPTION
+✔ BETTER SUBTITLE LOCALIZATION GUIDANCE
+✔ IMPROVED DEEPL USAGE STATISTICS
+✔ CLEARER SETTINGS GROUP NAMES
 
 Recent updates include:
 
-- LibreTranslate is now available as a free self-hosted translation provider
-- Users can run subtitle translation on their own home network or offline environment instead of depending only on external cloud providers
-- LibreTranslate brings better privacy for local deployments, avoids paid API usage, and can be very fast on LAN setups
-- Dedicated LibreTranslate URL, optional API key, and separate language settings were added
-- Existing Gemini, OpenAI, and DeepL provider flows remain supported
+- Added optional **SDH/HI cue removal** to strip common hearing-impaired subtitle cues while preserving spoken dialogue
+- Improved cue cleanup handling for full-line, leading, and trailing cue fragments without breaking multiline subtitle structure
+- Added shared localization guidance for Gemini and OpenAI prompts to improve idioms and gender-aware phrasing
+- Improved DeepL character usage fallback so statistics stay meaningful when provider billing details are missing
+- Renamed settings groups to **Mode**, **Provider**, **Translation**, and **Advanced**
+
+Previous highlights:
+
+- LibreTranslate support for self-hosted offline or home-network translation
+- DeepL Free machine translation support with provider-aware language selection
+- Live translation remains always enabled for faster playback
 
 ---
 

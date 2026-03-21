@@ -464,6 +464,11 @@
                     <default>Natural</default>
                 </setting>
 
+                <setting id="remove_sdh_hi_cues" type="boolean" label="30059" help="30060">
+                    <control type="toggle" />
+                    <default>false</default>
+                </setting>
+
                 <setting id="temp" type="string" label="30032" help="30033">
                     <constraints><allowempty>false</allowempty></constraints>
                     <control type="edit" format="string" />

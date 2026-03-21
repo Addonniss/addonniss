@@ -1,3 +1,10 @@
+v2.4.3
+- Added optional SDH/HI cue removal to strip common hearing-impaired subtitle cues while preserving spoken dialogue
+- Improved SDH/HI cleanup to handle full-line, leading, and trailing cue fragments without breaking multiline subtitle structure
+- Added shared localization guidance for Gemini and OpenAI prompts to improve idioms and gender-aware phrasing
+- Improved DeepL usage statistics fallback so character consumption no longer shows as zero when DeepL omits billed-character details
+- Renamed settings categories for clarity: Mode, Provider, Translation, Advanced
+
 v2.4.2
 - Added LibreTranslate as a free self-hosted translation provider for offline or home-network use
 - LibreTranslate support lets users keep subtitle translation on their own server for more privacy and independence from paid cloud APIs

@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 
 msgctxt "#30000"
-msgid "Subtitles"
+msgid "Mode"
 msgstr ""
 
 msgctxt "#30001"
@@ -22,7 +22,7 @@ msgid "Kodi must use same path for 'Custom Subtitle Location'"
 msgstr ""
 
 msgctxt "#30007"
-msgid "AI Engine"
+msgid "Provider"
 msgstr ""
 
 msgctxt "#30008"
@@ -50,7 +50,7 @@ msgid "Select the specific Gemini model version."
 msgstr ""
 
 msgctxt "#30014"
-msgid "Tuning"
+msgid "Translation"
 msgstr ""
 
 msgctxt "#30015"
@@ -227,4 +227,12 @@ msgstr ""
 
 msgctxt "#30058"
 msgid "Select a target language that exists on your LibreTranslate server. Match this with the languages loaded on the server, for example LT_LOAD_ONLY=en,ro."
+msgstr ""
+
+msgctxt "#30059"
+msgid "SDH/HI cue removal"
+msgstr ""
+
+msgctxt "#30060"
+msgid "Removes common hearing-impaired subtitle cues such as sound effects, music markers, and speaker labels when they are not spoken dialogue. Tries to preserve actual dialogue."
 msgstr ""
