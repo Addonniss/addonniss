@@ -188,7 +188,25 @@ def parse_srt(content):
 # -----------------------------------
 # Write SRT
 # -----------------------------------
-def write_srt(path, timestamps, translated_texts):
+def _compose_dual_language_text(source_text, translated_text):
+    source_text = (source_text or "").strip()
+    translated_text = (translated_text or "").strip()
+
+    if source_text and translated_text:
+        return source_text + "\n" + translated_text
+    if source_text:
+        return source_text
+    return translated_text
+
+
+def _restore_block_breaks(text):
+    text = re.sub(r'\s*\[BR\]\s*', '\n', text, flags=re.IGNORECASE)
+    text = re.sub(r'\n([,.;:!?])', r'\1\n', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
+
+def write_srt(path, timestamps, translated_texts, source_texts=None, dual_language=False):
     """
     Write translated texts to SRT file with proper formatting.
     Ensures Lxxx prefixes are removed and [BR] is converted back to line breaks.
@@ -196,11 +214,17 @@ def write_srt(path, timestamps, translated_texts):
     nl = "\n"
     final_srt = []
 
-    for t, txt in zip(timestamps, translated_texts):
+    for idx, (t, txt) in enumerate(zip(timestamps, translated_texts)):
         # Remove any surviving Lxxx prefixes
         scrubbed_txt = re.sub(r'^[ \t]*L\d{1,4}[:\-\s\.]*', '', txt, flags=re.IGNORECASE).strip()
-        # Convert [BR] back to newline
-        final_txt = scrubbed_txt.replace(' [BR] ', nl).strip()
+        if dual_language:
+            source_txt = ""
+            if source_texts and idx < len(source_texts):
+                source_txt = (source_texts[idx] or "").strip()
+            scrubbed_txt = _compose_dual_language_text(source_txt, scrubbed_txt)
+
+        # Convert [BR] markers back to real line breaks, including loose variants.
+        final_txt = _restore_block_breaks(scrubbed_txt).replace('\n', nl).strip()
         if not final_txt:
             continue
         # Build SRT block

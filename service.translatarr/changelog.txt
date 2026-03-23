@@ -1,3 +1,7 @@
+v2.4.4
+- Added optional Dual-Language Display so subtitles can show source text above the translated text
+- Dual-Language Display is disabled by default and lives in the Mode group as an additive viewing option
+
 v2.4.3
 - Added optional SDH/HI cue removal to strip common hearing-impaired subtitle cues while preserving spoken dialogue
 - Improved SDH/HI cleanup to handle full-line, leading, and trailing cue fragments without breaking multiline subtitle structure

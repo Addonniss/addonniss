@@ -1,4 +1,4 @@
-# 🎬 Translatarr v2.4.3
+# 🎬 Translatarr v2.4.4
 ## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
@@ -22,15 +22,17 @@ Unlike traditional word-by-word translators, it understands:
 
 ---
 
-# 🚀 What’s New (v2.4.3)
+# 🚀 What’s New (v2.4.4)
 
-✔ SDH/HI CUE REMOVAL OPTION
-✔ BETTER SUBTITLE LOCALIZATION GUIDANCE
-✔ IMPROVED DEEPL USAGE STATISTICS
-✔ CLEARER SETTINGS GROUP NAMES
+✔ OPTIONAL DUAL-LANGUAGE DISPLAY
+✔ SOURCE ABOVE TRANSLATION LAYOUT
+✔ SDH/HI CLEANUP STILL SUPPORTED IN DUAL MODE
 
 Recent updates include:
 
+- Added optional **Dual-Language Display** so users can show the original subtitle on the first line and the translated subtitle below it
+- Kept Dual-Language Display disabled by default so the proven translated-only workflow remains unchanged unless the user enables it
+- Placed **Dual-Language Display** in the **Mode** group as an additive subtitle presentation option
 - Added optional **SDH/HI cue removal** to strip common hearing-impaired subtitle cues while preserving spoken dialogue
 - Improved cue cleanup handling for full-line, leading, and trailing cue fragments without breaking multiline subtitle structure
 - Added shared localization guidance for Gemini and OpenAI prompts to improve idioms and gender-aware phrasing
@@ -154,6 +156,7 @@ Kodi → Add-ons → Programs → Translatarr → Settings
 Set:
 
 - Translation Mode (`Auto` or `Manual`)
+- Dual-Language Display (`Off` by default, optional source-above-translation output)
 - Provider (Gemini, OpenAI, DeepL Free machine translation, or LibreTranslate)
 - API Key
 - Base URL for LibreTranslate if using a self-hosted server

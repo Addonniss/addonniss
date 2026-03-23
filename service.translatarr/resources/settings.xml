@@ -38,6 +38,11 @@
                     </dependencies>
                 </setting>
 
+                <setting id="dual_language_display" type="boolean" label="30061" help="30062">
+                    <control type="toggle" />
+                    <default>false</default>
+                </setting>
+
             </group>
         </category>
 

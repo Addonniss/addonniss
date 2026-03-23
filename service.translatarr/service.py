@@ -213,6 +213,8 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
                     cleaned_texts.append(text)
                     work_items.append((idx, text))
 
+            display_source_texts = list(cleaned_texts) if monitor.dual_language_display else None
+
             total_lines = len(texts)
             total_translatable = len(work_items)
             removed_line_count = total_lines - total_translatable if monitor.remove_sdh_hi_cues else 0
@@ -316,7 +318,13 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
                                     prefix_count += 1
                                 log(f"Live mode: writing partial SRT at {percent_done}%", "debug", monitor)
                                 if prefix_count:
-                                    file_manager.write_srt(temp_path, timestamps[:prefix_count], all_translated[:prefix_count])
+                                    file_manager.write_srt(
+                                        temp_path,
+                                        timestamps[:prefix_count],
+                                        all_translated[:prefix_count],
+                                        source_texts=display_source_texts[:prefix_count] if display_source_texts else None,
+                                        dual_language=monitor.dual_language_display
+                                    )
                                     monitor.load_subtitle_if_new(temp_path)
                             except Exception as e:
                                 log(f"Live write failed: {e}", "error", monitor)
@@ -338,7 +346,13 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
                 return False
 
             log("Writing translated SRT TEMP file.", "debug", monitor)
-            file_manager.write_srt(temp_path, timestamps, all_translated)
+            file_manager.write_srt(
+                temp_path,
+                timestamps,
+                all_translated,
+                source_texts=display_source_texts,
+                dual_language=monitor.dual_language_display
+            )
     
             if xbmcvfs.exists(save_path):
                 xbmcvfs.delete(save_path)
@@ -597,6 +611,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.use_notifications = safe_bool('notify_mode', True)
         self.show_stats = safe_bool('show_stats', True)
         self.remove_sdh_hi_cues = safe_bool('remove_sdh_hi_cues', False)
+        self.dual_language_display = safe_bool('dual_language_display', False)
     
         # ------------------------------------------------------------
         # Numeric / string settings
@@ -675,6 +690,7 @@ class TranslatarrMonitor(xbmc.Monitor):
             f"notify={self.use_notifications}, "
             f"stats={self.show_stats}, "
             f"sdh_hi_removal={self.remove_sdh_hi_cues}, "
+            f"dual_language={self.dual_language_display}, "
             f"chunk_size={self.chunk_size}, "
             f"source_lang={self.source_lang_name} ({self.source_lang_iso}), "
             f"target_lang={self.target_lang_name} ({self.target_lang_iso}), "

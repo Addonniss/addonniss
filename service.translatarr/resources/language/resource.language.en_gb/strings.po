@@ -236,3 +236,11 @@ msgstr ""
 msgctxt "#30060"
 msgid "Removes common hearing-impaired subtitle cues such as sound effects, music markers, and speaker labels when they are not spoken dialogue. Tries to preserve actual dialogue."
 msgstr ""
+
+msgctxt "#30061"
+msgid "Dual-Language Display"
+msgstr ""
+
+msgctxt "#30062"
+msgid "When enabled, each subtitle entry shows the original source text on the first line and the translated text below it. When disabled, Translatarr keeps the current translated-only display."
+msgstr ""
