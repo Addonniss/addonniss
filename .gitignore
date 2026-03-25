@@ -3,3 +3,5 @@ __pycache__/
 AGENTS.md
 **/AGENTS.md
 project.bazaar/
+service.translatarr/DEPLOYMENT_NOTES.private.md
+service.translatarr/PUBLISHING.private.md

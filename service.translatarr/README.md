@@ -1,4 +1,4 @@
-# 🎬 Translatarr v2.4.5
+# 🎬 Translatarr v2.4.6
 ## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
@@ -6,7 +6,22 @@ Powered by Google Gemini, OpenAI, DeepL Free machine translation, or LibreTransl
 
 ---
 
-# 🚀 What’s New (v2.4.5)
+# 🚀 What’s New (v2.4.6)
+
+✔ EMBEDDED SUBTITLE EXTRACTION IN MANUAL MODE
+✔ SAFER HANDLING OF PRE-EXISTING MANUAL SOURCE SUBTITLES
+
+Latest updates include:
+
+- Added optional **embedded subtitle extraction** in **Manual mode** for local **MKV** files when no external source subtitle is found yet
+- Embedded extraction now looks for the selected **source-language** subtitle track, prefers **non-SDH** tracks when available, and writes a standard source `.srt` into your configured manual subtitle folder
+- Added Manual mode settings for enabling embedded subtitle extraction and optional paths for **mkvinfo**, **mkvextract**, and **ffmpeg**
+- Fixed Manual mode so a **pre-existing source subtitle** can still be translated when no matching translated target subtitle exists yet
+- Preserved the existing protection against stale files by skipping old manual source subtitles only when a **matching translated target** for the current video already exists
+
+---
+
+# 🚀 Previous What’s New (v2.4.5)
 
 ✔ BROADER LANGUAGE COVERAGE ACROSS ALL PROVIDERS
 ✔ DEEPL LANGUAGE LIST BROUGHT UP TO DATE
@@ -323,6 +338,41 @@ Priority order:
 - fresh current-session subtitles in that folder as a fallback
 
 This keeps Manual mode predictable while still supporting subtitle add-ons that save files with generic names.
+
+---
+
+# 📦 Extract Embedded SRT (Manual Mode)
+
+This feature is for users who keep subtitles embedded inside local MKV files and want Translatarr to create the source `.srt` automatically when Manual mode does not find one yet.
+
+How it works:
+
+- Manual mode first checks your configured subtitle folder as usual
+- If no usable external source subtitle is found yet, Translatarr can try extracting the configured **source-language** subtitle track from the currently playing **local MKV**
+- The extracted subtitle is saved into your manual subtitle folder using the movie filename and your selected source language suffix
+- After that, the normal Manual mode translation flow continues and Translatarr can create the translated target subtitle as usual
+
+Requirements:
+
+- This is **Manual mode only**
+- The playing video must be a **local MKV file** exposed as a normal filesystem path
+- You must enable **Embedded Subtitle Extraction** in settings
+- External tools are required:
+  - `mkvinfo`
+  - `mkvextract`
+  - `ffmpeg` only when the extracted subtitle must be converted from ASS/SSA to SRT
+
+Current limitations:
+
+- Local filesystem paths are supported
+- USB-attached HDDs and SSDs are supported when Kodi exposes them as normal file paths
+- Raw `smb://`, `plugin://`, `http://`, and similar non-local playback paths are not currently supported for extraction
+- Extraction currently targets **MKV** files only
+
+Practical note:
+
+- If a source `.srt` already exists in your manual subtitle folder, Manual mode still uses the normal subtitle-folder workflow first
+- If a translated target subtitle for the current video already exists, Manual mode skips unnecessary retranslation
 
 ---
 

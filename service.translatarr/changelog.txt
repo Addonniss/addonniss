@@ -1,3 +1,10 @@
+v2.4.6
+- Added optional embedded subtitle extraction in Manual mode for local MKV files when no external source subtitle is found yet
+- Embedded extraction now looks for source-language subtitle tracks, prefers non-SDH tracks when available, and writes a standard source `.srt` into the configured manual subtitle folder
+- Added settings for enabling embedded subtitle extraction and optional tool paths for `mkvinfo`, `mkvextract`, and `ffmpeg`
+- Manual mode now allows pre-existing source subtitles to proceed when no matching translated target subtitle exists yet
+- Manual mode now skips stale pre-existing source subtitles only when a matching translated target subtitle for the current video already exists
+
 v2.4.5
 - Expanded language coverage across Gemini, OpenAI, DeepL, and LibreTranslate pickers with Bengali, Bulgarian, Estonian, Indonesian, Latvian, Lithuanian, Serbian, Slovak, Swahili, and Ukrainian
 - Added missing DeepL-supported languages that were previously omitted from the DeepL-specific picker list, including Thai, Vietnamese, Catalan, Croatian, Hebrew, and Hindi

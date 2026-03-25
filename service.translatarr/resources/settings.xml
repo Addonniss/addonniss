@@ -38,6 +38,44 @@
                     </dependencies>
                 </setting>
 
+                <setting id="enable_embedded_subtitle_extraction" type="boolean" label="30063" help="30064">
+                    <control type="toggle" />
+                    <default>false</default>
+                    <dependencies>
+                        <dependency type="visible" setting="translation_mode">Manual</dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="mkvinfo_path" type="string" label="30065" help="30066">
+                    <constraints><allowempty>true</allowempty></constraints>
+                    <control type="edit" format="string" />
+                    <default />
+                    <dependencies>
+                        <dependency type="visible" setting="translation_mode">Manual</dependency>
+                        <dependency type="visible" setting="enable_embedded_subtitle_extraction">true</dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="mkvextract_path" type="string" label="30067" help="30068">
+                    <constraints><allowempty>true</allowempty></constraints>
+                    <control type="edit" format="string" />
+                    <default />
+                    <dependencies>
+                        <dependency type="visible" setting="translation_mode">Manual</dependency>
+                        <dependency type="visible" setting="enable_embedded_subtitle_extraction">true</dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="ffmpeg_path" type="string" label="30069" help="30070">
+                    <constraints><allowempty>true</allowempty></constraints>
+                    <control type="edit" format="string" />
+                    <default />
+                    <dependencies>
+                        <dependency type="visible" setting="translation_mode">Manual</dependency>
+                        <dependency type="visible" setting="enable_embedded_subtitle_extraction">true</dependency>
+                    </dependencies>
+                </setting>
+
                 <setting id="dual_language_display" type="boolean" label="30061" help="30062">
                     <control type="toggle" />
                     <default>false</default>

@@ -244,3 +244,35 @@ msgstr ""
 msgctxt "#30062"
 msgid "When enabled, each subtitle entry shows the original source text on the first line and the translated text below it. When disabled, Translatarr keeps the current translated-only display."
 msgstr ""
+
+msgctxt "#30063"
+msgid "Enable Embedded Subtitle Extraction"
+msgstr ""
+
+msgctxt "#30064"
+msgid "Manual mode only. If no external source subtitle is found, try extracting the source-language subtitle from a local MKV. Requires mkvinfo and mkvextract, and may also need ffmpeg for ASS/SSA conversion."
+msgstr ""
+
+msgctxt "#30065"
+msgid "Path to mkvinfo"
+msgstr ""
+
+msgctxt "#30066"
+msgid "Optional full path to mkvinfo. Leave empty to use the system PATH."
+msgstr ""
+
+msgctxt "#30067"
+msgid "Path to mkvextract"
+msgstr ""
+
+msgctxt "#30068"
+msgid "Optional full path to mkvextract. Leave empty to use the system PATH."
+msgstr ""
+
+msgctxt "#30069"
+msgid "Path to ffmpeg"
+msgstr ""
+
+msgctxt "#30070"
+msgid "Optional full path to ffmpeg. Needed only when the extracted subtitle must be converted from ASS/SSA to SRT."
+msgstr ""

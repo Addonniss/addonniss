@@ -10,6 +10,7 @@ import sys
 import re
 import json
 
+import embedded_subtitles
 import translator
 import file_manager
 import ui
@@ -612,12 +613,16 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.show_stats = safe_bool('show_stats', True)
         self.remove_sdh_hi_cues = safe_bool('remove_sdh_hi_cues', False)
         self.dual_language_display = safe_bool('dual_language_display', False)
+        self.enable_embedded_subtitle_extraction = safe_bool('enable_embedded_subtitle_extraction', False)
     
         # ------------------------------------------------------------
         # Numeric / string settings
         # ------------------------------------------------------------
         self.chunk_size = safe_int('chunk_size', 100)
         self.sub_folder = addon.getSetting('sub_folder') or "/storage/emulated/0/Download/"
+        self.mkvinfo_path = addon.getSetting('mkvinfo_path').strip()
+        self.mkvextract_path = addon.getSetting('mkvextract_path').strip()
+        self.ffmpeg_path = addon.getSetting('ffmpeg_path').strip()
         self.provider = addon.getSetting('provider')
         
         # ------------------------------------------------------------
@@ -710,6 +715,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         # Only show subtitle folder in Manual mode
         if not self.auto_mode:
             settings_snapshot += f", subtitle_folder={self.sub_folder}"
+            settings_snapshot += f", embedded_extract={self.enable_embedded_subtitle_extraction}"
 
         log(settings_snapshot, "debug", self, force=True)
 
@@ -723,6 +729,54 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.live_reload_index = 0
         self.is_busy = False
         self.playback_started_at = 0
+        self.last_manual_extraction_attempt_key = None
+
+    def try_manual_embedded_subtitle_extraction(self, media_path):
+        if not self.enable_embedded_subtitle_extraction:
+            return False
+
+        if not media_path:
+            return False
+
+        resolved_media_path = xbmcvfs.translatePath(media_path) if media_path.startswith("special://") else media_path
+        resolved_output_dir = xbmcvfs.translatePath(self.sub_folder) if self.sub_folder.startswith("special://") else self.sub_folder
+        playback_started_at = int(getattr(self, "playback_started_at", 0))
+        attempt_key = "{0}|{1}".format(resolved_media_path, playback_started_at)
+
+        if getattr(self, "last_manual_extraction_attempt_key", None) == attempt_key:
+            return False
+
+        self.last_manual_extraction_attempt_key = attempt_key
+
+        result = embedded_subtitles.try_extract_embedded_subtitle(
+            media_path=resolved_media_path,
+            output_dir=resolved_output_dir,
+            source_lang_iso=self.source_lang_iso,
+            source_lang_name=self.source_lang_name,
+            source_variants=get_iso_variants(self.source_lang_name),
+            mkvinfo_path=self.mkvinfo_path or None,
+            mkvextract_path=self.mkvextract_path or None,
+            ffmpeg_path=self.ffmpeg_path or None,
+            log_fn=lambda message, level="debug": log(message, level, self)
+        )
+
+        if result.get("success"):
+            log(
+                "Extracted embedded subtitle track {0} to {1}".format(
+                    result.get("track_id", "?"),
+                    result.get("output_path", "")
+                ),
+                "info",
+                self
+            )
+            return True
+
+        log(
+            "Embedded subtitle extraction skipped: {0}".format(result.get("reason", "unknown")),
+            "debug",
+            self
+        )
+        return False
         
     def mark_playback_started(self, reason="Playback started"):
         if getattr(self, "playback_started_at", 0) and xbmc.Player().isPlayingVideo():
@@ -974,7 +1028,8 @@ class TranslatarrMonitor(xbmc.Monitor):
             return
 
         playing_file = xbmc.Player().getPlayingFile()
-        if not playing_file:
+        best_playing_path = get_best_playing_path(self)
+        if not playing_file and not best_playing_path:
             return
 
         # 1. FIX: Derives video name (Prevents crash on plugins)
@@ -1048,6 +1103,12 @@ class TranslatarrMonitor(xbmc.Monitor):
         target_candidates = matched_target_candidates or fallback_target_candidates
         source_candidates = matched_source_candidates or fallback_source_candidates
 
+        if not source_candidates and not target_candidates:
+            extraction_media_path = best_playing_path or playing_file
+            if self.try_manual_embedded_subtitle_extraction(extraction_media_path):
+                self.check_manual_mode()
+                return
+
         # 3. Sorting by mtime (using xbmcvfs)
         def safe_mtime(f):
             try:
@@ -1094,8 +1155,18 @@ class TranslatarrMonitor(xbmc.Monitor):
                 mtime = stat.st_mtime()
 
                 if playback_started_at and mtime < playback_started_at - TEMP_SUBTITLE_TOLERANCE_SECONDS:
-                    log(f"Skipping stale manual subtitle from older session: {full_path}", "debug", self)
-                    continue
+                    if matched_target_candidates:
+                        log(
+                            f"Skipping stale manual subtitle from older session (matching target already exists): {full_path}",
+                            "debug",
+                            self
+                        )
+                        continue
+                    log(
+                        f"Pre-existing manual source subtitle has no matching target yet. Proceeding: {full_path}",
+                        "debug",
+                        self
+                    )
                 
                 if size < 500: 
                     continue
