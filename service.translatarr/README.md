@@ -1,4 +1,4 @@
-# 🎬 Translatarr v2.4.4
+# 🎬 Translatarr v2.4.5
 ## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
@@ -6,23 +6,20 @@ Powered by Google Gemini, OpenAI, DeepL Free machine translation, or LibreTransl
 
 ---
 
-## 🧠 What Is Translatarr?
+# 🚀 What’s New (v2.4.5)
 
-Translatarr is a background Kodi service that automatically translates subtitles using modern AI models.
+✔ BROADER LANGUAGE COVERAGE ACROSS ALL PROVIDERS
+✔ DEEPL LANGUAGE LIST BROUGHT UP TO DATE
 
-Unlike traditional word-by-word translators, it understands:
+Latest updates include:
 
-- Context  
-- Slang  
-- Emotion  
-- Tone  
-- Cultural nuance  
-
-**Result:** subtitles that feel natural and human-written.
+- Expanded language coverage across **Gemini**, **OpenAI**, **DeepL**, and **LibreTranslate** pickers with **Bengali, Bulgarian, Estonian, Indonesian, Latvian, Lithuanian, Serbian, Slovak, Swahili, and Ukrainian**
+- Added missing **DeepL-supported** languages that were previously omitted from the DeepL-specific picker list, including **Thai, Vietnamese, Catalan, Croatian, Hebrew, and Hindi**
+- Preserved the current provider-specific language picker behavior so each engine still shows the languages intended for that provider
 
 ---
 
-# 🚀 What’s New (v2.4.4)
+# 🚀 Previous What’s New (v2.4.4)
 
 ✔ OPTIONAL DUAL-LANGUAGE DISPLAY
 ✔ SOURCE ABOVE TRANSLATION LAYOUT

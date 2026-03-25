@@ -1,3 +1,7 @@
+v2.4.5
+- Expanded language coverage across Gemini, OpenAI, DeepL, and LibreTranslate pickers with Bengali, Bulgarian, Estonian, Indonesian, Latvian, Lithuanian, Serbian, Slovak, Swahili, and Ukrainian
+- Added missing DeepL-supported languages that were previously omitted from the DeepL-specific picker list, including Thai, Vietnamese, Catalan, Croatian, Hebrew, and Hindi
+
 v2.4.4
 - Added optional Dual-Language Display so subtitles can show source text above the translated text
 - Dual-Language Display is disabled by default and lives in the Mode group as an additive viewing option

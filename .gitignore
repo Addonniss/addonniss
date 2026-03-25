@@ -2,3 +2,4 @@ __pycache__/
 *.py[cod]
 AGENTS.md
 **/AGENTS.md
+project.bazaar/
