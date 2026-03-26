@@ -1,4 +1,4 @@
-# 🎬 Translatarr v2.4.6
+# 🎬 Translatarr v2.4.7
 ## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
@@ -6,28 +6,27 @@ Powered by Google Gemini, OpenAI, DeepL Free machine translation, or LibreTransl
 
 ---
 
-# 🚀 What’s New (v2.4.6)
+# 🚀 What’s New (v2.4.7)
 
-✔ EMBEDDED SUBTITLE EXTRACTION IN MANUAL MODE
-✔ SAFER HANDLING OF PRE-EXISTING MANUAL SOURCE SUBTITLES
+✔ SMB PATH SUPPORT FOR EXTRACTION OF EMBEDDED SUBTITLES
+✔ LONGER TIMEOUTS FOR SLOW NETWORK-BASED EXTRACTION
 
 Latest updates include:
 
-Added optional embedded subtitle extraction in Manual mode for local MKV files when no external source subtitle is found yet
+- Expanded the embedded subtitle documentation with more realistic SMB / UNC expectations and practical performance notes from real network tests
+- Improved embedded subtitle extraction logging so Manual mode now shows resolved extraction paths, active tool steps, and explicit timeout failures instead of looking stuck
+- Added longer extraction timeouts for slow UNC / SMB-backed files so network-based extraction has more time to complete before the add-on gives up
 
-Embedded extraction now looks for the selected source-language subtitle track, prefers non-SDH tracks when available, and writes a standard source `.srt` into your configured manual subtitle folder
-
-Fixed Manual mode so a pre-existing source subtitle can still be translated when no matching translated target subtitle exists yet
-
-Preserved protection against stale files by skipping old manual source subtitles only when a matching translated target for the current video already exists
+- Embedded subtitle extraction remains best on local files, but Windows UNC-backed playback paths may still work depending on share access and network performance
 
 ---
 
-**Latest updates** include:
+**Previous v2.4.6 highlights** include:
 
-- Expanded language coverage across **Gemini**, **OpenAI**, **DeepL**, and **LibreTranslate** pickers with **Bengali, Bulgarian, Estonian, Indonesian, Latvian, Lithuanian, Serbian, Slovak, Swahili, and Ukrainian**
-- Added missing **DeepL-supported** languages that were previously omitted from the DeepL-specific picker list, including **Thai, Vietnamese, Catalan, Croatian, Hebrew, and Hindi**
-- Preserved the current provider-specific language picker behavior so each engine still shows the languages intended for that provider
+- Added optional embedded subtitle extraction in Manual mode for local MKV files when no external source subtitle is found yet
+- Embedded extraction now looks for the selected source-language subtitle track, prefers non-SDH tracks when available, and writes a standard source `.srt` into your configured manual subtitle folder
+- Fixed Manual mode so a pre-existing source subtitle can still be translated when no matching translated target subtitle exists yet
+- Preserved protection against stale files by skipping old manual source subtitles only when a matching translated target for the current video already exists
 
 **Previous highlights**:
 
@@ -347,13 +346,22 @@ Current limitations:
 
 - Local filesystem paths are supported
 - USB-attached HDDs and SSDs are supported when Kodi exposes them as normal file paths
-- Raw `smb://`, `plugin://`, `http://`, and similar non-local playback paths are not currently supported for extraction
+- Windows `smb://server/share/...` library paths can also work when they resolve to an accessible UNC network path for `mkvinfo` and `mkvextract`, but extraction on network-backed files can be much slower than local playback and may not feel practical for instant live use
+- `plugin://`, `http://`, and similar non-filesystem playback paths are not currently supported for extraction
 - Extraction currently targets **MKV** files only
+
+Observed network-path performance note:
+
+- Over SMB/UNC, extraction can be significantly slower than local files, but it may still be usable depending on your setup. In real tests on a 1 Gbps network, `mkvextract` advanced at roughly 10-20% per minute, so users should expect some lag before extraction completes depending on file layout, share performance, and network speed
 
 Practical note:
 
 - If a source `.srt` already exists in your manual subtitle folder, Manual mode still uses the normal subtitle-folder workflow first
 - If a translated target subtitle for the current video already exists, Manual mode skips unnecessary retranslation
+
+Tested result:
+
+- Verified successfully with a local embedded-subtitle MKV workflow: Translatarr detected the newly extracted source subtitle immediately and produced a target-language `.srt` through DeepL in about 2 seconds, then displayed it during playback
 
 ---
 

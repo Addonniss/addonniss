@@ -1,3 +1,8 @@
+v2.4.7
+- Improved embedded subtitle extraction logging so Manual mode now shows resolved extraction paths, selected tool steps, and explicit timeout failures instead of appearing stuck
+- Added longer network-path extraction timeouts for UNC-backed playback so slow SMB/Windows share extractions have more time to finish
+- Updated README guidance for embedded subtitle extraction with practical SMB/UNC expectations, observed network performance notes, and clearer limitations for network-backed files
+
 v2.4.6
 - Added optional embedded subtitle extraction in Manual mode for local MKV files when no external source subtitle is found yet
 - Embedded extraction now looks for source-language subtitle tracks, prefers non-SDH tracks when available, and writes a standard source `.srt` into the configured manual subtitle folder

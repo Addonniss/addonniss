@@ -4,12 +4,15 @@ import re
 import shutil
 import subprocess
 import tempfile
+from urllib.parse import unquote, urlsplit
 
 
 SDH_MARKERS_RE = re.compile(
     r"(sdh|cc|hi|hearing.?impaired|closed.?caption|forced)",
     re.IGNORECASE
 )
+LOCAL_COMMAND_TIMEOUT_SECONDS = 60
+NETWORK_COMMAND_TIMEOUT_SECONDS = 900
 
 
 def _log(log_fn, message, level="debug"):
@@ -46,13 +49,36 @@ def _is_local_path(path):
     return bool(re.match(r"^[a-zA-Z]:[\\/]", path)) or path.startswith("/")
 
 
+def _resolve_filesystem_path(path):
+    if not path:
+        return None
+
+    if _is_local_path(path):
+        return path
+
+    lowered = path.lower()
+    if lowered.startswith("smb://") and os.name == "nt":
+        parts = urlsplit(path)
+        if not parts.netloc or not parts.path:
+            return None
+
+        unc_path = "\\\\{0}{1}".format(parts.netloc, unquote(parts.path).replace("/", "\\"))
+        return unc_path
+
+    return None
+
+
+def _is_network_filesystem_path(path):
+    return bool(path and path.startswith("\\\\"))
+
+
 def _build_output_path(output_dir, media_path, source_lang_iso):
     base_name = os.path.splitext(os.path.basename(media_path))[0]
     safe_base = re.sub(r'[<>:"/\\|?*]+', "_", base_name).rstrip(". ")
     return os.path.join(output_dir, "{0}.{1}.srt".format(safe_base, source_lang_iso))
 
 
-def _run_command(command, log_fn=None):
+def _run_command(command, log_fn=None, timeout_seconds=LOCAL_COMMAND_TIMEOUT_SECONDS):
     try:
         completed = subprocess.run(
             command,
@@ -60,8 +86,16 @@ def _run_command(command, log_fn=None):
             text=True,
             check=False,
             encoding="utf-8",
-            errors="ignore"
+            errors="ignore",
+            timeout=timeout_seconds
         )
+    except subprocess.TimeoutExpired:
+        _log(
+            log_fn,
+            "Command timed out after {0}s: {1}".format(timeout_seconds, command[0]),
+            "error"
+        )
+        return False, "", "timeout"
     except Exception as exc:
         _log(log_fn, "Command failed to start: {0} | Error: {1}".format(command[0], exc), "error")
         return False, "", str(exc)
@@ -181,22 +215,39 @@ def try_extract_embedded_subtitle(
     ffmpeg_path=None,
     log_fn=None
 ):
-    if not _is_local_path(media_path):
+    resolved_media_path = _resolve_filesystem_path(media_path)
+    if not resolved_media_path:
         return {"success": False, "reason": "media_path_not_local"}
 
-    if not _is_local_path(output_dir):
+    resolved_output_dir = _resolve_filesystem_path(output_dir)
+    if not resolved_output_dir:
         return {"success": False, "reason": "output_dir_not_local"}
 
-    if not media_path.lower().endswith(".mkv"):
+    if not resolved_media_path.lower().endswith(".mkv"):
         return {"success": False, "reason": "unsupported_container"}
 
-    if not os.path.isfile(media_path):
+    if not os.path.isfile(resolved_media_path):
         return {"success": False, "reason": "media_file_missing"}
 
-    if not os.path.isdir(output_dir):
+    if not os.path.isdir(resolved_output_dir):
         return {"success": False, "reason": "output_dir_missing"}
 
-    output_path = _build_output_path(output_dir, media_path, source_lang_iso)
+    command_timeout_seconds = (
+        NETWORK_COMMAND_TIMEOUT_SECONDS
+        if _is_network_filesystem_path(resolved_media_path)
+        else LOCAL_COMMAND_TIMEOUT_SECONDS
+    )
+
+    _log(
+        log_fn,
+        "Embedded extraction paths resolved → media: {0} | output_dir: {1} | timeout={2}s".format(
+            resolved_media_path,
+            resolved_output_dir,
+            command_timeout_seconds
+        )
+    )
+
+    output_path = _build_output_path(resolved_output_dir, resolved_media_path, source_lang_iso)
     if os.path.isfile(output_path) and os.path.getsize(output_path) > 100:
         _log(log_fn, "Embedded subtitle output already exists: {0}".format(output_path))
         return {"success": True, "output_path": output_path, "reason": "already_exists"}
@@ -206,9 +257,14 @@ def try_extract_embedded_subtitle(
     if not mkvinfo or not mkvextract:
         return {"success": False, "reason": "required_tools_missing"}
 
-    ok, mkvinfo_output, mkvinfo_error = _run_command([mkvinfo, media_path], log_fn=log_fn)
+    _log(log_fn, "Running mkvinfo for embedded subtitle inspection.")
+    ok, mkvinfo_output, mkvinfo_error = _run_command(
+        [mkvinfo, resolved_media_path],
+        log_fn=log_fn,
+        timeout_seconds=command_timeout_seconds
+    )
     if not ok:
-        _log(log_fn, "mkvinfo failed for {0}: {1}".format(media_path, mkvinfo_error), "error")
+        _log(log_fn, "mkvinfo failed for {0}: {1}".format(resolved_media_path, mkvinfo_error), "error")
         return {"success": False, "reason": "mkvinfo_failed"}
 
     tracks = _parse_mkvinfo_tracks(mkvinfo_output, source_variants, source_lang_name)
@@ -216,13 +272,18 @@ def try_extract_embedded_subtitle(
     if not best_track:
         return {"success": False, "reason": "no_matching_subtitle_track"}
 
-    fd, temp_path = tempfile.mkstemp(prefix="translatarr_extract_", suffix=".sub", dir=output_dir)
+    fd, temp_path = tempfile.mkstemp(prefix="translatarr_extract_", suffix=".sub", dir=resolved_output_dir)
     os.close(fd)
     try:
         extract_spec = "{0}:{1}".format(best_track["track_id"], temp_path)
-        ok, _, extract_error = _run_command([mkvextract, "tracks", media_path, extract_spec], log_fn=log_fn)
+        _log(log_fn, "Running mkvextract for subtitle track {0}.".format(best_track["track_id"]))
+        ok, _, extract_error = _run_command(
+            [mkvextract, "tracks", resolved_media_path, extract_spec],
+            log_fn=log_fn,
+            timeout_seconds=command_timeout_seconds
+        )
         if not ok:
-            _log(log_fn, "mkvextract failed for {0}: {1}".format(media_path, extract_error), "error")
+            _log(log_fn, "mkvextract failed for {0}: {1}".format(resolved_media_path, extract_error), "error")
             return {"success": False, "reason": "mkvextract_failed"}
 
         if _looks_like_ass_or_ssa(temp_path):
@@ -230,9 +291,11 @@ def try_extract_embedded_subtitle(
             if not ffmpeg:
                 return {"success": False, "reason": "ffmpeg_required_for_conversion"}
 
+            _log(log_fn, "Embedded subtitle requires ASS/SSA conversion via ffmpeg.")
             ok, _, ffmpeg_error = _run_command(
                 [ffmpeg, "-y", "-loglevel", "error", "-i", temp_path, output_path],
-                log_fn=log_fn
+                log_fn=log_fn,
+                timeout_seconds=command_timeout_seconds
             )
             if not ok:
                 _log(log_fn, "ffmpeg conversion failed for {0}: {1}".format(temp_path, ffmpeg_error), "error")
