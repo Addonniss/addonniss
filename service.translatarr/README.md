@@ -13,49 +13,30 @@ Powered by Google Gemini, OpenAI, DeepL Free machine translation, or LibreTransl
 
 Latest updates include:
 
-- Added optional **embedded subtitle extraction** in **Manual mode** for local **MKV** files when no external source subtitle is found yet
-- Embedded extraction now looks for the selected **source-language** subtitle track, prefers **non-SDH** tracks when available, and writes a standard source `.srt` into your configured manual subtitle folder
-- Added Manual mode settings for enabling embedded subtitle extraction and optional paths for **mkvinfo**, **mkvextract**, and **ffmpeg**
-- Fixed Manual mode so a **pre-existing source subtitle** can still be translated when no matching translated target subtitle exists yet
-- Preserved the existing protection against stale files by skipping old manual source subtitles only when a **matching translated target** for the current video already exists
+Added optional embedded subtitle extraction in Manual mode for local MKV files when no external source subtitle is found yet
+
+Embedded extraction now looks for the selected source-language subtitle track, prefers non-SDH tracks when available, and writes a standard source `.srt` into your configured manual subtitle folder
+
+Fixed Manual mode so a pre-existing source subtitle can still be translated when no matching translated target subtitle exists yet
+
+Preserved protection against stale files by skipping old manual source subtitles only when a matching translated target for the current video already exists
 
 ---
 
-# 🚀 Previous What’s New (v2.4.5)
-
-✔ BROADER LANGUAGE COVERAGE ACROSS ALL PROVIDERS
-✔ DEEPL LANGUAGE LIST BROUGHT UP TO DATE
-
-Latest updates include:
+**Latest updates** include:
 
 - Expanded language coverage across **Gemini**, **OpenAI**, **DeepL**, and **LibreTranslate** pickers with **Bengali, Bulgarian, Estonian, Indonesian, Latvian, Lithuanian, Serbian, Slovak, Swahili, and Ukrainian**
 - Added missing **DeepL-supported** languages that were previously omitted from the DeepL-specific picker list, including **Thai, Vietnamese, Catalan, Croatian, Hebrew, and Hindi**
 - Preserved the current provider-specific language picker behavior so each engine still shows the languages intended for that provider
 
----
-
-# 🚀 Previous What’s New (v2.4.4)
-
-✔ OPTIONAL DUAL-LANGUAGE DISPLAY
-✔ SOURCE ABOVE TRANSLATION LAYOUT
-✔ SDH/HI CLEANUP STILL SUPPORTED IN DUAL MODE
-
-Recent updates include:
-
-- Added optional **Dual-Language Display** so users can show the original subtitle on the first line and the translated subtitle below it
-- Kept Dual-Language Display disabled by default so the proven translated-only workflow remains unchanged unless the user enables it
-- Placed **Dual-Language Display** in the **Mode** group as an additive subtitle presentation option
-- Added optional **SDH/HI cue removal** to strip common hearing-impaired subtitle cues while preserving spoken dialogue
-- Improved cue cleanup handling for full-line, leading, and trailing cue fragments without breaking multiline subtitle structure
-- Added shared localization guidance for Gemini and OpenAI prompts to improve idioms and gender-aware phrasing
-- Improved DeepL character usage fallback so statistics stay meaningful when provider billing details are missing
-- Renamed settings groups to **Mode**, **Provider**, **Translation**, and **Advanced**
-
-Previous highlights:
+**Previous highlights**:
 
 - LibreTranslate support for self-hosted offline or home-network translation
 - DeepL Free machine translation support with provider-aware language selection
 - Live translation remains always enabled for faster playback
+- Added optional Dual-Language Display so users can show the original subtitle on the first line and the translated subtitle below it
+- Added optional SDH/HI cue removal while preserving spoken dialogue
+- Renamed settings groups to **Mode**, **Provider**, **Translation**, and **Advanced**
 
 ---
 
