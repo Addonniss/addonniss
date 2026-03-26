@@ -11,13 +11,10 @@ Powered by Google Gemini, OpenAI, DeepL Free machine translation, or LibreTransl
 ✔ EMBEDDED SUBTITLE EXTRACTION IN MANUAL MODE
 ✔ SAFER HANDLING OF PRE-EXISTING MANUAL SOURCE SUBTITLES
 
-Added optional embedded subtitle extraction in Manual mode for local MKV files when no external source subtitle is found yet
-
-Embedded extraction now looks for the selected source-language subtitle track, prefers non-SDH tracks when available, and writes a standard source `.srt` into your configured manual subtitle folder
-
-Fixed Manual mode so a pre-existing source subtitle can still be translated when no matching translated target subtitle exists yet
-
-Preserved protection against stale files by skipping old manual source subtitles only when a matching translated target for the current video already exists
+- Added optional embedded subtitle extraction in Manual mode for local MKV files when no external source subtitle is found yet
+- Embedded extraction now looks for the selected source-language subtitle track, prefers non-SDH tracks when available, and writes a standard source `.srt` into your configured manual subtitle folder
+- Fixed Manual mode so a pre-existing source subtitle can still be translated when no matching translated target subtitle exists yet
+- Preserved protection against stale files by skipping old manual source subtitles only when a matching translated target for the current video already exists
 
 ---
 
