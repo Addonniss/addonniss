@@ -1,4 +1,4 @@
-# 🎬 Translatarr v2.4.7
+# 🎬 Translatarr v2.4.8
 ## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
@@ -6,30 +6,34 @@ Powered by Google Gemini, OpenAI, DeepL Free machine translation, or LibreTransl
 
 ---
 
-# 🚀 What’s New (v2.4.7)
+# 🚀 What’s New (v2.4.8)
 
-✔ SMB PATH SUPPORT FOR EXTRACTION OF EMBEDDED SUBTITLES
-✔ LONGER TIMEOUTS FOR SLOW NETWORK-BASED EXTRACTION
+✔ SERVICE ON / OFF TOGGLE IN SETTINGS
+✔ EMBEDDED SUBTITLE EXTRACTION FOR MKV AND MP4
+✔ EMBEDDED FALLBACK NOW AVAILABLE IN AUTO MODE
 
 Latest updates include:
 
-- Expanded the embedded subtitle documentation with more realistic SMB / UNC expectations and practical performance notes from real network tests
-- Improved embedded subtitle extraction logging so Manual mode now shows resolved extraction paths, active tool steps, and explicit timeout failures instead of looking stuck
-- Added longer extraction timeouts for slow UNC / SMB-backed files so network-based extraction has more time to complete before the add-on gives up
+- Added a simple Translatarr on/off setting so you can disable subtitle translation temporarily without disabling the Kodi addon itself
+- Expanded embedded subtitle extraction to support both MKV and MP4 files
+- Auto mode can now use embedded subtitle fallback too, instead of keeping embedded extraction limited to Manual mode
+- Added an option to skip extraction and translation when the selected target language already exists as an embedded subtitle track
+- Reorganized embedded subtitle options into their own settings group and simplified external tool setup to one MKVToolNix folder and one FFmpeg folder
 
-- Embedded subtitle extraction remains best on local files, but Windows UNC-backed playback paths may still work depending on share access and network performance
+- Embedded subtitle extraction still works best on local files, but Windows UNC-backed playback paths may still work depending on share access and network performance
 
 ---
 
-**Previous v2.4.6 highlights** include:
+**Previous v2.4.7 highlights** include:
 
-- Added optional embedded subtitle extraction in Manual mode for local MKV files when no external source subtitle is found yet
-- Embedded extraction now looks for the selected source-language subtitle track, prefers non-SDH tracks when available, and writes a standard source `.srt` into your configured manual subtitle folder
-- Fixed Manual mode so a pre-existing source subtitle can still be translated when no matching translated target subtitle exists yet
-- Preserved protection against stale files by skipping old manual source subtitles only when a matching translated target for the current video already exists
+- Improved embedded subtitle extraction logging so Manual mode now shows resolved extraction paths, selected tool steps, and explicit timeout failures instead of appearing stuck
+- Added longer network-path extraction timeouts for UNC-backed playback so slow SMB/Windows share extractions have more time to finish
+- Updated README guidance for embedded subtitle extraction with practical SMB/UNC expectations, observed network performance notes, and clearer limitations for network-backed files
 
 **Previous highlights**:
 
+- Added embedded subtitle extraction for local MKV playback, with source-track detection and optional target-language skip behavior
+- Manual mode now handles pre-existing source subtitles more safely when no matching translated target exists yet
 - LibreTranslate support for self-hosted offline or home-network translation
 - DeepL Free machine translation support with provider-aware language selection
 - Live translation remains always enabled for faster playback
@@ -321,26 +325,31 @@ This keeps Manual mode predictable while still supporting subtitle add-ons that 
 
 ---
 
-# 📦 Extract Embedded SRT (Manual Mode)
+# 📦 Extract Embedded SRT
 
-This feature is for users who keep subtitles embedded inside local MKV files and want Translatarr to create the source `.srt` automatically when Manual mode does not find one yet.
+This feature is for users who keep subtitles embedded inside local MKV or MP4 files and want Translatarr to either extract the source subtitle for translation or skip translation when the target language already exists as an embedded subtitle.
 
 How it works:
 
+- Auto mode first checks the usual scan locations, including the Translatarr subtitle folder, Kodi temp locations, and subtitle add-on folders
 - Manual mode first checks your configured subtitle folder as usual
-- If no usable external source subtitle is found yet, Translatarr can try extracting the configured **source-language** subtitle track from the currently playing **local MKV**
-- The extracted subtitle is saved into your manual subtitle folder using the movie filename and your selected source language suffix
-- After that, the normal Manual mode translation flow continues and Translatarr can create the translated target subtitle as usual
+- If no usable external source or target subtitle is found yet, Translatarr can inspect the currently playing **local MKV or MP4**
+- By default, it extracts the configured **source-language** subtitle track so the normal translation flow can continue
+- If **Skip If Embedded Target Exists** is enabled, Translatarr first checks whether your selected **target-language** subtitle track is already embedded and, if so, it skips source extraction and translation for that playback
+- In Auto mode, extracted source subtitles are saved into the Translatarr subtitle folder
+- In Manual mode, extracted source subtitles are saved into your configured manual subtitle folder using the movie filename and the selected language suffix
+- If no embedded target-language subtitle is found, Translatarr falls back to the source-language extraction flow
 
 Requirements:
 
-- This is **Manual mode only**
-- The playing video must be a **local MKV file** exposed as a normal filesystem path
+- The playing video must be a **local MKV or MP4 file** exposed as a normal filesystem path
 - You must enable **Embedded Subtitle Extraction** in settings
+- Set **MKVToolNix Executables Folder** to the folder containing `mkvinfo` and `mkvextract`
+- Set **FFmpeg Executables Folder** to the folder containing `ffmpeg` and `ffprobe`, usually the `bin` folder
 - External tools are required:
-  - `mkvinfo`
-  - `mkvextract`
-  - `ffmpeg` only when the extracted subtitle must be converted from ASS/SSA to SRT
+  - MKV: `mkvinfo` and `mkvextract`
+  - MP4: `ffprobe` and `ffmpeg`
+  - `ffmpeg` may also be used when an extracted subtitle must be converted from ASS/SSA to SRT
 
 Current limitations:
 
@@ -348,7 +357,7 @@ Current limitations:
 - USB-attached HDDs and SSDs are supported when Kodi exposes them as normal file paths
 - Windows `smb://server/share/...` library paths can also work when they resolve to an accessible UNC network path for `mkvinfo` and `mkvextract`, but extraction on network-backed files can be much slower than local playback and may not feel practical for instant live use
 - `plugin://`, `http://`, and similar non-filesystem playback paths are not currently supported for extraction
-- Extraction currently targets **MKV** files only
+- MKV uses `mkvinfo` and `mkvextract`, while MP4 uses `ffprobe` and `ffmpeg`
 
 Observed network-path performance note:
 

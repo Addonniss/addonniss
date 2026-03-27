@@ -1,3 +1,9 @@
+v2.4.8
+- Added a simple service on/off setting so users can pause Translatarr directly from addon settings without enabling or disabling the Kodi addon itself
+- Expanded embedded subtitle extraction to support both MKV and MP4 files, using MKVToolNix tools for MKV and FFmpeg tools for MP4
+- Embedded subtitle fallback now also works in Auto mode and can skip translation entirely when the selected target language already exists as an embedded subtitle
+- Reorganized embedded subtitle options into their own settings group and simplified external tool configuration to MKVToolNix and FFmpeg executable-folder settings
+
 v2.4.7
 - Improved embedded subtitle extraction logging so Manual mode now shows resolved extraction paths, selected tool steps, and explicit timeout failures instead of appearing stuck
 - Added longer network-path extraction timeouts for UNC-backed playback so slow SMB/Windows share extractions have more time to finish

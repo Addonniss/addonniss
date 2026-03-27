@@ -64,6 +64,13 @@ def log(msg, level='info', monitor=None, force=False):
 # ----------------------------------------------------------
 def normalize_name(name):
     return re.sub(r'[^a-zA-Z0-9]', '', name.lower())
+
+def normalize_stem(name):
+    if not name:
+        return ""
+    base_name = os.path.basename(str(name).replace("\\", "/"))
+    stem, _ = os.path.splitext(base_name)
+    return normalize_name(stem)
     
 def vfs_join(folder, file):
     return (folder.rstrip("/\\") + "/" + file.lstrip("/\\")).replace("\\", "/")
@@ -72,6 +79,13 @@ def safe_filename(name):
     name = re.sub(r'[<>:"/\\|?*]+', '_', name)
     name = re.sub(r'\s+', ' ', name).strip()
     return name.rstrip('. ')
+
+def subtitle_matches_video(video_name, subtitle_name):
+    video_stem = normalize_stem(video_name)
+    subtitle_stem = normalize_stem(subtitle_name)
+    if not video_stem or not subtitle_stem:
+        return False
+    return subtitle_stem.startswith(video_stem)
 
 TEMP_SUBTITLE_TOLERANCE_SECONDS = 10
 
@@ -113,6 +127,13 @@ def get_kodi_temp_scan_folders():
         folders.append(subfolder)
 
     return folders
+
+
+def _normalized_dirname(path_value):
+    value = (path_value or "").strip()
+    if not value:
+        return ""
+    return os.path.dirname(value.rstrip("/\\")) if os.path.splitext(value)[1] else value.rstrip("/\\")
     
 # ----------------------------------------------------------
 # Subtitle Processing with TEMP FILES
@@ -569,6 +590,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         """
     
         addon = xbmcaddon.Addon(ADDON_ID)
+        previous_service_enabled = getattr(self, "service_enabled", True)
     
         # ------------------------------------------------------------
         # Helper: Safe boolean reader (version-agnostic)
@@ -606,6 +628,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         # Boolean settings
         # ------------------------------------------------------------
         mode = addon.getSetting('translation_mode')
+        self.service_enabled = safe_bool('service_enabled', True)
         self.auto_mode = mode == "Auto"
         log(f"Translation mode: {mode}", "debug", self)
         self.debug_mode = safe_bool('debug_mode', False)
@@ -614,15 +637,25 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.remove_sdh_hi_cues = safe_bool('remove_sdh_hi_cues', False)
         self.dual_language_display = safe_bool('dual_language_display', False)
         self.enable_embedded_subtitle_extraction = safe_bool('enable_embedded_subtitle_extraction', False)
+        self.skip_translation_if_embedded_target_exists = safe_bool('skip_translation_if_embedded_target_exists', False)
     
         # ------------------------------------------------------------
         # Numeric / string settings
         # ------------------------------------------------------------
         self.chunk_size = safe_int('chunk_size', 100)
         self.sub_folder = addon.getSetting('sub_folder') or "/storage/emulated/0/Download/"
-        self.mkvinfo_path = addon.getSetting('mkvinfo_path').strip()
-        self.mkvextract_path = addon.getSetting('mkvextract_path').strip()
-        self.ffmpeg_path = addon.getSetting('ffmpeg_path').strip()
+        legacy_mkvinfo_path = addon.getSetting('mkvinfo_path').strip()
+        legacy_mkvextract_path = addon.getSetting('mkvextract_path').strip()
+        legacy_ffmpeg_path = addon.getSetting('ffmpeg_path').strip()
+        self.mkvtoolnix_folder = (addon.getSetting('mkvtoolnix_folder') or "").strip()
+        self.ffmpeg_folder = (addon.getSetting('ffmpeg_folder') or "").strip()
+        if not self.mkvtoolnix_folder:
+            self.mkvtoolnix_folder = _normalized_dirname(legacy_mkvinfo_path) or _normalized_dirname(legacy_mkvextract_path)
+        if not self.ffmpeg_folder:
+            self.ffmpeg_folder = _normalized_dirname(legacy_ffmpeg_path)
+        self.mkvinfo_path = legacy_mkvinfo_path
+        self.mkvextract_path = legacy_mkvextract_path
+        self.ffmpeg_path = legacy_ffmpeg_path
         self.provider = addon.getSetting('provider')
         
         # ------------------------------------------------------------
@@ -662,7 +695,10 @@ class TranslatarrMonitor(xbmc.Monitor):
         # ------------------------------------------------------------
         self.live_reload_points = [5, 15, 35, 60, 85]
         self.live_reload_index = 0
-        log("Live translation is always enabled.", "debug", self)
+        if self.service_enabled:
+            log("Translation service is enabled.", "debug", self)
+        else:
+            log("Translation service is disabled from settings. Polling is paused.", "info", self, force=True)
     
         # ------------------------------------------------------------
         # Validate subtitle folder path
@@ -690,6 +726,7 @@ class TranslatarrMonitor(xbmc.Monitor):
 
         settings_snapshot = (
             "Settings snapshot → "
+            f"service_enabled={self.service_enabled}, "
             f"mode={'Auto' if self.auto_mode else 'Manual'}, "
             f"debug={self.debug_mode}, "
             f"notify={self.use_notifications}, "
@@ -716,8 +753,16 @@ class TranslatarrMonitor(xbmc.Monitor):
         if not self.auto_mode:
             settings_snapshot += f", subtitle_folder={self.sub_folder}"
             settings_snapshot += f", embedded_extract={self.enable_embedded_subtitle_extraction}"
+            settings_snapshot += f", skip_if_embedded_target_exists={self.skip_translation_if_embedded_target_exists}"
+            settings_snapshot += f", mkvtoolnix_folder={self.mkvtoolnix_folder or 'PATH'}"
+            settings_snapshot += f", ffmpeg_folder={self.ffmpeg_folder or 'PATH'}"
 
         log(settings_snapshot, "debug", self, force=True)
+
+        if previous_service_enabled and not self.service_enabled:
+            self.reset_playback_state()
+        elif not previous_service_enabled and self.service_enabled and xbmc.Player().isPlayingVideo():
+            self.mark_playback_started("Translation service re-enabled")
 
     def reset_playback_state(self):
         self.last_source_state = {}
@@ -729,54 +774,84 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.live_reload_index = 0
         self.is_busy = False
         self.playback_started_at = 0
-        self.last_manual_extraction_attempt_key = None
+        self.last_embedded_extraction_attempt_key = None
 
-    def try_manual_embedded_subtitle_extraction(self, media_path):
+    def handle_embedded_subtitle_fallback(self, media_path, output_dir, mode_label):
         if not self.enable_embedded_subtitle_extraction:
-            return False
+            return "disabled"
 
-        if not media_path:
-            return False
+        if not media_path or not output_dir:
+            return "unavailable"
 
         resolved_media_path = xbmcvfs.translatePath(media_path) if media_path.startswith("special://") else media_path
-        resolved_output_dir = xbmcvfs.translatePath(self.sub_folder) if self.sub_folder.startswith("special://") else self.sub_folder
+        resolved_output_dir = xbmcvfs.translatePath(output_dir) if output_dir.startswith("special://") else output_dir
         playback_started_at = int(getattr(self, "playback_started_at", 0))
-        attempt_key = "{0}|{1}".format(resolved_media_path, playback_started_at)
+        attempt_key = "{0}|{1}|{2}".format(mode_label, resolved_media_path, playback_started_at)
 
-        if getattr(self, "last_manual_extraction_attempt_key", None) == attempt_key:
-            return False
+        if getattr(self, "last_embedded_extraction_attempt_key", None) == attempt_key:
+            return "already_checked"
 
-        self.last_manual_extraction_attempt_key = attempt_key
+        self.last_embedded_extraction_attempt_key = attempt_key
+
+        tool_kwargs = {
+            "media_path": resolved_media_path,
+            "output_dir": resolved_output_dir,
+            "mkvinfo_path": self.mkvtoolnix_folder or self.mkvinfo_path or None,
+            "mkvextract_path": self.mkvtoolnix_folder or self.mkvextract_path or None,
+            "ffmpeg_path": self.ffmpeg_folder or self.ffmpeg_path or None,
+            "log_fn": lambda message, level="debug": log(message, level, self),
+        }
+
+        if self.skip_translation_if_embedded_target_exists:
+            target_result = embedded_subtitles.has_embedded_subtitle(
+                media_path=resolved_media_path,
+                language_name=self.target_lang_name,
+                language_variants=get_iso_variants(self.target_lang_name),
+                mkvinfo_path=self.mkvtoolnix_folder or self.mkvinfo_path or None,
+                mkvextract_path=self.mkvtoolnix_folder or self.mkvextract_path or None,
+                ffmpeg_path=self.ffmpeg_folder or self.ffmpeg_path or None,
+                log_fn=tool_kwargs["log_fn"]
+            )
+            if target_result.get("found"):
+                log(
+                    "Embedded target-language subtitle already exists (track {0}). Skipping source extraction and translation.".format(
+                        target_result.get("track_id", "?")
+                    ),
+                    "info",
+                    self
+                )
+                return "target_exists_skip"
+            if target_result.get("reason") != "no_matching_subtitle_track":
+                log(
+                    "Embedded target-language subtitle check skipped: {0}".format(target_result.get("reason", "unknown")),
+                    "debug",
+                    self
+                )
 
         result = embedded_subtitles.try_extract_embedded_subtitle(
-            media_path=resolved_media_path,
-            output_dir=resolved_output_dir,
             source_lang_iso=self.source_lang_iso,
             source_lang_name=self.source_lang_name,
             source_variants=get_iso_variants(self.source_lang_name),
-            mkvinfo_path=self.mkvinfo_path or None,
-            mkvextract_path=self.mkvextract_path or None,
-            ffmpeg_path=self.ffmpeg_path or None,
-            log_fn=lambda message, level="debug": log(message, level, self)
+            **tool_kwargs
         )
 
         if result.get("success"):
             log(
-                "Extracted embedded subtitle track {0} to {1}".format(
+                "Extracted embedded source subtitle track {0} to {1}".format(
                     result.get("track_id", "?"),
                     result.get("output_path", "")
                 ),
                 "info",
                 self
             )
-            return True
+            return "source_extracted"
 
         log(
             "Embedded subtitle extraction skipped: {0}".format(result.get("reason", "unknown")),
             "debug",
             self
         )
-        return False
+        return "no_action"
         
     def mark_playback_started(self, reason="Playback started"):
         if getattr(self, "playback_started_at", 0) and xbmc.Player().isPlayingVideo():
@@ -796,6 +871,9 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.reset_playback_state()
 
     def check_for_subs(self):
+        if not self.service_enabled:
+            return
+
         if not xbmc.Player().isPlayingVideo():
             return
 
@@ -831,7 +909,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         else:
             video_name = raw_name
 
-        video_name_normalized = normalize_name(video_name)
+        video_name_normalized = normalize_stem(video_name)
         
         trg_variants = get_iso_variants(self.target_lang_name)
         target_exts = [f".{v}.srt" for v in trg_variants]
@@ -905,7 +983,7 @@ class TranslatarrMonitor(xbmc.Monitor):
                     continue
 
                 f_lower = f.lower()
-                f_normalized = normalize_name(f)
+                f_normalized = normalize_stem(f)
                 full_path = vfs_join(folder, f)
 
                 try:
@@ -925,7 +1003,7 @@ class TranslatarrMonitor(xbmc.Monitor):
                 is_temp_folder = folder in temp_like_folders
                 recent_session_file = bool(playback_started_at) and f_mtime >= playback_started_at - TEMP_SUBTITLE_TOLERANCE_SECONDS
                 current_session_temp_file = recent_session_file
-                name_match = video_name_normalized in f_normalized
+                name_match = subtitle_matches_video(video_name, f)
                 allow_nonmatching_custom = folder == custom_folder and recent_session_file
 
                 if not name_match and not is_temp_folder and not allow_nonmatching_custom:
@@ -965,6 +1043,28 @@ class TranslatarrMonitor(xbmc.Monitor):
                 if f_mtime > newest_source_mtime:
                     newest_source_mtime = f_mtime
                     newest_source_file = full_path
+
+        log(
+            "Auto scan result -> source: {0} | target: {1}".format(
+                newest_source_file or "none",
+                newest_target_file or "none"
+            ),
+            "debug",
+            self
+        )
+
+        if not newest_source_file:
+            extraction_media_path = best_playing_path or playing_file
+            embedded_status = self.handle_embedded_subtitle_fallback(
+                extraction_media_path,
+                TRANSLATARR_SUB_FOLDER,
+                "auto"
+            )
+            if embedded_status == "source_extracted":
+                self.check_auto_mode_unified()
+                return
+            if embedded_status == "target_exists_skip":
+                return
 
         # 1. Load newest translated target if one already exists
         if newest_target_file:
@@ -1042,7 +1142,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         else:
             video_name = raw_name
 
-        video_name_normalized = normalize_name(video_name)
+        video_name_normalized = normalize_stem(video_name)
         
         # Check if we switched movies to clear size cache if necessary
         if getattr(self, 'last_processed_video', None) != video_name:
@@ -1072,7 +1172,7 @@ class TranslatarrMonitor(xbmc.Monitor):
 
         for f in files:
             f_lower = f.lower()
-            f_normalized = normalize_name(f_lower)
+            f_normalized = normalize_stem(f_lower)
             full_path = vfs_join(custom_dir, f)
 
             try:
@@ -1081,7 +1181,7 @@ class TranslatarrMonitor(xbmc.Monitor):
             except Exception:
                 f_mtime = 0
 
-            name_match = video_name_normalized in f_normalized
+            name_match = subtitle_matches_video(video_name, f)
             recent_session_file = bool(playback_started_at) and (
                 f_mtime >= playback_started_at - TEMP_SUBTITLE_TOLERANCE_SECONDS
             )
@@ -1105,8 +1205,15 @@ class TranslatarrMonitor(xbmc.Monitor):
 
         if not source_candidates and not target_candidates:
             extraction_media_path = best_playing_path or playing_file
-            if self.try_manual_embedded_subtitle_extraction(extraction_media_path):
+            embedded_status = self.handle_embedded_subtitle_fallback(
+                extraction_media_path,
+                self.sub_folder,
+                "manual"
+            )
+            if embedded_status == "source_extracted":
                 self.check_manual_mode()
+                return
+            if embedded_status == "target_exists_skip":
                 return
 
         # 3. Sorting by mtime (using xbmcvfs)

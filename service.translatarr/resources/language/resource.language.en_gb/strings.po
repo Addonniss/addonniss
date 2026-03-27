@@ -250,29 +250,41 @@ msgid "Enable Embedded Subtitle Extraction"
 msgstr ""
 
 msgctxt "#30064"
-msgid "Manual mode only. If no external source subtitle is found, try extracting the source-language subtitle from a local MKV. Requires mkvinfo and mkvextract, and may also need ffmpeg for ASS/SSA conversion."
+msgid "If no usable subtitle is found during playback, Translatarr can inspect a local MKV or MP4 for embedded subtitles. In Auto mode, extracted source subtitles are written to the Translatarr subtitle folder. In Manual mode, they are written to your configured manual subtitle folder."
 msgstr ""
 
 msgctxt "#30065"
-msgid "Path to mkvinfo"
+msgid "MKVToolNix Executables Folder"
 msgstr ""
 
 msgctxt "#30066"
-msgid "Optional full path to mkvinfo. Leave empty to use the system PATH."
+msgid "Optional folder containing mkvinfo and mkvextract. Used for embedded subtitle detection and extraction from MKV files. Leave empty to use the system PATH."
 msgstr ""
 
 msgctxt "#30067"
-msgid "Path to mkvextract"
+msgid "FFmpeg Executables Folder"
 msgstr ""
 
 msgctxt "#30068"
-msgid "Optional full path to mkvextract. Leave empty to use the system PATH."
+msgid "Optional folder containing ffmpeg and ffprobe. Used for embedded subtitle detection and extraction from MP4 files, and for subtitle conversion when needed. Leave empty to use the system PATH."
 msgstr ""
 
-msgctxt "#30069"
-msgid "Path to ffmpeg"
+msgctxt "#30071"
+msgid "Enable Translation Service"
 msgstr ""
 
-msgctxt "#30070"
-msgid "Optional full path to ffmpeg. Needed only when the extracted subtitle must be converted from ASS/SSA to SRT."
+msgctxt "#30072"
+msgid "Turns the Translatarr background service on or off without disabling the add-on in Kodi. When off, subtitle polling and translation stay paused until you enable it again."
+msgstr ""
+
+msgctxt "#30073"
+msgid "Skip If Embedded Target Exists"
+msgstr ""
+
+msgctxt "#30074"
+msgid "When enabled, Translatarr checks whether the video already has an embedded subtitle in your selected target language. If it does, Translatarr skips embedded source extraction and translation for that playback. If no embedded target-language subtitle exists, the normal source extraction and translation flow continues."
+msgstr ""
+
+msgctxt "#30075"
+msgid "Embedded Subtitles"
 msgstr ""
