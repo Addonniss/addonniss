@@ -108,6 +108,7 @@ def parse_mkvinfo_output(text: str) -> List[Dict[str, Any]]:
 
     for raw_line in text.splitlines():
         line = raw_line.strip()
+        normalized_line = line.replace('"', "")
 
         if "Track number:" in line and "mkvextract:" in line:
             if current and current.get("type") == "subtitles":
@@ -131,17 +132,17 @@ def parse_mkvinfo_output(text: str) -> List[Dict[str, Any]]:
         if current is None:
             continue
 
-        if line.startswith("Track type:"):
+        if "Track type:" in normalized_line:
             current["type"] = line.split(":", 1)[1].strip().lower()
-        elif line.startswith("Codec ID:"):
+        elif "Codec ID:" in normalized_line:
             current["codec_id"] = line.split(":", 1)[1].strip()
-        elif line.startswith("Language:"):
+        elif "Language:" in normalized_line:
             current["language"] = line.split(":", 1)[1].strip().lower()
-        elif line.startswith("Name:"):
+        elif "Name:" in normalized_line:
             current["name"] = line.split(":", 1)[1].strip()
-        elif line.startswith("Forced flag:"):
+        elif "Forced flag:" in normalized_line:
             current["forced"] = "1" in line or "true" in line.lower()
-        elif line.startswith("Default flag:"):
+        elif "Default track flag:" in normalized_line or "Default flag:" in normalized_line:
             current["default"] = "1" in line or "true" in line.lower()
 
     if current and current.get("type") == "subtitles":
@@ -207,19 +208,35 @@ def parse_ffprobe_streams(streams: List[Dict[str, Any]]) -> List[Dict[str, Any]]
     subtitle_index = 0
 
     for stream in streams or []:
-        if stream.get("codec_type") != "subtitle":
+        codec_type = (stream.get("codec_type") or "").lower()
+        codec_name = (stream.get("codec_name") or "").lower()
+
+        if codec_type != "subtitle" and "sub" not in codec_name:
             continue
 
         tags = stream.get("tags") or {}
         disposition = stream.get("disposition") or {}
+        language = (
+            tags.get("language")
+            or tags.get("LANGUAGE")
+            or tags.get("Language")
+            or ""
+        ).lower()
+        track_name = (
+            tags.get("title")
+            or tags.get("TITLE")
+            or tags.get("handler_name")
+            or tags.get("HANDLER_NAME")
+            or ""
+        )
 
         parsed.append({
             "track_number": stream.get("index"),
             "ffmpeg_sub_index": subtitle_index,
             "type": "subtitles",
             "codec_id": stream.get("codec_name") or "",
-            "language": (tags.get("language") or tags.get("LANGUAGE") or "").lower(),
-            "name": tags.get("title") or tags.get("handler_name") or "",
+            "language": language,
+            "name": track_name,
             "forced": bool(disposition.get("forced")),
             "default": bool(disposition.get("default")),
         })
@@ -482,7 +499,8 @@ def extract_subtitle(req: ExtractRequest, authorization: Optional[str] = Header(
         return ExtractResponse(
             ok=False,
             message="ffprobe failed: {0}".format(probe_result.stderr.strip() or probe_result.stdout.strip() or "unknown_error"),
-            resolved_video_path=resolved_video_path
+            resolved_video_path=resolved_video_path,
+            diagnostic_preview=(probe_result.stderr or probe_result.stdout or "")[:4000]
         )
 
     try:
@@ -491,7 +509,8 @@ def extract_subtitle(req: ExtractRequest, authorization: Optional[str] = Header(
         return ExtractResponse(
             ok=False,
             message="ffprobe returned invalid JSON",
-            resolved_video_path=resolved_video_path
+            resolved_video_path=resolved_video_path,
+            diagnostic_preview=(probe_result.stdout or "")[:4000]
         )
 
     tracks = parse_ffprobe_streams(probe_data.get("streams") or [])
@@ -502,7 +521,8 @@ def extract_subtitle(req: ExtractRequest, authorization: Optional[str] = Header(
             ok=False,
             message="No subtitle streams found in MP4",
             all_tracks=[],
-            resolved_video_path=resolved_video_path
+            resolved_video_path=resolved_video_path,
+            diagnostic_preview=json.dumps(probe_data.get("streams") or [], ensure_ascii=False)[:4000]
         )
 
     if not selected:
@@ -510,7 +530,8 @@ def extract_subtitle(req: ExtractRequest, authorization: Optional[str] = Header(
             ok=False,
             message="No suitable subtitle stream found for language '{0}'".format(source_lang),
             all_tracks=tracks,
-            resolved_video_path=resolved_video_path
+            resolved_video_path=resolved_video_path,
+            diagnostic_preview=json.dumps(probe_data.get("streams") or [], ensure_ascii=False)[:4000]
         )
 
     cache_path = get_cache_path(resolved_video_path, source_lang, selected["track_number"])
