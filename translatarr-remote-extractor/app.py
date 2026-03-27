@@ -44,6 +44,7 @@ class ExtractResponse(BaseModel):
     selected_track: Optional[Dict[str, Any]] = None
     all_tracks: List[Dict[str, Any]] = []
     resolved_video_path: Optional[str] = None
+    diagnostic_preview: Optional[str] = None
 
 
 def normalize_lang(lang: str) -> str:
@@ -358,7 +359,8 @@ def extract_subtitle(req: ExtractRequest, authorization: Optional[str] = Header(
                 ok=False,
                 message="No subtitle tracks found in MKV",
                 all_tracks=[],
-                resolved_video_path=resolved_video_path
+                resolved_video_path=resolved_video_path,
+                diagnostic_preview=(info_result.stdout or "")[:4000]
             )
 
         if not selected:

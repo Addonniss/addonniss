@@ -88,6 +88,25 @@ def subtitle_matches_video(video_name, subtitle_name):
         return False
     return subtitle_stem.startswith(video_stem)
 
+
+def subtitle_matches_language_suffix(filename, lang_variants):
+    filename_lower = (filename or "").lower()
+    descriptor_suffixes = ("sdh", "hi", "cc", "forced")
+
+    for variant in lang_variants:
+        variant_lower = (variant or "").lower()
+        if not variant_lower:
+            continue
+
+        if filename_lower.endswith(".{0}.srt".format(variant_lower)):
+            return True
+
+        for descriptor in descriptor_suffixes:
+            if filename_lower.endswith(".{0}.{1}.srt".format(variant_lower, descriptor)):
+                return True
+
+    return False
+
 TEMP_SUBTITLE_TOLERANCE_SECONDS = 10
 
 def is_vfs_network_path(path):
@@ -1030,9 +1049,6 @@ class TranslatarrMonitor(xbmc.Monitor):
 
         video_name_normalized = normalize_stem(video_name)
         
-        trg_variants = get_iso_variants(self.target_lang_name)
-        target_exts = [f".{v}.srt" for v in trg_variants]
-
         kodi_temp_folders = get_kodi_temp_scan_folders()
         kodi_temp_folder_set = set(kodi_temp_folders)
         temp_like_folders = set(kodi_temp_folders + [A4K_SUB_FOLDER])
@@ -1078,6 +1094,8 @@ class TranslatarrMonitor(xbmc.Monitor):
 
         newest_source_file = None
         newest_source_mtime = 0
+        src_variants = get_iso_variants(self.source_lang_name)
+        trg_variants = get_iso_variants(self.target_lang_name)
 
         for folder in folders_to_scan:
             if not folder:
@@ -1151,11 +1169,14 @@ class TranslatarrMonitor(xbmc.Monitor):
                 if f_size < 50:
                     continue
 
-                # Prefer already translated subtitle if available                
-                if any(f_lower.endswith(ext) for ext in target_exts):
+                # Prefer already translated subtitle if available
+                if subtitle_matches_language_suffix(f_lower, trg_variants):
                     if f_mtime > newest_target_mtime:
                         newest_target_mtime = f_mtime
                         newest_target_file = full_path
+                    continue
+
+                if not subtitle_matches_language_suffix(f_lower, src_variants):
                     continue
 
                 # Otherwise treat as a source subtitle candidate
@@ -1281,7 +1302,6 @@ class TranslatarrMonitor(xbmc.Monitor):
 
         src_variants = get_iso_variants(self.source_lang_name)
         trg_variants = get_iso_variants(self.target_lang_name)
-        target_exts = [f".{v}.srt" for v in trg_variants]
 
         matched_source_candidates = []
         matched_target_candidates = []
@@ -1305,8 +1325,8 @@ class TranslatarrMonitor(xbmc.Monitor):
                 f_mtime >= playback_started_at - TEMP_SUBTITLE_TOLERANCE_SECONDS
             )
 
-            is_target = any(f_lower.endswith(ext) for ext in target_exts)
-            is_source = any(f_lower.endswith(f".{v}.srt") for v in src_variants)
+            is_target = subtitle_matches_language_suffix(f_lower, trg_variants)
+            is_source = subtitle_matches_language_suffix(f_lower, src_variants)
 
             if is_target:
                 if name_match:
