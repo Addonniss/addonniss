@@ -288,3 +288,39 @@ msgstr ""
 msgctxt "#30075"
 msgid "Embedded Subtitles"
 msgstr ""
+
+msgctxt "#30076"
+msgid "Remote Extractor"
+msgstr ""
+
+msgctxt "#30077"
+msgid "Enable Remote Extractor"
+msgstr ""
+
+msgctxt "#30078"
+msgid "Allows Translatarr to call an external subtitle-extraction service when local embedded-subtitle tools are unavailable or when Android should use a remote extractor first."
+msgstr ""
+
+msgctxt "#30079"
+msgid "Remote Extractor URL"
+msgstr ""
+
+msgctxt "#30080"
+msgid "Base URL for the remote extractor service, for example http://server:8097. Translatarr will call its /extract endpoint when remote extraction is needed."
+msgstr ""
+
+msgctxt "#30081"
+msgid "Remote Extractor Token"
+msgstr ""
+
+msgctxt "#30082"
+msgid "Optional bearer token for the remote extractor service. Leave empty if the service does not require authentication."
+msgstr ""
+
+msgctxt "#30083"
+msgid "Remote Extractor Timeout"
+msgstr ""
+
+msgctxt "#30084"
+msgid "Maximum number of seconds Translatarr waits for the remote extractor service to respond before giving up and continuing the normal subtitle flow."
+msgstr ""

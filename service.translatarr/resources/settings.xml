@@ -93,6 +93,42 @@
             </group>
         </category>
 
+        <category id="remote_extractor" label="30076">
+            <group id="remote_extractor">
+                <setting id="remote_extractor_enabled" type="boolean" label="30077" help="30078">
+                    <control type="toggle" />
+                    <default>false</default>
+                </setting>
+
+                <setting id="remote_extractor_url" type="string" label="30079" help="30080">
+                    <constraints><allowempty>true</allowempty></constraints>
+                    <control type="edit" format="string" />
+                    <default />
+                    <dependencies>
+                        <dependency type="visible" setting="remote_extractor_enabled">true</dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="remote_extractor_token" type="string" label="30081" help="30082">
+                    <constraints><allowempty>true</allowempty></constraints>
+                    <control type="edit" format="string" />
+                    <default />
+                    <dependencies>
+                        <dependency type="visible" setting="remote_extractor_enabled">true</dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="remote_extractor_timeout" type="integer" label="30083" help="30084">
+                    <constraints><minimum>10</minimum><maximum>600</maximum></constraints>
+                    <control type="edit" format="integer" />
+                    <default>120</default>
+                    <dependencies>
+                        <dependency type="visible" setting="remote_extractor_enabled">true</dependency>
+                    </dependencies>
+                </setting>
+            </group>
+        </category>
+
         <category id="ai_engine" label="30007">
             <group id="2" label="30007">
                 <setting id="provider" type="string" label="30008" help="30009">

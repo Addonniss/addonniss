@@ -11,6 +11,7 @@ import re
 import json
 
 import embedded_subtitles
+import remote_extractor
 import translator
 import file_manager
 import ui
@@ -134,6 +135,49 @@ def _normalized_dirname(path_value):
     if not value:
         return ""
     return os.path.dirname(value.rstrip("/\\")) if os.path.splitext(value)[1] else value.rstrip("/\\")
+
+
+def _platform_name():
+    if remote_extractor.is_android():
+        return "Android"
+    if remote_extractor.is_windows():
+        return "Windows"
+    if remote_extractor.is_linux():
+        return "Linux"
+    return "Other"
+
+
+def _tool_exists(tool_name, folder_path=None):
+    if folder_path:
+        candidate_names = [tool_name]
+        if os.name == "nt" and not tool_name.lower().endswith(".exe"):
+            candidate_names.insert(0, tool_name + ".exe")
+        for candidate_name in candidate_names:
+            candidate_path = os.path.join(folder_path, candidate_name)
+            if os.path.exists(candidate_path):
+                return True
+
+    path_value = os.environ.get("PATH", "")
+    for search_dir in path_value.split(os.pathsep):
+        if not search_dir:
+            continue
+        candidate_path = os.path.join(search_dir, tool_name)
+        if os.path.exists(candidate_path):
+            return True
+        if os.name == "nt":
+            candidate_exe = candidate_path + ".exe"
+            if os.path.exists(candidate_exe):
+                return True
+    return False
+
+
+def _local_embedded_tools_available(media_path, mkvtoolnix_folder=None, ffmpeg_folder=None):
+    extension = os.path.splitext(media_path or "")[1].lower()
+    if extension == ".mkv":
+        return _tool_exists("mkvinfo", mkvtoolnix_folder) and _tool_exists("mkvextract", mkvtoolnix_folder)
+    if extension == ".mp4":
+        return _tool_exists("ffmpeg", ffmpeg_folder) and _tool_exists("ffprobe", ffmpeg_folder)
+    return False
     
 # ----------------------------------------------------------
 # Subtitle Processing with TEMP FILES
@@ -638,6 +682,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.dual_language_display = safe_bool('dual_language_display', False)
         self.enable_embedded_subtitle_extraction = safe_bool('enable_embedded_subtitle_extraction', False)
         self.skip_translation_if_embedded_target_exists = safe_bool('skip_translation_if_embedded_target_exists', False)
+        self.remote_extractor_enabled = safe_bool('remote_extractor_enabled', False)
     
         # ------------------------------------------------------------
         # Numeric / string settings
@@ -656,6 +701,14 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.mkvinfo_path = legacy_mkvinfo_path
         self.mkvextract_path = legacy_mkvextract_path
         self.ffmpeg_path = legacy_ffmpeg_path
+        self.remote_extractor_url = (addon.getSetting('remote_extractor_url') or "").strip()
+        self.remote_extractor_token = (addon.getSetting('remote_extractor_token') or "").strip()
+        self.remote_extractor_timeout = safe_int('remote_extractor_timeout', 120)
+        self.remote_extractor_client = remote_extractor.RemoteExtractorClient(
+            addon,
+            log_fn=lambda message, level="debug": log(message, level, self)
+        )
+        self.platform_name = _platform_name()
         self.provider = addon.getSetting('provider')
         
         # ------------------------------------------------------------
@@ -756,6 +809,12 @@ class TranslatarrMonitor(xbmc.Monitor):
             settings_snapshot += f", skip_if_embedded_target_exists={self.skip_translation_if_embedded_target_exists}"
             settings_snapshot += f", mkvtoolnix_folder={self.mkvtoolnix_folder or 'PATH'}"
             settings_snapshot += f", ffmpeg_folder={self.ffmpeg_folder or 'PATH'}"
+            settings_snapshot += f", remote_extractor={self.remote_extractor_enabled}"
+            settings_snapshot += f", remote_platform={self.platform_name}"
+
+        if self.remote_extractor_enabled:
+            settings_snapshot += f", remote_extractor_url={'set' if self.remote_extractor_url else 'missing'}"
+            settings_snapshot += f", remote_extractor_timeout={self.remote_extractor_timeout}"
 
         log(settings_snapshot, "debug", self, force=True)
 
@@ -793,6 +852,13 @@ class TranslatarrMonitor(xbmc.Monitor):
 
         self.last_embedded_extraction_attempt_key = attempt_key
 
+        local_tools_available = _local_embedded_tools_available(
+            resolved_media_path,
+            self.mkvtoolnix_folder or None,
+            self.ffmpeg_folder or None
+        )
+        use_remote_first = self.remote_extractor_client.should_prefer_remote(local_tools_available)
+
         tool_kwargs = {
             "media_path": resolved_media_path,
             "output_dir": resolved_output_dir,
@@ -801,6 +867,59 @@ class TranslatarrMonitor(xbmc.Monitor):
             "ffmpeg_path": self.ffmpeg_folder or self.ffmpeg_path or None,
             "log_fn": lambda message, level="debug": log(message, level, self),
         }
+
+        if use_remote_first:
+            log(
+                "Embedded extraction decision → using remote extractor first (platform={0}, local_tools_available={1})".format(
+                    self.platform_name,
+                    local_tools_available
+                ),
+                "debug",
+                self
+            )
+
+            if self.skip_translation_if_embedded_target_exists and not local_tools_available:
+                log(
+                    "Embedded target-language skip check currently requires local tools. Continuing with remote source extraction attempt.",
+                    "debug",
+                    self
+                )
+
+            remote_result = self.remote_extractor_client.extract_embedded_subtitle(
+                resolved_media_path,
+                self.source_lang_name,
+                resolved_output_dir,
+                source_lang_iso=self.source_lang_iso
+            )
+            if remote_result.get("success"):
+                log(
+                    "Remote embedded subtitle extraction succeeded via {0}{1}.".format(
+                        remote_result.get("method", "remote"),
+                        " (cached)" if remote_result.get("cache_hit") else ""
+                    ),
+                    "info",
+                    self
+                )
+                if remote_result.get("selected_track"):
+                    log(
+                        "Remote extractor selected track: {0}".format(remote_result.get("selected_track")),
+                        "debug",
+                        self
+                    )
+                return "source_extracted"
+
+            log(
+                "Remote embedded subtitle extraction skipped: {0}".format(
+                    remote_result.get("reason", "unknown")
+                ),
+                "debug",
+                self
+            )
+
+            if not local_tools_available:
+                return "no_action"
+
+            log("Falling back to local embedded extraction after remote extractor failure.", "debug", self)
 
         if self.skip_translation_if_embedded_target_exists:
             target_result = embedded_subtitles.has_embedded_subtitle(
