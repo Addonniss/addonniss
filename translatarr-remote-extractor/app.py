@@ -322,13 +322,6 @@ def extract_subtitle(req: ExtractRequest, authorization: Optional[str] = Header(
         raise HTTPException(status_code=400, detail="source_lang is required")
 
     resolved_video_path = apply_path_maps(video_path)
-    if not os.path.exists(resolved_video_path):
-        return ExtractResponse(
-            ok=False,
-            message="Video path does not exist on extractor host: {0}".format(resolved_video_path),
-            resolved_video_path=resolved_video_path
-        )
-
     extension = os.path.splitext(resolved_video_path)[1].lower()
     if extension not in (".mkv", ".mp4"):
         return ExtractResponse(
