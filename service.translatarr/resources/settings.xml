@@ -91,9 +91,6 @@
                     </dependencies>
                 </setting>
             </group>
-        </category>
-
-        <category id="remote_extractor" label="30076">
             <group id="remote_extractor">
                 <setting id="remote_extractor_enabled" type="boolean" label="30077" help="30078">
                     <control type="toggle" />

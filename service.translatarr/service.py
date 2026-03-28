@@ -855,7 +855,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.last_embedded_extraction_attempt_key = None
 
     def handle_embedded_subtitle_fallback(self, media_path, output_dir, mode_label):
-        if not self.enable_embedded_subtitle_extraction:
+        if not self.enable_embedded_subtitle_extraction and not self.remote_extractor_enabled:
             return "disabled"
 
         if not media_path or not output_dir:
@@ -876,7 +876,9 @@ class TranslatarrMonitor(xbmc.Monitor):
             self.mkvtoolnix_folder or None,
             self.ffmpeg_folder or None
         )
-        use_remote_first = self.remote_extractor_client.should_prefer_remote(local_tools_available)
+        local_extraction_enabled = self.enable_embedded_subtitle_extraction
+        local_extraction_ready = local_extraction_enabled and local_tools_available
+        remote_configured = self.remote_extractor_client.is_configured()
 
         tool_kwargs = {
             "media_path": resolved_media_path,
@@ -887,23 +889,79 @@ class TranslatarrMonitor(xbmc.Monitor):
             "log_fn": lambda message, level="debug": log(message, level, self),
         }
 
-        if use_remote_first:
-            log(
-                "Embedded extraction decision → using remote extractor first (platform={0}, local_tools_available={1})".format(
-                    self.platform_name,
-                    local_tools_available
-                ),
-                "debug",
-                self
-            )
+        def check_local_target_skip():
+            if not self.skip_translation_if_embedded_target_exists or not local_extraction_ready:
+                return None
 
-            if self.skip_translation_if_embedded_target_exists and not local_tools_available:
+            target_result = embedded_subtitles.has_embedded_subtitle(
+                media_path=resolved_media_path,
+                language_name=self.target_lang_name,
+                language_variants=get_iso_variants(self.target_lang_name),
+                mkvinfo_path=self.mkvtoolnix_folder or self.mkvinfo_path or None,
+                mkvextract_path=self.mkvtoolnix_folder or self.mkvextract_path or None,
+                ffmpeg_path=self.ffmpeg_folder or self.ffmpeg_path or None,
+                log_fn=tool_kwargs["log_fn"]
+            )
+            if target_result.get("found"):
                 log(
-                    "Embedded target-language skip check currently requires local tools. Continuing with remote source extraction attempt.",
+                    "Embedded target-language subtitle already exists (track {0}). Skipping source extraction and translation.".format(
+                        target_result.get("track_id", "?")
+                    ),
+                    "info",
+                    self
+                )
+                return "target_exists_skip"
+
+            if target_result.get("reason") != "no_matching_subtitle_track":
+                log(
+                    "Embedded target-language subtitle check skipped: {0}".format(
+                        target_result.get("reason", "unknown")
+                    ),
                     "debug",
                     self
                 )
+            return None
 
+        def check_remote_target_skip():
+            if not self.skip_translation_if_embedded_target_exists or not remote_configured:
+                return None
+
+            remote_probe = self.remote_extractor_client.probe_embedded_subtitle(
+                resolved_media_path,
+                self.target_lang_name
+            )
+
+            if not remote_probe.get("success"):
+                log(
+                    "Remote embedded target-language probe skipped: {0}".format(
+                        remote_probe.get("reason", "unknown")
+                    ),
+                    "debug",
+                    self
+                )
+                return None
+
+            if remote_probe.get("found"):
+                selected_track = remote_probe.get("selected_track") or {}
+                log(
+                    "Embedded target-language subtitle already exists via remote probe (track {0}). Skipping source extraction and translation.".format(
+                        selected_track.get("track_number")
+                        or selected_track.get("mkvextract_id")
+                        or selected_track.get("track_id")
+                        or "?"
+                    ),
+                    "info",
+                    self
+                )
+                return "target_exists_skip"
+
+            return None
+
+        def try_remote_source_extraction():
+            if not remote_configured:
+                return None
+            if self.use_notifications:
+                ui.notify("Embedded extraction started (Remote)", title="Translatarr", duration=5000)
             remote_result = self.remote_extractor_client.extract_embedded_subtitle(
                 resolved_media_path,
                 self.source_lang_name,
@@ -925,7 +983,7 @@ class TranslatarrMonitor(xbmc.Monitor):
                         "debug",
                         self
                     )
-                return "source_extracted"
+                return "source_extracted", True
 
             log(
                 "Remote embedded subtitle extraction skipped: {0}".format(
@@ -934,61 +992,76 @@ class TranslatarrMonitor(xbmc.Monitor):
                 "debug",
                 self
             )
+            return "no_action", False
 
-            if not local_tools_available:
-                return "no_action"
+        def try_local_source_extraction():
+            if not local_extraction_ready:
+                return "no_action", False
+            if self.use_notifications:
+                ui.notify("Embedded extraction started (Local)", title="Translatarr", duration=5000)
 
-            log("Falling back to local embedded extraction after remote extractor failure.", "debug", self)
-
-        if self.skip_translation_if_embedded_target_exists:
-            target_result = embedded_subtitles.has_embedded_subtitle(
-                media_path=resolved_media_path,
-                language_name=self.target_lang_name,
-                language_variants=get_iso_variants(self.target_lang_name),
-                mkvinfo_path=self.mkvtoolnix_folder or self.mkvinfo_path or None,
-                mkvextract_path=self.mkvtoolnix_folder or self.mkvextract_path or None,
-                ffmpeg_path=self.ffmpeg_folder or self.ffmpeg_path or None,
-                log_fn=tool_kwargs["log_fn"]
+            result = embedded_subtitles.try_extract_embedded_subtitle(
+                source_lang_iso=self.source_lang_iso,
+                source_lang_name=self.source_lang_name,
+                source_variants=get_iso_variants(self.source_lang_name),
+                **tool_kwargs
             )
-            if target_result.get("found"):
+
+            if result.get("success"):
                 log(
-                    "Embedded target-language subtitle already exists (track {0}). Skipping source extraction and translation.".format(
-                        target_result.get("track_id", "?")
+                    "Extracted embedded source subtitle track {0} to {1}".format(
+                        result.get("track_id", "?"),
+                        result.get("output_path", "")
                     ),
                     "info",
                     self
                 )
-                return "target_exists_skip"
-            if target_result.get("reason") != "no_matching_subtitle_track":
-                log(
-                    "Embedded target-language subtitle check skipped: {0}".format(target_result.get("reason", "unknown")),
-                    "debug",
-                    self
-                )
+                return "source_extracted", True
 
-        result = embedded_subtitles.try_extract_embedded_subtitle(
-            source_lang_iso=self.source_lang_iso,
-            source_lang_name=self.source_lang_name,
-            source_variants=get_iso_variants(self.source_lang_name),
-            **tool_kwargs
-        )
-
-        if result.get("success"):
             log(
-                "Extracted embedded source subtitle track {0} to {1}".format(
-                    result.get("track_id", "?"),
-                    result.get("output_path", "")
-                ),
-                "info",
+                "Embedded subtitle extraction skipped: {0}".format(result.get("reason", "unknown")),
+                "debug",
                 self
             )
-            return "source_extracted"
+            return "no_action", False
 
-        log(
-            "Embedded subtitle extraction skipped: {0}".format(result.get("reason", "unknown")),
-            "debug",
-            self
-        )
+        target_skip_status = check_local_target_skip()
+        if not target_skip_status and not local_extraction_ready:
+            target_skip_status = check_remote_target_skip()
+        if target_skip_status:
+            return target_skip_status
+
+        if local_extraction_ready:
+            log(
+                "Embedded extraction decision → using local extraction first (platform={0}, remote_configured={1})".format(
+                    self.platform_name,
+                    remote_configured
+                ),
+                "debug",
+                self
+            )
+            status, success = try_local_source_extraction()
+            if success:
+                return status
+            if remote_configured:
+                log("Falling back to remote embedded extraction after local extraction failure.", "debug", self)
+                status, success = try_remote_source_extraction()
+                if success:
+                    return status
+            return "no_action"
+
+        if remote_configured:
+            log(
+                "Embedded extraction decision → using remote extractor (local_enabled={0}, local_tools_available={1}).".format(
+                    local_extraction_enabled,
+                    local_tools_available
+                ),
+                "debug",
+                self
+            )
+            status, success = try_remote_source_extraction()
+            if success:
+                return status
         return "no_action"
         
     def mark_playback_started(self, reason="Playback started"):

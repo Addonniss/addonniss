@@ -202,7 +202,7 @@ msgid "LibreTranslate Base URL"
 msgstr ""
 
 msgctxt "#30052"
-msgid "Enter the full LibreTranslate URL starting with http:// or https://. Example: http://192.168.x.x:5000 . Make sure your server loaded the needed languages, for example LT_LOAD_ONLY=en,ro. Batch limit also matters: set LT_BATCH_LIMIT above your selected chunk size. 1000 is a good setting."
+msgid "Enter the full LibreTranslate URL starting with http:// or https://. Example: http://your-server:5000 . Make sure your server loaded the needed languages, for example LT_LOAD_ONLY=en,ro. Batch limit also matters: set LT_BATCH_LIMIT above your selected chunk size. 1000 is a good setting."
 msgstr ""
 
 msgctxt "#30053"
@@ -246,11 +246,11 @@ msgid "When enabled, each subtitle entry shows the original source text on the f
 msgstr ""
 
 msgctxt "#30063"
-msgid "Enable Embedded Subtitle Extraction"
+msgid "Enable Local Extraction"
 msgstr ""
 
 msgctxt "#30064"
-msgid "If no usable subtitle is found during playback, Translatarr can inspect a local MKV or MP4 for embedded subtitles. In Auto mode, extracted source subtitles are written to the Translatarr subtitle folder. In Manual mode, they are written to your configured manual subtitle folder."
+msgid "Enables local embedded subtitle extraction with MKVToolNix or FFmpeg when no usable subtitle is found during playback. If both local extraction and Remote Extractor are enabled, Translatarr tries local extraction first. In Auto mode, extracted source subtitles are written to the Translatarr subtitle folder. In Manual mode, they are written to your configured manual subtitle folder."
 msgstr ""
 
 msgctxt "#30065"
@@ -298,7 +298,7 @@ msgid "Enable Remote Extractor"
 msgstr ""
 
 msgctxt "#30078"
-msgid "Allows Translatarr to call an external subtitle-extraction service when local embedded-subtitle tools are unavailable or when Android should use a remote extractor first."
+msgid "Allows Translatarr to call Translatarr Remote Extractor, the companion subtitle-extraction service for platforms where local embedded extraction is unavailable or not practical. If local extraction is also enabled, Translatarr tries local extraction first and uses the remote extractor as fallback."
 msgstr ""
 
 msgctxt "#30079"
@@ -306,7 +306,7 @@ msgid "Remote Extractor URL"
 msgstr ""
 
 msgctxt "#30080"
-msgid "Base URL for the remote extractor service, for example http://server:8097. Translatarr will call its /extract endpoint when remote extraction is needed."
+msgid "Base URL for Translatarr Remote Extractor, for example http://server:8097. Translatarr will call its /extract endpoint when remote extraction is needed."
 msgstr ""
 
 msgctxt "#30081"

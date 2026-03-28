@@ -44,7 +44,7 @@ The GitHub Actions workflow publishes this image automatically when the project 
 ## Docker Compose
 
 1. Place this project on the server that can access your media files.
-2. Review [docker-compose.yml](C:/Users/angel/repository.addonniss/translatarr-remote-extractor/docker-compose.yml).
+2. Review `docker-compose.yml`.
 3. Set a real `EXTRACTOR_API_TOKEN`.
 4. Mount your media into the container as read-only.
 5. Adjust `EXTRACTOR_PATH_MAPS` so Kodi playback paths resolve to the mounted server paths.
@@ -77,8 +77,8 @@ Example path mapping:
 environment:
   EXTRACTOR_PATH_MAPS: >
     [
-      {"from": "smb://192.168.0.200/SSD-Data/", "to": "/data/media/"},
-      {"from": "\\\\192.168.0.200\\SSD-Data\\", "to": "/data/media/"}
+      {"from": "smb://your-media-server/your-share/", "to": "/data/media/"},
+      {"from": "\\\\your-media-server\\your-share\\", "to": "/data/media/"}
     ]
 ```
 
@@ -97,7 +97,7 @@ Recommended flow:
 1. Open Portainer.
 2. Go to `Stacks`.
 3. Create a new stack named `translatarr-remote-extractor`.
-4. Paste the contents of [docker-compose.yml](C:/Users/angel/repository.addonniss/translatarr-remote-extractor/docker-compose.yml).
+4. Paste the contents of `docker-compose.yml`.
 5. Edit:
    - `EXTRACTOR_API_TOKEN`
    - media volume mounts
@@ -113,7 +113,7 @@ Portainer notes:
 
 This project is set up to publish a container image to GHCR using:
 
-- [translatarr_remote_extractor_image.yml](C:/Users/angel/repository.addonniss/.github/workflows/translatarr_remote_extractor_image.yml)
+- `.github/workflows/translatarr_remote_extractor_image.yml`
 
 Published image name:
 

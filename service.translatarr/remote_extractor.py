@@ -57,9 +57,70 @@ class RemoteExtractorClient(object):
     def should_prefer_remote(self, local_tools_available):
         if not self.is_configured():
             return False
-        if is_android():
-            return True
         return not local_tools_available
+
+    def probe_embedded_subtitle(self, video_path, language_name):
+        if not self.is_configured():
+            return {"success": False, "reason": "remote_extractor_not_configured"}
+
+        if not video_path or not language_name:
+            return {"success": False, "reason": "remote_extractor_missing_path"}
+
+        payload = {
+            "video_path": video_path,
+            "language": language_name,
+            "prefer_non_sdh": True
+        }
+        headers = {"Content-Type": "application/json"}
+        if self.api_token:
+            headers["Authorization"] = "Bearer {0}".format(self.api_token)
+
+        url = "{0}/probe".format(self.base_url)
+        self.log_fn(
+            "Remote extractor probe → url: {0} | media: {1} | language: {2}".format(
+                url,
+                video_path,
+                language_name
+            )
+        )
+
+        try:
+            response = requests.post(
+                url,
+                headers=headers,
+                data=json.dumps(payload),
+                timeout=self.timeout
+            )
+        except Exception as exc:
+            return {"success": False, "reason": "remote_extractor_probe_failed", "error": str(exc)}
+
+        try:
+            data = response.json()
+        except Exception:
+            return {
+                "success": False,
+                "reason": "remote_extractor_invalid_json",
+                "status_code": response.status_code
+            }
+
+        if response.status_code != 200:
+            return {
+                "success": False,
+                "reason": "remote_extractor_http_error",
+                "status_code": response.status_code,
+                "message": data.get("detail") or data.get("message") or "unknown_http_error"
+            }
+
+        return {
+            "success": bool(data.get("ok")),
+            "found": bool(data.get("found")),
+            "reason": "remote_extractor_probe_success",
+            "message": data.get("message"),
+            "selected_track": data.get("selected_track"),
+            "all_tracks": data.get("all_tracks", []),
+            "resolved_video_path": data.get("resolved_video_path"),
+            "diagnostic_preview": data.get("diagnostic_preview"),
+        }
 
     def extract_embedded_subtitle(self, video_path, source_lang_name, output_dir, source_lang_iso=None):
         if not self.is_configured():

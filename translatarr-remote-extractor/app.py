@@ -47,6 +47,22 @@ class ExtractResponse(BaseModel):
     diagnostic_preview: Optional[str] = None
 
 
+class ProbeRequest(BaseModel):
+    video_path: str
+    language: str
+    prefer_non_sdh: bool = True
+
+
+class ProbeResponse(BaseModel):
+    ok: bool
+    found: bool = False
+    message: str
+    selected_track: Optional[Dict[str, Any]] = None
+    all_tracks: List[Dict[str, Any]] = []
+    resolved_video_path: Optional[str] = None
+    diagnostic_preview: Optional[str] = None
+
+
 def normalize_lang(lang: str) -> str:
     value = (lang or "").strip().lower()
     mapping = {
@@ -292,6 +308,156 @@ def get_cache_path(video_path: str, source_lang: str, track_id: int) -> str:
     return os.path.join(CACHE_DIR, cache_key + ".srt")
 
 
+def probe_embedded_tracks(video_path: str, language: str, prefer_non_sdh: bool = True) -> ProbeResponse:
+    resolved_video_path = apply_path_maps((video_path or "").strip())
+    extension = os.path.splitext(resolved_video_path)[1].lower()
+
+    if extension not in (".mkv", ".mp4"):
+        return ProbeResponse(
+            ok=False,
+            found=False,
+            message="Only MKV and MP4 probing are implemented currently.",
+            resolved_video_path=resolved_video_path
+        )
+
+    if extension == ".mkv":
+        if not command_exists("mkvinfo"):
+            return ProbeResponse(
+                ok=False,
+                found=False,
+                message="mkvinfo not found on extractor host",
+                resolved_video_path=resolved_video_path
+            )
+
+        try:
+            info_result = run_cmd(["mkvinfo", resolved_video_path], timeout=DEFAULT_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            return ProbeResponse(
+                ok=False,
+                found=False,
+                message="mkvinfo timed out after {0}s".format(DEFAULT_TIMEOUT),
+                resolved_video_path=resolved_video_path
+            )
+
+        if info_result.returncode != 0:
+            return ProbeResponse(
+                ok=False,
+                found=False,
+                message="mkvinfo failed: {0}".format(info_result.stderr.strip() or info_result.stdout.strip() or "unknown_error"),
+                resolved_video_path=resolved_video_path,
+                diagnostic_preview=(info_result.stderr or info_result.stdout or "")[:4000]
+            )
+
+        tracks = parse_mkvinfo_output(info_result.stdout)
+        selected = choose_best_track(tracks, language, prefer_non_sdh)
+        if not tracks:
+            return ProbeResponse(
+                ok=True,
+                found=False,
+                message="No subtitle tracks found in MKV",
+                all_tracks=[],
+                resolved_video_path=resolved_video_path,
+                diagnostic_preview=(info_result.stdout or "")[:4000]
+            )
+
+        if not selected:
+            return ProbeResponse(
+                ok=True,
+                found=False,
+                message="No suitable subtitle track found for language '{0}'".format(language),
+                all_tracks=tracks,
+                resolved_video_path=resolved_video_path
+            )
+
+        return ProbeResponse(
+            ok=True,
+            found=True,
+            message="Embedded subtitle track found",
+            selected_track=selected,
+            all_tracks=tracks,
+            resolved_video_path=resolved_video_path
+        )
+
+    if not command_exists("ffprobe"):
+        return ProbeResponse(
+            ok=False,
+            found=False,
+            message="ffprobe not found on extractor host",
+            resolved_video_path=resolved_video_path
+        )
+
+    try:
+        probe_result = run_cmd(
+            [
+                "ffprobe",
+                "-v", "error",
+                "-print_format", "json",
+                "-show_streams",
+                resolved_video_path,
+            ],
+            timeout=DEFAULT_TIMEOUT
+        )
+    except subprocess.TimeoutExpired:
+        return ProbeResponse(
+            ok=False,
+            found=False,
+            message="ffprobe timed out after {0}s".format(DEFAULT_TIMEOUT),
+            resolved_video_path=resolved_video_path
+        )
+
+    if probe_result.returncode != 0:
+        return ProbeResponse(
+            ok=False,
+            found=False,
+            message="ffprobe failed: {0}".format(probe_result.stderr.strip() or probe_result.stdout.strip() or "unknown_error"),
+            resolved_video_path=resolved_video_path,
+            diagnostic_preview=(probe_result.stderr or probe_result.stdout or "")[:4000]
+        )
+
+    try:
+        probe_data = json.loads(probe_result.stdout or "{}")
+    except Exception:
+        return ProbeResponse(
+            ok=False,
+            found=False,
+            message="ffprobe returned invalid JSON",
+            resolved_video_path=resolved_video_path,
+            diagnostic_preview=(probe_result.stdout or "")[:4000]
+        )
+
+    tracks = parse_ffprobe_streams(probe_data.get("streams") or [])
+    selected = choose_best_track(tracks, language, prefer_non_sdh)
+
+    if not tracks:
+        return ProbeResponse(
+            ok=True,
+            found=False,
+            message="No subtitle streams found in MP4",
+            all_tracks=[],
+            resolved_video_path=resolved_video_path,
+            diagnostic_preview=json.dumps(probe_data.get("streams") or [], ensure_ascii=False)[:4000]
+        )
+
+    if not selected:
+        return ProbeResponse(
+            ok=True,
+            found=False,
+            message="No suitable subtitle stream found for language '{0}'".format(language),
+            all_tracks=tracks,
+            resolved_video_path=resolved_video_path,
+            diagnostic_preview=json.dumps(probe_data.get("streams") or [], ensure_ascii=False)[:4000]
+        )
+
+    return ProbeResponse(
+        ok=True,
+        found=True,
+        message="Embedded subtitle stream found",
+        selected_track=selected,
+        all_tracks=tracks,
+        resolved_video_path=resolved_video_path
+    )
+
+
 @app.get("/health")
 def health():
     ensure_runtime_dirs()
@@ -306,6 +472,22 @@ def health():
         "path_maps": len(PATH_MAPS),
         "auth_enabled": bool(API_TOKEN),
     }
+
+
+@app.post("/probe", response_model=ProbeResponse)
+def probe_subtitle(req: ProbeRequest, authorization: Optional[str] = Header(default=None)):
+    require_auth(authorization)
+    ensure_runtime_dirs()
+
+    video_path = (req.video_path or "").strip()
+    language = (req.language or "").strip()
+
+    if not video_path:
+        raise HTTPException(status_code=400, detail="video_path is required")
+    if not language:
+        raise HTTPException(status_code=400, detail="language is required")
+
+    return probe_embedded_tracks(video_path, language, req.prefer_non_sdh)
 
 
 @app.post("/extract", response_model=ExtractResponse)

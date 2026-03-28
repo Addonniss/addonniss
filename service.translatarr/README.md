@@ -1,4 +1,4 @@
-# 🎬 Translatarr v2.4.8
+# 🎬 Translatarr v2.4.9
 ## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
@@ -6,29 +6,24 @@ Powered by Google Gemini, OpenAI, DeepL Free machine translation, or LibreTransl
 
 ---
 
-# 🚀 What’s New (v2.4.8)
+# 🚀 What’s New (v2.4.9)
 
-✔ SERVICE ON / OFF TOGGLE IN SETTINGS
-✔ EMBEDDED SUBTITLE EXTRACTION FOR MKV AND MP4
-✔ EMBEDDED FALLBACK NOW AVAILABLE IN AUTO MODE
+✔ TRANSLATARR REMOTE EXTRACTOR SUPPORT
 
 Latest updates include:
+
+- Added first public support for [**Translatarr Remote Extractor**](https://github.com/addonniss/repository.addonniss/blob/main/translatarr-remote-extractor/README.md), the self-hosted companion service for embedded subtitle extraction on platforms where local tools are unavailable or impractical, such as Android / Shield
+- Added a dedicated README section for Translatarr Remote Extractor with high-level deployment guidance and workflow notes
+
+---
+
+**Previous v2.4.8 highlights** include:
 
 - Added a simple Translatarr on/off setting so you can disable subtitle translation temporarily without disabling the Kodi addon itself
 - Expanded embedded subtitle extraction to support both MKV and MP4 files
 - Auto mode can now use embedded subtitle fallback too, instead of keeping embedded extraction limited to Manual mode
 - Added an option to skip extraction and translation when the selected target language already exists as an embedded subtitle track
 - Reorganized embedded subtitle options into their own settings group and simplified external tool setup to one MKVToolNix folder and one FFmpeg folder
-
-- Embedded subtitle extraction still works best on local files, but Windows UNC-backed playback paths may still work depending on share access and network performance
-
----
-
-**Previous v2.4.7 highlights** include:
-
-- Improved embedded subtitle extraction logging so Manual mode now shows resolved extraction paths, selected tool steps, and explicit timeout failures instead of appearing stuck
-- Added longer network-path extraction timeouts for UNC-backed playback so slow SMB/Windows share extractions have more time to finish
-- Updated README guidance for embedded subtitle extraction with practical SMB/UNC expectations, observed network performance notes, and clearer limitations for network-backed files
 
 **Previous highlights**:
 
@@ -139,7 +134,7 @@ Good for users who want local control, better privacy, and no paid cloud depende
 
 Example use case:
 
-- a local server such as `http://192.168.x.x:5000`
+- a local server such as `http://your-server:5000`
 - language loading restricted with something like `LT_LOAD_ONLY=en,ro`
 - batch limit set above the selected chunk size
 
@@ -371,6 +366,51 @@ Practical note:
 Tested result:
 
 - Verified successfully with a local embedded-subtitle MKV workflow: Translatarr detected the newly extracted source subtitle immediately and produced a target-language `.srt` through DeepL in about 2 seconds, then displayed it during playback
+
+---
+
+# 🌐 Translatarr Remote Extractor
+
+Translatarr Remote Extractor is the self-hosted companion service for embedded subtitle extraction when Kodi cannot reliably run local extraction tools on the playback device.
+
+Who it is for:
+
+- Android / NVIDIA Shield users
+- users who want embedded subtitle extraction handled on a server
+- users who prefer a Docker / Portainer deployment instead of local tool installation on every Kodi device
+
+It is especially useful for platforms like Android / Shield, where running local subtitle extraction tools directly inside Kodi is often not practical.
+
+How it works:
+
+- Translatarr sends the current video path and source language to Translatarr Remote Extractor
+- the remote service checks the video for embedded subtitle tracks
+- if a matching source subtitle exists, the service extracts it and returns the subtitle text
+- Translatarr writes that extracted subtitle into its normal subtitle workflow and continues translation as usual
+
+Current remote capabilities:
+
+- bearer-token protected HTTP API
+- Docker-first deployment
+- Portainer-friendly stack deployment
+- `MKV` support through `mkvinfo` and `mkvextract`
+- `MP4` support through `ffprobe` and `ffmpeg`
+- path mapping from Kodi playback paths to server-mounted media paths
+
+Basic setup:
+
+- deploy `Translatarr Remote Extractor` on a server that can read your media files
+- set a `Remote Extractor URL`, for example `http://your-server:8097`
+- set the same bearer token in both the remote service and Translatarr if authentication is enabled
+- enable `Remote Extractor` in Translatarr settings
+- if local extraction is also enabled, Translatarr tries local extraction first and uses the remote extractor as fallback
+
+Important note:
+
+- path mapping only rewrites the playback path
+- the remote service must still be able to open the real media file on the server through its own mounted filesystem path
+
+See the dedicated [Translatarr Remote Extractor README](https://github.com/addonniss/repository.addonniss/blob/main/translatarr-remote-extractor/README.md) for deployment details.
 
 ---
 
