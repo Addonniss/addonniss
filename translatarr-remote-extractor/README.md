@@ -82,6 +82,38 @@ environment:
     ]
 ```
 
+Complete example stack:
+
+```yaml
+services:
+  translatarr-remote-extractor:
+    image: ghcr.io/addonniss/translatarr-remote-extractor:latest
+    container_name: translatarr-remote-extractor
+    restart: unless-stopped
+    ports:
+      - "8097:8097"
+    environment:
+      - EXTRACTOR_API_TOKEN=replace-with-your-token
+      - EXTRACTOR_CACHE_DIR=/cache
+      - EXTRACTOR_WORK_DIR=/work
+      - EXTRACTOR_TIMEOUT=180
+      - EXTRACTOR_FFMPEG_TIMEOUT=300
+      - EXTRACTOR_PATH_MAPS=[
+          {"from":"smb://your-media-server/your-share/media/","to":"/data/media/"},
+          {"from":"\\\\your-media-server\\your-share\\media\\","to":"/data/media/"}
+        ]
+    volumes:
+      - /path/to/translatarr-remote-extractor/cache:/cache
+      - /path/to/translatarr-remote-extractor/work:/work
+      - /path/to/your/media/root:/data:ro
+```
+
+In this example:
+
+- Kodi sends playback paths such as `smb://your-media-server/your-share/media/...`
+- the extractor maps them to `/data/media/...`
+- the container can then open the real media file through the `/path/to/your/media/root:/data:ro` mount
+
 Health check example:
 
 ```bash
