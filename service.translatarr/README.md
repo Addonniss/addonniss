@@ -1,4 +1,4 @@
-# 🎬 Translatarr v2.4.9
+# 🎬 Translatarr v2.4.10
 ## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
@@ -6,16 +6,23 @@ Powered by Google Gemini, OpenAI, DeepL Free machine translation, or LibreTransl
 
 ---
 
-# 🚀 What’s New (v2.4.9)
+# 🚀 What’s New (v2.4.10)
 
-✔ TRANSLATARR REMOTE EXTRACTOR SUPPORT
+✔ EMBEDDED EXTRACTION WORKFLOW REFINEMENTS
 
 Latest updates include:
 
-- Added first public support for [**Translatarr Remote Extractor**](https://github.com/addonniss/repository.addonniss/blob/main/translatarr-remote-extractor/README.md), the self-hosted companion service for embedded subtitle extraction on platforms where local tools are unavailable or impractical, such as Android / Shield
-- Added a dedicated README section for Translatarr Remote Extractor with high-level deployment guidance and workflow notes
+- Manual mode now checks next-to-video subtitles before falling back to embedded extraction, so valid sidecar subtitles are reused instead of triggering unnecessary extraction
+- Added **Force Extraction** for users who want to retranslate from the embedded source even when an embedded target-language subtitle already exists
+- Improved extraction UX with clearer start/failure/timeout feedback and a longer default timeout for slower remote or symlink-backed media
+- Cleaned up embedded extraction settings so Local vs Remote behavior is easier to understand, and provider-only options such as temperature appear only where they apply
 
 ---
+
+**Previous v2.4.9 highlights** include:
+
+- Added first public support for [**Translatarr Remote Extractor**](https://github.com/addonniss/repository.addonniss/blob/main/translatarr-remote-extractor/README.md), the self-hosted companion service for embedded subtitle extraction on platforms where local tools are unavailable or impractical, such as Android / Shield
+- Added a dedicated README section for Translatarr Remote Extractor with high-level deployment guidance and workflow notes
 
 **Previous v2.4.8 highlights** include:
 
@@ -322,36 +329,44 @@ This keeps Manual mode predictable while still supporting subtitle add-ons that 
 
 # 📦 Extract Embedded SRT
 
-This feature is for users who keep subtitles embedded inside local MKV or MP4 files and want Translatarr to either extract the source subtitle for translation or skip translation when the target language already exists as an embedded subtitle.
+This feature is for users who keep subtitles embedded inside MKV or MP4 files and want Translatarr to either extract the source subtitle for translation or skip translation when the target language already exists as an embedded subtitle.
 
 How it works:
 
-- Auto mode first checks the usual scan locations, including the Translatarr subtitle folder, Kodi temp locations, and subtitle add-on folders
-- Manual mode first checks your configured subtitle folder as usual
-- If no usable external source or target subtitle is found yet, Translatarr can inspect the currently playing **local MKV or MP4**
+- Auto mode first checks the usual scan locations, including the Translatarr subtitle folder, Kodi temp locations, subtitle add-on folders, and next-to-video sidecars when available
+- Manual mode first checks the real movie folder when Kodi exposes a normal file path, then your configured subtitle folder
+- If no usable external source or target subtitle is found yet, Translatarr can inspect the currently playing MKV or MP4 through either local extraction tools or the Translatarr Remote Extractor
 - By default, it extracts the configured **source-language** subtitle track so the normal translation flow can continue
-- If **Skip If Embedded Target Exists** is enabled, Translatarr first checks whether your selected **target-language** subtitle track is already embedded and, if so, it skips source extraction and translation for that playback
+- If **Force Extraction** is disabled, Translatarr first checks whether your selected **target-language** subtitle track is already embedded and, if so, it skips source extraction and translation for that playback
+- If **Force Extraction** is enabled, Translatarr continues with source-track extraction and your own translation flow even when an embedded target-language subtitle already exists
 - In Auto mode, extracted source subtitles are saved into the Translatarr subtitle folder
 - In Manual mode, extracted source subtitles are saved into your configured manual subtitle folder using the movie filename and the selected language suffix
 - If no embedded target-language subtitle is found, Translatarr falls back to the source-language extraction flow
 
 Requirements:
 
-- The playing video must be a **local MKV or MP4 file** exposed as a normal filesystem path
 - You must enable **Embedded Subtitle Extraction** in settings
-- Set **MKVToolNix Executables Folder** to the folder containing `mkvinfo` and `mkvextract`
-- Set **FFmpeg Executables Folder** to the folder containing `ffmpeg` and `ffprobe`, usually the `bin` folder
-- External tools are required:
+- Use one of these extraction paths:
+  - **Local Extraction** with configured external tools
+  - **Translatarr Remote Extractor** on a server that can read the same media
+- For Local Extraction:
+  - Set **MKVToolNix Executables Folder** to the folder containing `mkvinfo` and `mkvextract`
+  - Set **FFmpeg Executables Folder** to the folder containing `ffmpeg` and `ffprobe`, usually the `bin` folder
+- Local external tools are:
   - MKV: `mkvinfo` and `mkvextract`
   - MP4: `ffprobe` and `ffmpeg`
   - `ffmpeg` may also be used when an extracted subtitle must be converted from ASS/SSA to SRT
+- For Translatarr Remote Extractor:
+  - the remote service must be enabled in settings
+  - the server must be able to resolve the playback path to a real mounted media path
 
 Current limitations:
 
-- Local filesystem paths are supported
+- Local Extraction expects playback to resolve to a normal filesystem path
 - USB-attached HDDs and SSDs are supported when Kodi exposes them as normal file paths
-- Windows `smb://server/share/...` library paths can also work when they resolve to an accessible UNC network path for `mkvinfo` and `mkvextract`, but extraction on network-backed files can be much slower than local playback and may not feel practical for instant live use
-- `plugin://`, `http://`, and similar non-filesystem playback paths are not currently supported for extraction
+- Windows `smb://server/share/...` library paths can also work when they resolve to an accessible UNC network path for local tools, but extraction on network-backed files can be much slower than local playback and may not feel practical for instant live use
+- For remote extraction, playback paths such as `smb://` or `dav://` can work only when path mapping rewrites them to real server-mounted media paths
+- `plugin://`, `http://`, and similar non-filesystem playback paths are not currently supported for local extraction
 - MKV uses `mkvinfo` and `mkvextract`, while MP4 uses `ffprobe` and `ffmpeg`
 
 Observed network-path performance note:

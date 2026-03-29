@@ -1,3 +1,10 @@
+v2.4.10
+- Improved embedded subtitle extraction workflow with clearer Force Extraction behavior for users who want to retranslate even when an embedded target-language subtitle already exists
+- Manual mode now checks next-to-video subtitles before embedded extraction fallback, so valid sidecar source and target subtitles are reused instead of triggering unnecessary extraction
+- Added better extraction UX with start/failure/timeout notifications and increased the default remote extractor timeout to 8 minutes for slower remote or symlink-backed media
+- Refined embedded extraction settings layout, provider-specific temperature visibility, and remote extractor wording for a clearer Kodi settings experience
+- Reduced repeated debug-log spam from stale subtitle checks while preserving useful per-playback diagnostics
+
 v2.4.9
 - Added first public support for Translatarr Remote Extractor as a companion service for embedded subtitle extraction when local tools are unavailable or impractical
 - Integrated remote embedded extraction into the normal Translatarr subtitle flow so extracted source subtitles are written into the standard Translatarr subtitle folder and continue through normal translation handling

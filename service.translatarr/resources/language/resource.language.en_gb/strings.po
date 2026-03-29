@@ -278,11 +278,11 @@ msgid "Turns the Translatarr background service on or off without disabling the 
 msgstr ""
 
 msgctxt "#30073"
-msgid "Skip If Embedded Target Exists"
+msgid "Force Extraction"
 msgstr ""
 
 msgctxt "#30074"
-msgid "When enabled, Translatarr checks whether the video already has an embedded subtitle in your selected target language. If it does, Translatarr skips embedded source extraction and translation for that playback. If no embedded target-language subtitle exists, the normal source extraction and translation flow continues."
+msgid "Extract and translate from the source embedded subtitle even when a target-language embedded subtitle already exists. Applies to both Local and Remote extraction. Recommended when the embedded target subtitle is poor AI translation."
 msgstr ""
 
 msgctxt "#30075"
@@ -290,11 +290,11 @@ msgid "Embedded Subtitles"
 msgstr ""
 
 msgctxt "#30076"
-msgid "Remote Extractor"
+msgid "Translatarr Remote Extractor"
 msgstr ""
 
 msgctxt "#30077"
-msgid "Enable Remote Extractor"
+msgid "Enable Translatarr Remote Extractor"
 msgstr ""
 
 msgctxt "#30078"
@@ -323,4 +323,12 @@ msgstr ""
 
 msgctxt "#30084"
 msgid "Maximum number of seconds Translatarr waits for the remote extractor service to respond before giving up and continuing the normal subtitle flow."
+msgstr ""
+
+msgctxt "#30085"
+msgid "Needs Local or Remote Extractor"
+msgstr ""
+
+msgctxt "#30086"
+msgid "Extraction Method"
 msgstr ""

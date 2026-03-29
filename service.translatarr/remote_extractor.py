@@ -49,7 +49,7 @@ class RemoteExtractorClient(object):
         self.enabled = safe_bool(addon.getSetting("remote_extractor_enabled"))
         self.base_url = (addon.getSetting("remote_extractor_url") or "").strip().rstrip("/")
         self.api_token = (addon.getSetting("remote_extractor_token") or "").strip()
-        self.timeout = safe_int(addon.getSetting("remote_extractor_timeout"), 120)
+        self.timeout = safe_int(addon.getSetting("remote_extractor_timeout"), 480)
 
     def is_configured(self):
         return self.enabled and bool(self.base_url) and requests is not None

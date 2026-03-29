@@ -63,12 +63,28 @@ def build_localization_instruction():
 # ----------------------------------------------------------
 class BaseTranslator:
 
-    def _get_temperature(self):
+    def _get_temperature(self, provider=None):
+        setting_ids = []
+        if provider == "Gemini":
+            setting_ids.append('temp_gemini')
+        elif provider == "OpenAI":
+            setting_ids.append('temp_openai')
+
+        # Backward compatibility for existing installs that already saved `temp`.
+        setting_ids.append('temp')
+
         try:
-            temp = float(ADDON.getSetting('temp') or 0.15)
-            return max(0.0, min(temp, 1.0))
+            for setting_id in setting_ids:
+                value = (ADDON.getSetting(setting_id) or '').strip()
+                if not value:
+                    continue
+
+                temp = float(value)
+                return max(0.0, min(temp, 1.0))
         except:
-            return 0.15
+            pass
+
+        return 0.15
 
     def _scrub(self, raw_text, expected):
         """
@@ -112,7 +128,7 @@ class GeminiTranslator(BaseTranslator):
 
     def __init__(self):
         self.api_key = ADDON.getSetting('api_key')
-        self.temperature = self._get_temperature()
+        self.temperature = self._get_temperature("Gemini")
         self.fast_mode = False
 
         model_map = {
@@ -234,7 +250,7 @@ class OpenAITranslator(BaseTranslator):
 
     def __init__(self):
         self.api_key = ADDON.getSetting('openai_api_key')
-        self.temperature = self._get_temperature()
+        self.temperature = self._get_temperature("OpenAI")
 
         model_map = {
             "gpt-4o-mini": "gpt-4o-mini",

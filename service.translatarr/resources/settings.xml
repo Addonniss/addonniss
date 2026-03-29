@@ -43,28 +43,21 @@
                     </dependencies>
                 </setting>
 
-                <setting id="dual_language_display" type="boolean" label="30061" help="30062">
-                    <control type="toggle" />
-                    <default>false</default>
-                </setting>
-
             </group>
 
         </category>
 
         <category id="embedded_subtitles" label="30075">
-            <group id="embedded_subtitles">
-                <setting id="enable_embedded_subtitle_extraction" type="boolean" label="30063" help="30064">
+            <group id="embedded_behavior" label="30085">
+                <setting id="force_embedded_source_extraction" type="boolean" label="30073" help="30074">
                     <control type="toggle" />
                     <default>false</default>
                 </setting>
-
-                <setting id="skip_translation_if_embedded_target_exists" type="boolean" label="30073" help="30074">
+            </group>
+            <group id="embedded_subtitles" label="30086">
+                <setting id="enable_embedded_subtitle_extraction" type="boolean" label="30063" help="30064">
                     <control type="toggle" />
-                    <default>true</default>
-                    <dependencies>
-                        <dependency type="visible" setting="enable_embedded_subtitle_extraction">true</dependency>
-                    </dependencies>
+                    <default>false</default>
                 </setting>
 
                 <setting id="mkvtoolnix_folder" type="path" label="30065" help="30066">
@@ -118,7 +111,7 @@
                 <setting id="remote_extractor_timeout" type="integer" label="30083" help="30084">
                     <constraints><minimum>10</minimum><maximum>600</maximum></constraints>
                     <control type="edit" format="integer" />
-                    <default>120</default>
+                    <default>480</default>
                     <dependencies>
                         <dependency type="visible" setting="remote_extractor_enabled">true</dependency>
                     </dependencies>
@@ -216,11 +209,40 @@
                         <dependency type="visible" setting="provider">LibreTranslate</dependency>
                     </dependencies>
                 </setting>
+
+                <setting id="temp_gemini" type="string" label="30032" help="30033">
+                    <constraints><allowempty>false</allowempty></constraints>
+                    <control type="edit" format="string" />
+                    <default>0.15</default>
+                    <dependencies>
+                        <dependency type="visible" setting="provider">Gemini</dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="temp_openai" type="string" label="30032" help="30033">
+                    <constraints><allowempty>false</allowempty></constraints>
+                    <control type="edit" format="string" />
+                    <default>0.15</default>
+                    <dependencies>
+                        <dependency type="visible" setting="provider">OpenAI</dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="chunk_size" type="integer" label="30019" help="30020">
+                    <constraints><minimum>10</minimum><step>10</step><maximum>150</maximum></constraints>
+                    <control type="edit" format="integer" />
+                    <default>50</default>
+                </setting>
             </group>
         </category>
 
 		<category id="tuning" label="30014">
             <group id="3">
+                <setting id="dual_language_display" type="boolean" label="30061" help="30062">
+                    <control type="toggle" />
+                    <default>false</default>
+                </setting>
+
                 <setting id="source_lang" type="string" label="30015" help="30016">
                     <constraints>
                         <options>
@@ -644,18 +666,6 @@
                 <setting id="remove_sdh_hi_cues" type="boolean" label="30059" help="30060">
                     <control type="toggle" />
                     <default>false</default>
-                </setting>
-
-                <setting id="temp" type="string" label="30032" help="30033">
-                    <constraints><allowempty>false</allowempty></constraints>
-                    <control type="edit" format="string" />
-                    <default>0.15</default>
-                </setting>
-
-                <setting id="chunk_size" type="integer" label="30019" help="30020">
-                    <constraints><minimum>10</minimum><step>10</step><maximum>150</maximum></constraints>
-                    <control type="edit" format="integer" />
-                    <default>50</default>
                 </setting>
             </group>
         </category>

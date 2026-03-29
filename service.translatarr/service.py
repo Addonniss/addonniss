@@ -667,9 +667,11 @@ class TranslatarrMonitor(xbmc.Monitor):
                 return addon.getSettingBool(key)
             except (TypeError, ValueError):
                 raw = str(addon.getSetting(key) or '').strip().lower()
+                if raw == '':
+                    return fallback
                 if raw in ('true', '1', 'yes', 'on'):
                     return True
-                elif raw in ('false', '0', 'no', 'off', ''):
+                elif raw in ('false', '0', 'no', 'off'):
                     return False
                 return fallback
     
@@ -700,7 +702,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.remove_sdh_hi_cues = safe_bool('remove_sdh_hi_cues', False)
         self.dual_language_display = safe_bool('dual_language_display', False)
         self.enable_embedded_subtitle_extraction = safe_bool('enable_embedded_subtitle_extraction', False)
-        self.skip_translation_if_embedded_target_exists = safe_bool('skip_translation_if_embedded_target_exists', False)
+        self.force_embedded_source_extraction = safe_bool('force_embedded_source_extraction', False)
         self.remote_extractor_enabled = safe_bool('remote_extractor_enabled', False)
     
         # ------------------------------------------------------------
@@ -722,7 +724,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.ffmpeg_path = legacy_ffmpeg_path
         self.remote_extractor_url = (addon.getSetting('remote_extractor_url') or "").strip()
         self.remote_extractor_token = (addon.getSetting('remote_extractor_token') or "").strip()
-        self.remote_extractor_timeout = safe_int('remote_extractor_timeout', 120)
+        self.remote_extractor_timeout = safe_int('remote_extractor_timeout', 480)
         self.remote_extractor_client = remote_extractor.RemoteExtractorClient(
             addon,
             log_fn=lambda message, level="debug": log(message, level, self)
@@ -825,7 +827,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         if not self.auto_mode:
             settings_snapshot += f", subtitle_folder={self.sub_folder}"
             settings_snapshot += f", embedded_extract={self.enable_embedded_subtitle_extraction}"
-            settings_snapshot += f", skip_if_embedded_target_exists={self.skip_translation_if_embedded_target_exists}"
+            settings_snapshot += f", force_embedded_extract={self.force_embedded_source_extraction}"
             settings_snapshot += f", mkvtoolnix_folder={self.mkvtoolnix_folder or 'PATH'}"
             settings_snapshot += f", ffmpeg_folder={self.ffmpeg_folder or 'PATH'}"
             settings_snapshot += f", remote_extractor={self.remote_extractor_enabled}"
@@ -853,6 +855,9 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.is_busy = False
         self.playback_started_at = 0
         self.last_embedded_extraction_attempt_key = None
+        self.last_embedded_target_skip_notify_key = None
+        self.logged_stale_manual_source_paths = set()
+        self.logged_auto_temp_skip_paths = set()
 
     def handle_embedded_subtitle_fallback(self, media_path, output_dir, mode_label):
         if not self.enable_embedded_subtitle_extraction and not self.remote_extractor_enabled:
@@ -889,8 +894,25 @@ class TranslatarrMonitor(xbmc.Monitor):
             "log_fn": lambda message, level="debug": log(message, level, self),
         }
 
+        def notify_extraction_result(scope_label, success, reason=None):
+            if not self.use_notifications:
+                return
+
+            if success:
+                return
+
+            reason_text = (reason or "").lower()
+            if "timed out" in reason_text or "timeout" in reason_text:
+                message = "Embedded extraction timed out ({0})".format(scope_label)
+            else:
+                message = "Embedded extraction failed ({0})".format(scope_label)
+
+            ui.notify(message, title="Translatarr", duration=5000)
+
         def check_local_target_skip():
-            if not self.skip_translation_if_embedded_target_exists or not local_extraction_ready:
+            if self.force_embedded_source_extraction:
+                return None
+            if not local_extraction_ready:
                 return None
 
             target_result = embedded_subtitles.has_embedded_subtitle(
@@ -910,6 +932,15 @@ class TranslatarrMonitor(xbmc.Monitor):
                     "info",
                     self
                 )
+                if self.use_notifications and self.last_embedded_target_skip_notify_key != attempt_key:
+                    ui.notify(
+                        "Embedded {0} subtitle already found. Skipping translation.".format(
+                            self.target_lang_name
+                        ),
+                        title="Translatarr",
+                        duration=5000
+                    )
+                    self.last_embedded_target_skip_notify_key = attempt_key
                 return "target_exists_skip"
 
             if target_result.get("reason") != "no_matching_subtitle_track":
@@ -923,7 +954,9 @@ class TranslatarrMonitor(xbmc.Monitor):
             return None
 
         def check_remote_target_skip():
-            if not self.skip_translation_if_embedded_target_exists or not remote_configured:
+            if self.force_embedded_source_extraction:
+                return None
+            if not remote_configured:
                 return None
 
             remote_probe = self.remote_extractor_client.probe_embedded_subtitle(
@@ -953,6 +986,15 @@ class TranslatarrMonitor(xbmc.Monitor):
                     "info",
                     self
                 )
+                if self.use_notifications and self.last_embedded_target_skip_notify_key != attempt_key:
+                    ui.notify(
+                        "Embedded {0} subtitle already found. Skipping translation.".format(
+                            self.target_lang_name
+                        ),
+                        title="Translatarr",
+                        duration=5000
+                    )
+                    self.last_embedded_target_skip_notify_key = attempt_key
                 return "target_exists_skip"
 
             return None
@@ -983,6 +1025,7 @@ class TranslatarrMonitor(xbmc.Monitor):
                         "debug",
                         self
                     )
+                notify_extraction_result("Remote", True)
                 return "source_extracted", True
 
             log(
@@ -991,6 +1034,11 @@ class TranslatarrMonitor(xbmc.Monitor):
                 ),
                 "debug",
                 self
+            )
+            notify_extraction_result(
+                "Remote",
+                False,
+                remote_result.get("error") or remote_result.get("message") or remote_result.get("reason")
             )
             return "no_action", False
 
@@ -1016,6 +1064,7 @@ class TranslatarrMonitor(xbmc.Monitor):
                     "info",
                     self
                 )
+                notify_extraction_result("Local", True)
                 return "source_extracted", True
 
             log(
@@ -1023,6 +1072,7 @@ class TranslatarrMonitor(xbmc.Monitor):
                 "debug",
                 self
             )
+            notify_extraction_result("Local", False, result.get("reason"))
             return "no_action", False
 
         target_skip_status = check_local_target_skip()
@@ -1220,23 +1270,31 @@ class TranslatarrMonitor(xbmc.Monitor):
                     continue
 
                 if is_temp_folder and not name_match and not current_session_temp_file:
-                    log(
-                        "Skipping non-matching temp subtitle from before current playback: "
-                        f"{full_path} | file_mtime={f_mtime} | playback_started_at={playback_started_at} "
-                        f"| tolerance={TEMP_SUBTITLE_TOLERANCE_SECONDS}",
-                        "debug",
-                        self
-                    )
+                    logged_auto_temp_skip_paths = getattr(self, "logged_auto_temp_skip_paths", set())
+                    if full_path not in logged_auto_temp_skip_paths:
+                        log(
+                            "Skipping non-matching temp subtitle from before current playback: "
+                            f"{full_path} | file_mtime={f_mtime} | playback_started_at={playback_started_at} "
+                            f"| tolerance={TEMP_SUBTITLE_TOLERANCE_SECONDS}",
+                            "debug",
+                            self
+                        )
+                        logged_auto_temp_skip_paths.add(full_path)
+                        self.logged_auto_temp_skip_paths = logged_auto_temp_skip_paths
                     continue
  
                 if is_temp_folder and playback_started_at and f_mtime < playback_started_at - TEMP_SUBTITLE_TOLERANCE_SECONDS:
-                    log(
-                        "Skipping stale temp subtitle from older session: "
-                        f"{full_path} | file_mtime={f_mtime} | playback_started_at={playback_started_at} "
-                        f"| tolerance={TEMP_SUBTITLE_TOLERANCE_SECONDS}",
-                        "debug",
-                        self
-                    )
+                    logged_auto_temp_skip_paths = getattr(self, "logged_auto_temp_skip_paths", set())
+                    if full_path not in logged_auto_temp_skip_paths:
+                        log(
+                            "Skipping stale temp subtitle from older session: "
+                            f"{full_path} | file_mtime={f_mtime} | playback_started_at={playback_started_at} "
+                            f"| tolerance={TEMP_SUBTITLE_TOLERANCE_SECONDS}",
+                            "debug",
+                            self
+                        )
+                        logged_auto_temp_skip_paths.add(full_path)
+                        self.logged_auto_temp_skip_paths = logged_auto_temp_skip_paths
                     continue
 
                 if f_size < 50:
@@ -1366,12 +1424,14 @@ class TranslatarrMonitor(xbmc.Monitor):
         if not custom_dir or not xbmcvfs.exists(custom_dir):
             return
 
-        # 2. FIX: Unpack listdir properly (it returns dirs, files)
-        try:
-            _, files = xbmcvfs.listdir(custom_dir)
-        except Exception as e:
-            log(f"Listdir error: {e}", "error", self)
-            return
+        folders_to_scan = [custom_dir]
+        if best_playing_path and not best_playing_path.startswith(("plugin://", "http://", "https://")):
+            movie_folder = os.path.dirname(best_playing_path)
+            if movie_folder:
+                movie_folder_normalized = movie_folder.rstrip("/\\").replace("\\", "/").lower()
+                custom_dir_normalized = custom_dir.rstrip("/\\").replace("\\", "/").lower()
+                if movie_folder_normalized != custom_dir_normalized:
+                    folders_to_scan.insert(0, movie_folder)
 
         src_variants = get_iso_variants(self.source_lang_name)
         trg_variants = get_iso_variants(self.target_lang_name)
@@ -1382,35 +1442,43 @@ class TranslatarrMonitor(xbmc.Monitor):
         fallback_target_candidates = []
         playback_started_at = getattr(self, "playback_started_at", 0)
 
-        for f in files:
-            f_lower = f.lower()
-            f_normalized = normalize_stem(f_lower)
-            full_path = vfs_join(custom_dir, f)
-
+        for folder in folders_to_scan:
             try:
-                f_stat = xbmcvfs.Stat(full_path)
-                f_mtime = f_stat.st_mtime()
-            except Exception:
-                f_mtime = 0
+                _, files = xbmcvfs.listdir(folder)
+            except Exception as e:
+                log(f"Listdir error in manual mode for {folder}: {e}", "error", self)
+                continue
 
-            name_match = subtitle_matches_video(video_name, f)
-            recent_session_file = bool(playback_started_at) and (
-                f_mtime >= playback_started_at - TEMP_SUBTITLE_TOLERANCE_SECONDS
-            )
+            for f in files:
+                f_lower = f.lower()
+                full_path = vfs_join(folder, f)
 
-            is_target = subtitle_matches_language_suffix(f_lower, trg_variants)
-            is_source = subtitle_matches_language_suffix(f_lower, src_variants)
+                try:
+                    f_stat = xbmcvfs.Stat(full_path)
+                    f_mtime = f_stat.st_mtime()
+                except Exception:
+                    f_mtime = 0
 
-            if is_target:
-                if name_match:
-                    matched_target_candidates.append(f)
-                elif recent_session_file:
-                    fallback_target_candidates.append(f)
-            elif is_source:
-                if name_match:
-                    matched_source_candidates.append(f)
-                elif recent_session_file:
-                    fallback_source_candidates.append(f)
+                name_match = subtitle_matches_video(video_name, f)
+                recent_session_file = bool(playback_started_at) and (
+                    f_mtime >= playback_started_at - TEMP_SUBTITLE_TOLERANCE_SECONDS
+                )
+
+                is_target = subtitle_matches_language_suffix(f_lower, trg_variants)
+                is_source = subtitle_matches_language_suffix(f_lower, src_variants)
+
+                candidate = (folder, f)
+
+                if is_target:
+                    if name_match:
+                        matched_target_candidates.append(candidate)
+                    elif recent_session_file:
+                        fallback_target_candidates.append(candidate)
+                elif is_source:
+                    if name_match:
+                        matched_source_candidates.append(candidate)
+                    elif recent_session_file:
+                        fallback_source_candidates.append(candidate)
 
         target_candidates = matched_target_candidates or fallback_target_candidates
         source_candidates = matched_source_candidates or fallback_source_candidates
@@ -1429,9 +1497,10 @@ class TranslatarrMonitor(xbmc.Monitor):
                 return
 
         # 3. Sorting by mtime (using xbmcvfs)
-        def safe_mtime(f):
+        def safe_mtime(candidate):
+            folder, filename = candidate
             try:
-                return xbmcvfs.Stat(vfs_join(custom_dir, f)).st_mtime()
+                return xbmcvfs.Stat(vfs_join(folder, filename)).st_mtime()
             except Exception:
                 return 0
 
@@ -1440,12 +1509,13 @@ class TranslatarrMonitor(xbmc.Monitor):
 
         # Load newest target if already present
         if target_candidates:
-            target_path = vfs_join(custom_dir, target_candidates[0])
+            target_folder, target_file = target_candidates[0]
+            target_path = vfs_join(target_folder, target_file)
             try:
                 stat = xbmcvfs.Stat(target_path)
                 target_mtime = stat.st_mtime()
 
-                if stat.st_size <= 100:
+                if stat.st_size() <= 100:
                     log(f"Skipping tiny/broken target subtitle: {target_path}", "debug", self)
                 elif (
                     getattr(self, "last_loaded_subtitle_path", None) != target_path
@@ -1456,8 +1526,8 @@ class TranslatarrMonitor(xbmc.Monitor):
             except Exception as e:
                 log(f"Failed to stat target subtitle: {e}", "error", self)
 
-        for f in source_candidates:
-            full_path = vfs_join(custom_dir, f)
+        for folder, f in source_candidates:
+            full_path = vfs_join(folder, f)
             try:
                 # Detect files still being written
                 try:
@@ -1475,11 +1545,15 @@ class TranslatarrMonitor(xbmc.Monitor):
 
                 if playback_started_at and mtime < playback_started_at - TEMP_SUBTITLE_TOLERANCE_SECONDS:
                     if matched_target_candidates:
-                        log(
-                            f"Skipping stale manual subtitle from older session (matching target already exists): {full_path}",
-                            "debug",
-                            self
-                        )
+                        logged_stale_manual_source_paths = getattr(self, "logged_stale_manual_source_paths", set())
+                        if full_path not in logged_stale_manual_source_paths:
+                            log(
+                                f"Skipping stale manual subtitle from older session (matching target already exists): {full_path}",
+                                "debug",
+                                self
+                            )
+                            logged_stale_manual_source_paths.add(full_path)
+                            self.logged_stale_manual_source_paths = logged_stale_manual_source_paths
                         continue
                     log(
                         f"Pre-existing manual source subtitle has no matching target yet. Proceeding: {full_path}",
@@ -1492,12 +1566,12 @@ class TranslatarrMonitor(xbmc.Monitor):
                     
                 # Skip translation if an existing target already covers this source
                 if target_candidates:
-                    newest_target_path = vfs_join(custom_dir, target_candidates[0])
+                    newest_target_path = vfs_join(target_candidates[0][0], target_candidates[0][1])
                     try:
                         target_stat = xbmcvfs.Stat(newest_target_path)
                         target_mtime = target_stat.st_mtime()
 
-                        if target_stat.st_size > 100 and target_mtime >= mtime:
+                        if target_stat.st_size() > 100 and target_mtime >= mtime:
                             log(
                                 f"Target subtitle already exists and is same-age or newer than source. Skipping translation for: {full_path}",
                                 "debug",
