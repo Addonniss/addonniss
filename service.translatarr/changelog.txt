@@ -1,3 +1,8 @@
+v2.4.11
+- Remote Extractor Timeout now drives both the Kodi-side wait and the real remote probe/extraction commands on the server, removing the previous timeout mismatch
+- Updated Remote Extractor settings text and README guidance so `/probe`, `/extract`, and timeout behavior are documented more clearly
+- Refreshed roadmap and remote-extractor documentation to match the verified production workflow, including `dav://` path mapping and nzbdav / rclone-backed media notes
+
 v2.4.10
 - Improved embedded subtitle extraction workflow with clearer Force Extraction behavior for users who want to retranslate even when an embedded target-language subtitle already exists
 - Manual mode now checks next-to-video subtitles before embedded extraction fallback, so valid sidecar source and target subtitles are reused instead of triggering unnecessary extraction

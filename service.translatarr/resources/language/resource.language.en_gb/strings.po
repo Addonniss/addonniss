@@ -306,7 +306,7 @@ msgid "Remote Extractor URL"
 msgstr ""
 
 msgctxt "#30080"
-msgid "Base URL for Translatarr Remote Extractor, for example http://server:8097. Translatarr will call its /extract endpoint when remote extraction is needed."
+msgid "Base URL for Translatarr Remote Extractor, for example http://server:8097. Translatarr will call its /probe and /extract endpoints when remote embedded subtitle handling is needed."
 msgstr ""
 
 msgctxt "#30081"
@@ -322,7 +322,7 @@ msgid "Remote Extractor Timeout"
 msgstr ""
 
 msgctxt "#30084"
-msgid "Maximum number of seconds Translatarr waits for the remote extractor service to respond before giving up and continuing the normal subtitle flow."
+msgid "Maximum number of seconds used for both waiting on the remote extractor response and the real remote probe/extraction commands on the server."
 msgstr ""
 
 msgctxt "#30085"

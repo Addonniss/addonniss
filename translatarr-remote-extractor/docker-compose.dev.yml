@@ -8,8 +8,6 @@ services:
       EXTRACTOR_API_TOKEN: "CHANGE_ME"
       EXTRACTOR_CACHE_DIR: "/cache"
       EXTRACTOR_WORK_DIR: "/work"
-      EXTRACTOR_TIMEOUT: "180"
-      EXTRACTOR_FFMPEG_TIMEOUT: "300"
       EXTRACTOR_PATH_MAPS: "[]"
     volumes:
       - ./cache:/cache

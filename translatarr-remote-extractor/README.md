@@ -19,6 +19,7 @@ Current capabilities:
 - `MP4` extraction via `ffprobe` + `ffmpeg`
 - target-language embedded subtitle probing through `/probe`
 - extracted subtitle caching
+- request-driven timeout control from the Kodi add-on
 
 Deployment targets:
 - Docker Compose
@@ -32,6 +33,7 @@ Current state:
 - `MP4` extraction path enabled
 - extracted subtitle cache enabled
 - target-language embedded subtitle probe enabled
+- timeout is supplied per request by `service.translatarr`
 
 ## Production-Validated Behavior
 
@@ -126,8 +128,6 @@ services:
       - EXTRACTOR_API_TOKEN=replace-with-your-token
       - EXTRACTOR_CACHE_DIR=/cache
       - EXTRACTOR_WORK_DIR=/work
-      - EXTRACTOR_TIMEOUT=180
-      - EXTRACTOR_FFMPEG_TIMEOUT=300
       - EXTRACTOR_PATH_MAPS=[
           {"from":"smb://your-media-server/your-share/media/","to":"/data/media/"},
           {"from":"\\\\your-media-server\\your-share\\media\\","to":"/data/media/"},
@@ -198,10 +198,6 @@ The workflow currently publishes:
   - writable cache directory inside the container
 - `EXTRACTOR_WORK_DIR`
   - writable temporary extraction directory
-- `EXTRACTOR_TIMEOUT`
-  - timeout in seconds for `mkvinfo` and similar probe steps
-- `EXTRACTOR_FFMPEG_TIMEOUT`
-  - timeout in seconds for `ffmpeg` extraction
 - `EXTRACTOR_PATH_MAPS`
   - JSON array mapping Kodi playback paths to server-mounted paths
 
@@ -224,12 +220,16 @@ Extraction time depends on:
 
 Practical guidance:
 
-- `EXTRACTOR_TIMEOUT` controls probe-style operations such as `mkvinfo` and `ffprobe`
-- `EXTRACTOR_FFMPEG_TIMEOUT` controls the longer `ffmpeg` extraction path
-- the Kodi add-on has its own remote-extractor request timeout, which should be long enough for your real media environment
+- `service.translatarr` sends one timeout value per `/probe` and `/extract` request
+- that same request timeout is used for both the HTTP wait on the Kodi side and the real extractor commands on the server side
+- changing the `Remote Extractor Timeout` setting in Translatarr therefore changes the real probe and extraction timeout too
+
+Important:
+
+- the request timeout must be greater than `0`
+- the extractor no longer uses a separate server-side extraction timeout setting for normal requests
 
 If extraction works in principle but seems to fail after a long wait, compare:
 
-- extractor-side command timeouts
-- Kodi-side remote request timeout
+- the timeout configured in Translatarr
 - whether the mapped path resolves through a slower remote mount or symlink chain

@@ -1,4 +1,4 @@
-# 🎬 Translatarr v2.4.10
+# 🎬 Translatarr v2.4.11
 ## AI-Powered Subtitle Translator for Kodi  
 
 Translate Any Subtitle → Into Your Language  
@@ -6,18 +6,24 @@ Powered by Google Gemini, OpenAI, DeepL Free machine translation, or LibreTransl
 
 ---
 
-# 🚀 What’s New (v2.4.10)
+# 🚀 What’s New (v2.4.11)
 
-✔ EMBEDDED EXTRACTION WORKFLOW REFINEMENTS
+✔ REMOTE EXTRACTOR TIMEOUT + DOCS ALIGNMENT
 
 Latest updates include:
+
+- `Remote Extractor Timeout` now controls both the Kodi-side wait and the real remote probe/extraction commands on the server, so there is no hidden second timeout to tune
+- Updated Remote Extractor guidance so the addon settings, README, and companion-service docs all reflect the current `/probe` + `/extract` workflow
+- Clarified production guidance for mapped `smb://`, UNC, and `dav://` playback paths, including the requirement that the remote service must still resolve the real mounted media path
+
+---
+
+**Previous v2.4.10 highlights** include:
 
 - Manual mode now checks next-to-video subtitles before falling back to embedded extraction, so valid sidecar subtitles are reused instead of triggering unnecessary extraction
 - Added **Force Extraction** for users who want to retranslate from the embedded source even when an embedded target-language subtitle already exists
 - Improved extraction UX with clearer start/failure/timeout feedback and a longer default timeout for slower remote or symlink-backed media
 - Cleaned up embedded extraction settings so Local vs Remote behavior is easier to understand, and provider-only options such as temperature appear only where they apply
-
----
 
 **Previous v2.4.9 highlights** include:
 
@@ -424,6 +430,7 @@ Important note:
 
 - path mapping only rewrites the playback path
 - the remote service must still be able to open the real media file on the server through its own mounted filesystem path
+- the timeout configured in Translatarr is sent to the remote extractor and used for the real probe/extraction commands too
 
 See the dedicated [Translatarr Remote Extractor README](https://github.com/addonniss/repository.addonniss/blob/main/translatarr-remote-extractor/README.md) for deployment details.
 

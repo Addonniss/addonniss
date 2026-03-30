@@ -69,6 +69,7 @@ class RemoteExtractorClient(object):
         payload = {
             "video_path": video_path,
             "language": language_name,
+            "timeout": self.timeout,
             "prefer_non_sdh": True
         }
         headers = {"Content-Type": "application/json"}
@@ -132,6 +133,7 @@ class RemoteExtractorClient(object):
         payload = {
             "video_path": video_path,
             "source_lang": source_lang_name,
+            "timeout": self.timeout,
             "prefer_non_sdh": True,
             "allow_ffmpeg_fallback": True,
             "force_reextract": False

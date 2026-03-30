@@ -14,8 +14,6 @@ app = FastAPI(title="Translatarr Remote Extractor")
 API_TOKEN = os.environ.get("EXTRACTOR_API_TOKEN", "").strip()
 CACHE_DIR = os.environ.get("EXTRACTOR_CACHE_DIR", "/cache").strip()
 WORK_DIR = os.environ.get("EXTRACTOR_WORK_DIR", "/work").strip()
-DEFAULT_TIMEOUT = int(os.environ.get("EXTRACTOR_TIMEOUT", "180"))
-FFMPEG_TIMEOUT = int(os.environ.get("EXTRACTOR_FFMPEG_TIMEOUT", "300"))
 
 PATH_MAPS_RAW = os.environ.get("EXTRACTOR_PATH_MAPS", "[]")
 try:
@@ -29,6 +27,7 @@ except Exception:
 class ExtractRequest(BaseModel):
     video_path: str
     source_lang: str
+    timeout: int
     prefer_non_sdh: bool = True
     allow_ffmpeg_fallback: bool = True
     force_reextract: bool = False
@@ -50,6 +49,7 @@ class ExtractResponse(BaseModel):
 class ProbeRequest(BaseModel):
     video_path: str
     language: str
+    timeout: int
     prefer_non_sdh: bool = True
 
 
@@ -308,7 +308,7 @@ def get_cache_path(video_path: str, source_lang: str, track_id: int) -> str:
     return os.path.join(CACHE_DIR, cache_key + ".srt")
 
 
-def probe_embedded_tracks(video_path: str, language: str, prefer_non_sdh: bool = True) -> ProbeResponse:
+def probe_embedded_tracks(video_path: str, language: str, timeout: int, prefer_non_sdh: bool = True) -> ProbeResponse:
     resolved_video_path = apply_path_maps((video_path or "").strip())
     extension = os.path.splitext(resolved_video_path)[1].lower()
 
@@ -330,12 +330,12 @@ def probe_embedded_tracks(video_path: str, language: str, prefer_non_sdh: bool =
             )
 
         try:
-            info_result = run_cmd(["mkvinfo", resolved_video_path], timeout=DEFAULT_TIMEOUT)
+            info_result = run_cmd(["mkvinfo", resolved_video_path], timeout=timeout)
         except subprocess.TimeoutExpired:
             return ProbeResponse(
                 ok=False,
                 found=False,
-                message="mkvinfo timed out after {0}s".format(DEFAULT_TIMEOUT),
+                message="mkvinfo timed out after {0}s".format(timeout),
                 resolved_video_path=resolved_video_path
             )
 
@@ -395,13 +395,13 @@ def probe_embedded_tracks(video_path: str, language: str, prefer_non_sdh: bool =
                 "-show_streams",
                 resolved_video_path,
             ],
-            timeout=DEFAULT_TIMEOUT
+            timeout=timeout
         )
     except subprocess.TimeoutExpired:
         return ProbeResponse(
             ok=False,
             found=False,
-            message="ffprobe timed out after {0}s".format(DEFAULT_TIMEOUT),
+            message="ffprobe timed out after {0}s".format(timeout),
             resolved_video_path=resolved_video_path
         )
 
@@ -467,8 +467,6 @@ def health():
         "status": "api_contract_ready",
         "cache_dir": CACHE_DIR,
         "work_dir": WORK_DIR,
-        "timeout": DEFAULT_TIMEOUT,
-        "ffmpeg_timeout": FFMPEG_TIMEOUT,
         "path_maps": len(PATH_MAPS),
         "auth_enabled": bool(API_TOKEN),
     }
@@ -481,13 +479,16 @@ def probe_subtitle(req: ProbeRequest, authorization: Optional[str] = Header(defa
 
     video_path = (req.video_path or "").strip()
     language = (req.language or "").strip()
+    timeout = req.timeout
 
     if not video_path:
         raise HTTPException(status_code=400, detail="video_path is required")
     if not language:
         raise HTTPException(status_code=400, detail="language is required")
+    if timeout <= 0:
+        raise HTTPException(status_code=400, detail="timeout must be greater than 0")
 
-    return probe_embedded_tracks(video_path, language, req.prefer_non_sdh)
+    return probe_embedded_tracks(video_path, language, timeout, req.prefer_non_sdh)
 
 
 @app.post("/extract", response_model=ExtractResponse)
@@ -497,11 +498,14 @@ def extract_subtitle(req: ExtractRequest, authorization: Optional[str] = Header(
 
     video_path = (req.video_path or "").strip()
     source_lang = (req.source_lang or "").strip()
+    timeout = req.timeout
 
     if not video_path:
         raise HTTPException(status_code=400, detail="video_path is required")
     if not source_lang:
         raise HTTPException(status_code=400, detail="source_lang is required")
+    if timeout <= 0:
+        raise HTTPException(status_code=400, detail="timeout must be greater than 0")
 
     resolved_video_path = apply_path_maps(video_path)
     extension = os.path.splitext(resolved_video_path)[1].lower()
@@ -528,11 +532,11 @@ def extract_subtitle(req: ExtractRequest, authorization: Optional[str] = Header(
             )
 
         try:
-            info_result = run_cmd(["mkvinfo", resolved_video_path], timeout=DEFAULT_TIMEOUT)
+            info_result = run_cmd(["mkvinfo", resolved_video_path], timeout=timeout)
         except subprocess.TimeoutExpired:
             return ExtractResponse(
                 ok=False,
-                message="mkvinfo timed out after {0}s".format(DEFAULT_TIMEOUT),
+                message="mkvinfo timed out after {0}s".format(timeout),
                 resolved_video_path=resolved_video_path
             )
 
@@ -593,12 +597,12 @@ def extract_subtitle(req: ExtractRequest, authorization: Optional[str] = Header(
         try:
             extract_result = run_cmd(
                 ["mkvextract", "tracks", resolved_video_path, "{0}:{1}".format(selected["mkvextract_id"], temp_output)],
-                timeout=DEFAULT_TIMEOUT
+                timeout=timeout
             )
         except subprocess.TimeoutExpired:
             return ExtractResponse(
                 ok=False,
-                message="mkvextract timed out after {0}s".format(DEFAULT_TIMEOUT),
+                message="mkvextract timed out after {0}s".format(timeout),
                 selected_track=selected,
                 all_tracks=tracks,
                 resolved_video_path=resolved_video_path
@@ -661,12 +665,12 @@ def extract_subtitle(req: ExtractRequest, authorization: Optional[str] = Header(
                 "-show_streams",
                 resolved_video_path,
             ],
-            timeout=DEFAULT_TIMEOUT
+            timeout=timeout
         )
     except subprocess.TimeoutExpired:
         return ExtractResponse(
             ok=False,
-            message="ffprobe timed out after {0}s".format(DEFAULT_TIMEOUT),
+            message="ffprobe timed out after {0}s".format(timeout),
             resolved_video_path=resolved_video_path
         )
 
@@ -746,12 +750,12 @@ def extract_subtitle(req: ExtractRequest, authorization: Optional[str] = Header(
                 "-map", "0:s:{0}".format(selected["ffmpeg_sub_index"]),
                 temp_output,
             ],
-            timeout=FFMPEG_TIMEOUT
+            timeout=timeout
         )
     except subprocess.TimeoutExpired:
         return ExtractResponse(
             ok=False,
-            message="ffmpeg timed out after {0}s".format(FFMPEG_TIMEOUT),
+            message="ffmpeg timed out after {0}s".format(timeout),
             selected_track=selected,
             all_tracks=tracks,
             resolved_video_path=resolved_video_path
