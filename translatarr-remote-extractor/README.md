@@ -7,15 +7,17 @@ Purpose:
 - support Android / NVIDIA Shield clients through a remote HTTP API
 - keep extraction logic separate from the Kodi addon runtime
 
-Planned v1 API:
+Current API:
 - `GET /health`
+- `POST /probe`
 - `POST /extract`
 
-Planned capabilities:
+Current capabilities:
 - bearer-token authentication
-- path mapping from `smb://` and UNC paths to server-mounted paths
+- path mapping from `smb://`, UNC, and `dav://` playback paths to server-mounted paths
 - `MKV` extraction via `mkvinfo` + `mkvextract`
 - `MP4` extraction via `ffprobe` + `ffmpeg`
+- target-language embedded subtitle probing through `/probe`
 - extracted subtitle caching
 
 Deployment targets:
@@ -23,13 +25,40 @@ Deployment targets:
 - Portainer stacks
 
 Current state:
-- project scaffold created
-- v1 API contract added
-- bearer-token authentication added
-- path-mapping config added
-- `MKV` extraction path added
-- extracted subtitle cache added for `MKV`
-- `MP4` extraction path added
+- running production companion service for `service.translatarr`
+- bearer-token authentication enabled
+- path-mapping config enabled
+- `MKV` extraction path enabled
+- `MP4` extraction path enabled
+- extracted subtitle cache enabled
+- target-language embedded subtitle probe enabled
+
+## Production-Validated Behavior
+
+The current production workflow has been validated for:
+
+- Docker / Portainer deployment
+- symlink-backed media, as long as the container can resolve the real target path
+- remote probing of embedded target-language subtitles through `/probe`
+- remote extraction of embedded source subtitles through `/extract`
+- path mapping from Kodi playback paths to real mounted filesystem paths inside the container
+
+Important rule:
+
+- path mapping only rewrites the request path
+- the rewritten path must still exist inside the container and lead to a real readable media file
+
+Examples of playback-path patterns that can work when mapped correctly:
+
+- `smb://your-media-server/your-share/...`
+- `\\\\your-media-server\\your-share\\...`
+- `dav://your-server:3000/content/...`
+
+Examples of what still fails even after path mapping:
+
+- the mapped path points to a symlink whose real target is not mounted inside the container
+- the container can see the top-level media folder but not the submount or remote filesystem behind it
+- playback uses a non-filesystem path that has no meaningful local equivalent on the extractor host
 
 ## Published Image
 
@@ -78,7 +107,8 @@ environment:
   EXTRACTOR_PATH_MAPS: >
     [
       {"from": "smb://your-media-server/your-share/", "to": "/data/media/"},
-      {"from": "\\\\your-media-server\\your-share\\", "to": "/data/media/"}
+      {"from": "\\\\your-media-server\\your-share\\", "to": "/data/media/"},
+      {"from": "dav://your-server:3000/content/", "to": "/data/remote/content/"}
     ]
 ```
 
@@ -100,7 +130,8 @@ services:
       - EXTRACTOR_FFMPEG_TIMEOUT=300
       - EXTRACTOR_PATH_MAPS=[
           {"from":"smb://your-media-server/your-share/media/","to":"/data/media/"},
-          {"from":"\\\\your-media-server\\your-share\\media\\","to":"/data/media/"}
+          {"from":"\\\\your-media-server\\your-share\\media\\","to":"/data/media/"},
+          {"from":"dav://your-server:3000/content/","to":"/data/remote/content/"}
         ]
     volumes:
       - /path/to/translatarr-remote-extractor/cache:/cache
@@ -113,6 +144,7 @@ In this example:
 - Kodi sends playback paths such as `smb://your-media-server/your-share/media/...`
 - the extractor maps them to `/data/media/...`
 - the container can then open the real media file through the `/path/to/your/media/root:/data:ro` mount
+- if Kodi sends `dav://your-server:3000/content/...`, the extractor can also map that to `/data/remote/content/...` as long as that remote-backed path is actually mounted and readable inside the container
 
 Health check example:
 
@@ -139,7 +171,8 @@ Recommended flow:
 Portainer notes:
 - keep media mounts read-only
 - keep `cache` and `work` on writable storage
-- if Kodi sends `smb://` or UNC paths, make sure they are translated to paths that exist inside the container
+- if Kodi sends `smb://`, UNC, or `dav://` paths, make sure they are translated to paths that exist inside the container
+- if your media relies on symlinks into another mounted path, the container must also be able to resolve that underlying target path
 
 ## Image Publishing
 
@@ -160,7 +193,7 @@ The workflow currently publishes:
 ## Environment Variables
 
 - `EXTRACTOR_API_TOKEN`
-  - optional bearer token required by `/extract`
+  - optional bearer token required by `/probe` and `/extract`
 - `EXTRACTOR_CACHE_DIR`
   - writable cache directory inside the container
 - `EXTRACTOR_WORK_DIR`
@@ -178,4 +211,25 @@ The extractor host must be able to open the same video file that Translatarr req
 
 That means one of these must be true:
 - Kodi already provides a filesystem path the server can access directly
-- path mapping converts `smb://` or UNC playback paths into valid mounted container paths
+- path mapping converts `smb://`, UNC, or `dav://` playback paths into valid mounted container paths
+
+## Timeouts And Slow Media
+
+Extraction time depends on:
+
+- container storage performance
+- whether the file is local, network-backed, or symlink-backed
+- whether the media ultimately resolves into a slower remote mount
+- `mkvextract` / `ffmpeg` runtime for the selected subtitle track
+
+Practical guidance:
+
+- `EXTRACTOR_TIMEOUT` controls probe-style operations such as `mkvinfo` and `ffprobe`
+- `EXTRACTOR_FFMPEG_TIMEOUT` controls the longer `ffmpeg` extraction path
+- the Kodi add-on has its own remote-extractor request timeout, which should be long enough for your real media environment
+
+If extraction works in principle but seems to fail after a long wait, compare:
+
+- extractor-side command timeouts
+- Kodi-side remote request timeout
+- whether the mapped path resolves through a slower remote mount or symlink chain
