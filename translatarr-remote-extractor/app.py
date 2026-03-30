@@ -15,6 +15,91 @@ API_TOKEN = os.environ.get("EXTRACTOR_API_TOKEN", "").strip()
 CACHE_DIR = os.environ.get("EXTRACTOR_CACHE_DIR", "/cache").strip()
 WORK_DIR = os.environ.get("EXTRACTOR_WORK_DIR", "/work").strip()
 
+# Keep these language tables aligned with service.translatarr/languages.py.
+LANG_NAME_TO_ISO = {
+    "Arabic": "ar",
+    "Bengali": "bn",
+    "Bulgarian": "bg",
+    "Catalan": "ca",
+    "Chinese": "zh",
+    "Croatian": "hr",
+    "Czech": "cs",
+    "Danish": "da",
+    "Dutch": "nl",
+    "English": "en",
+    "Estonian": "et",
+    "Finnish": "fi",
+    "French": "fr",
+    "German": "de",
+    "Greek": "el",
+    "Hebrew": "he",
+    "Hindi": "hi",
+    "Hungarian": "hu",
+    "Indonesian": "id",
+    "Italian": "it",
+    "Japanese": "ja",
+    "Korean": "ko",
+    "Latvian": "lv",
+    "Lithuanian": "lt",
+    "Norwegian": "no",
+    "Polish": "pl",
+    "Portuguese": "pt",
+    "Romanian": "ro",
+    "Russian": "ru",
+    "Serbian": "sr",
+    "Slovak": "sk",
+    "Slovenian": "sl",
+    "Spanish": "es",
+    "Swahili": "sw",
+    "Swedish": "sv",
+    "Thai": "th",
+    "Turkish": "tr",
+    "Ukrainian": "uk",
+    "Vietnamese": "vi",
+}
+
+ISO_VARIANTS = {
+    "ar": ["ar", "ara"],
+    "bn": ["bn", "ben"],
+    "bg": ["bg", "bul"],
+    "ca": ["ca", "cat"],
+    "zh": ["zh", "chi", "zho"],
+    "hr": ["hr", "hrv"],
+    "cs": ["cs", "cze", "ces"],
+    "da": ["da", "dan"],
+    "nl": ["nl", "dut", "nld"],
+    "en": ["en", "eng"],
+    "et": ["et", "est"],
+    "fi": ["fi", "fin"],
+    "fr": ["fr", "fra", "fre"],
+    "de": ["de", "ger", "deu"],
+    "el": ["el", "gre", "ell"],
+    "he": ["he", "heb"],
+    "hi": ["hi", "hin"],
+    "hu": ["hu", "hun"],
+    "id": ["id", "ind"],
+    "it": ["it", "ita"],
+    "ja": ["ja", "jpn"],
+    "ko": ["ko", "kor"],
+    "lv": ["lv", "lav"],
+    "lt": ["lt", "lit"],
+    "no": ["no", "nor"],
+    "pl": ["pl", "pol"],
+    "pt": ["pt", "por"],
+    "ro": ["ro", "ron", "rum"],
+    "ru": ["ru", "rus"],
+    "sr": ["sr", "srp"],
+    "sk": ["sk", "slk", "slo"],
+    "sl": ["sl", "slv"],
+    "es": ["es", "spa"],
+    "sw": ["sw", "swa"],
+    "sv": ["sv", "swe"],
+    "th": ["th", "tha"],
+    "tr": ["tr", "tur"],
+    "uk": ["uk", "ukr"],
+    "vi": ["vi", "vie"],
+}
+
 PATH_MAPS_RAW = os.environ.get("EXTRACTOR_PATH_MAPS", "[]")
 try:
     PATH_MAPS = json.loads(PATH_MAPS_RAW)
@@ -64,42 +149,39 @@ class ProbeResponse(BaseModel):
 
 
 def normalize_lang(lang: str) -> str:
-    value = (lang or "").strip().lower()
-    mapping = {
-        "english": "en",
-        "eng": "en",
-        "romanian": "ro",
-        "ron": "ro",
-        "rum": "ro",
-        "spanish": "es",
-        "spa": "es",
-        "french": "fr",
-        "fra": "fr",
-        "fre": "fr",
-        "german": "de",
-        "deu": "de",
-        "ger": "de",
-        "italian": "it",
-        "ita": "it",
-        "portuguese": "pt",
-        "por": "pt",
-    }
-    return mapping.get(value, value)
+    value = (lang or "").strip()
+    if not value:
+        return ""
+
+    if value in LANG_NAME_TO_ISO:
+        return LANG_NAME_TO_ISO[value]
+
+    lowered = value.lower()
+    for name, iso in LANG_NAME_TO_ISO.items():
+        if lowered == name.lower():
+            return iso
+
+    for iso, variants in ISO_VARIANTS.items():
+        if lowered == iso:
+            return iso
+        if lowered in {variant.lower() for variant in variants}:
+            return iso
+
+    return lowered
 
 
 def get_lang_variants(lang: str) -> set:
     base = normalize_lang(lang)
-    variants = {base}
-    extras = {
-        "en": {"eng", "english", "en-us", "en-gb"},
-        "ro": {"ron", "rum", "romanian", "ro-ro"},
-        "es": {"spa", "spanish", "es-es", "es-la"},
-        "fr": {"fra", "fre", "french", "fr-fr"},
-        "de": {"deu", "ger", "german", "de-de"},
-        "it": {"ita", "italian", "it-it"},
-        "pt": {"por", "portuguese", "pt-pt", "pt-br"},
-    }
-    variants |= extras.get(base, set())
+    if not base:
+        return set()
+
+    variants = set(ISO_VARIANTS.get(base, [base]))
+    variants.add(base)
+
+    for name, iso in LANG_NAME_TO_ISO.items():
+        if iso == base:
+            variants.add(name)
+
     return {item.lower() for item in variants if item}
 
 
@@ -208,7 +290,25 @@ def has_language_match(track: Dict[str, Any], wanted_lang: str) -> bool:
     if language in variants:
         return True
 
-    return any(variant in name for variant in variants)
+    normalized_name = re.sub(r"[^a-z0-9]+", " ", name).strip()
+    if not normalized_name:
+        return False
+
+    name_tokens = [token for token in normalized_name.split() if token]
+    for variant in variants:
+        normalized_variant = re.sub(r"[^a-z0-9]+", " ", variant.lower()).strip()
+        if not normalized_variant:
+            continue
+        if len(normalized_variant) <= 2:
+            if normalized_variant in name_tokens:
+                return True
+            continue
+        if normalized_variant == normalized_name:
+            return True
+        if normalized_variant in name_tokens:
+            return True
+
+    return False
 
 
 def choose_best_track(tracks: List[Dict[str, Any]], source_lang: str, prefer_non_sdh: bool) -> Optional[Dict[str, Any]]:

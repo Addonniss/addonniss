@@ -11,7 +11,7 @@
 - Added generic `dav://` path-mapping examples alongside `smb://` and UNC examples
 
 ### Fixed
-- Fixed embedded subtitle track selection so `/probe` and `/extract` now require a real language match instead of incorrectly accepting unrelated text subtitle tracks based only on generic scoring
+- Fixed embedded subtitle track selection so `/probe` and `/extract` now require a real language match instead of incorrectly accepting unrelated text subtitle tracks based on generic scoring or short ISO-code substring matches inside track names
 - Removed the previous timeout mismatch where Kodi could wait longer than the extractor server, or the extractor server could stop earlier than Kodi expected
 - Clarified that successful path mapping alone is not enough if the container cannot resolve the real underlying symlink or mounted target path
 
