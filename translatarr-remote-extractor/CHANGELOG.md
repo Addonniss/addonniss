@@ -9,6 +9,7 @@
 - Updated the README to reflect the current live API: `GET /health`, `POST /probe`, and `POST /extract`
 - Updated deployment guidance to describe current production-validated Docker / Portainer behavior instead of earlier scaffold/planned wording
 - Added generic `dav://` path-mapping examples alongside `smb://` and UNC examples
+- Added a controlled fallback for unlabeled text subtitle tracks when no explicit language match exists, preferring unlabeled non-SDH tracks before unlabeled SDH tracks
 
 ### Fixed
 - Fixed embedded subtitle track selection so `/probe` and `/extract` now require a real language match instead of incorrectly accepting unrelated text subtitle tracks based on generic scoring or short ISO-code substring matches inside track names

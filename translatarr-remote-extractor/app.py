@@ -320,7 +320,19 @@ def choose_best_track(tracks: List[Dict[str, Any]], source_lang: str, prefer_non
         if has_language_match(track, source_lang)
     ]
     if not matching_tracks:
-        return None
+        unlabeled_tracks = [
+            track for track in tracks
+            if not (track.get("language") or "").strip()
+        ]
+        if not unlabeled_tracks:
+            return None
+
+        ranked_unlabeled = sorted(
+            unlabeled_tracks,
+            key=lambda track: score_track(track, source_lang, prefer_non_sdh),
+            reverse=True
+        )
+        return ranked_unlabeled[0]
 
     ranked = sorted(
         matching_tracks,
