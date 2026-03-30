@@ -311,7 +311,12 @@ def has_language_match(track: Dict[str, Any], wanted_lang: str) -> bool:
     return False
 
 
-def choose_best_track(tracks: List[Dict[str, Any]], source_lang: str, prefer_non_sdh: bool) -> Optional[Dict[str, Any]]:
+def choose_best_track(
+    tracks: List[Dict[str, Any]],
+    source_lang: str,
+    prefer_non_sdh: bool,
+    allow_unlabeled_fallback: bool = False
+) -> Optional[Dict[str, Any]]:
     if not tracks:
         return None
 
@@ -319,7 +324,7 @@ def choose_best_track(tracks: List[Dict[str, Any]], source_lang: str, prefer_non
         track for track in tracks
         if has_language_match(track, source_lang)
     ]
-    if not matching_tracks:
+    if not matching_tracks and allow_unlabeled_fallback:
         unlabeled_tracks = [
             track for track in tracks
             if not (track.get("language") or "").strip()
@@ -333,6 +338,8 @@ def choose_best_track(tracks: List[Dict[str, Any]], source_lang: str, prefer_non
             reverse=True
         )
         return ranked_unlabeled[0]
+    if not matching_tracks:
+        return None
 
     ranked = sorted(
         matching_tracks,
@@ -477,7 +484,7 @@ def probe_embedded_tracks(video_path: str, language: str, timeout: int, prefer_n
             )
 
         tracks = parse_mkvinfo_output(info_result.stdout)
-        selected = choose_best_track(tracks, language, prefer_non_sdh)
+        selected = choose_best_track(tracks, language, prefer_non_sdh, allow_unlabeled_fallback=False)
         if not tracks:
             return ProbeResponse(
                 ok=True,
@@ -554,7 +561,7 @@ def probe_embedded_tracks(video_path: str, language: str, timeout: int, prefer_n
         )
 
     tracks = parse_ffprobe_streams(probe_data.get("streams") or [])
-    selected = choose_best_track(tracks, language, prefer_non_sdh)
+    selected = choose_best_track(tracks, language, prefer_non_sdh, allow_unlabeled_fallback=False)
 
     if not tracks:
         return ProbeResponse(
@@ -676,7 +683,7 @@ def extract_subtitle(req: ExtractRequest, authorization: Optional[str] = Header(
             )
 
         tracks = parse_mkvinfo_output(info_result.stdout)
-        selected = choose_best_track(tracks, source_lang, req.prefer_non_sdh)
+        selected = choose_best_track(tracks, source_lang, req.prefer_non_sdh, allow_unlabeled_fallback=True)
 
         if not tracks:
             return ExtractResponse(
@@ -821,7 +828,7 @@ def extract_subtitle(req: ExtractRequest, authorization: Optional[str] = Header(
         )
 
     tracks = parse_ffprobe_streams(probe_data.get("streams") or [])
-    selected = choose_best_track(tracks, source_lang, req.prefer_non_sdh)
+    selected = choose_best_track(tracks, source_lang, req.prefer_non_sdh, allow_unlabeled_fallback=True)
 
     if not tracks:
         return ExtractResponse(
