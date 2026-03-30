@@ -200,18 +200,34 @@ def score_track(track: Dict[str, Any], wanted_lang: str, prefer_non_sdh: bool) -
     return score
 
 
+def has_language_match(track: Dict[str, Any], wanted_lang: str) -> bool:
+    variants = get_lang_variants(wanted_lang)
+    language = (track.get("language") or "").lower()
+    name = (track.get("name") or "").lower()
+
+    if language in variants:
+        return True
+
+    return any(variant in name for variant in variants)
+
+
 def choose_best_track(tracks: List[Dict[str, Any]], source_lang: str, prefer_non_sdh: bool) -> Optional[Dict[str, Any]]:
     if not tracks:
         return None
 
+    matching_tracks = [
+        track for track in tracks
+        if has_language_match(track, source_lang)
+    ]
+    if not matching_tracks:
+        return None
+
     ranked = sorted(
-        tracks,
+        matching_tracks,
         key=lambda track: score_track(track, source_lang, prefer_non_sdh),
         reverse=True
     )
     best = ranked[0]
-    if score_track(best, source_lang, prefer_non_sdh) < 40:
-        return None
     return best
 
 
