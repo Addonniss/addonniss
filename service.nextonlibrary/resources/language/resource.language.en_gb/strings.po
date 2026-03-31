@@ -1,0 +1,50 @@
+msgid ""
+msgstr ""
+
+msgctxt "#30000"
+msgid "General"
+msgstr ""
+
+msgctxt "#30001"
+msgid "Enable Service"
+msgstr ""
+
+msgctxt "#30002"
+msgid "Turns the background monitor on or off without disabling the add-on."
+msgstr ""
+
+msgctxt "#30003"
+msgid "Prefer Chapter Trigger"
+msgstr ""
+
+msgctxt "#30004"
+msgid "When chapter markers are available, trigger the prompt at the last usable chapter before the end."
+msgstr ""
+
+msgctxt "#30005"
+msgid "Fallback Trigger Percent"
+msgstr ""
+
+msgctxt "#30006"
+msgid "If no chapter data is available, show the prompt when playback reaches this percentage of the total runtime."
+msgstr ""
+
+msgctxt "#30007"
+msgid "Enable Debug Logging"
+msgstr ""
+
+msgctxt "#30008"
+msgid "Adds extra Kodi log lines to help troubleshoot timing and next-episode detection."
+msgstr ""
+
+msgctxt "#30009"
+msgid "Next on Library"
+msgstr ""
+
+msgctxt "#30010"
+msgid "Play the next library episode?"
+msgstr ""
+
+msgctxt "#30011"
+msgid "Next"
+msgstr ""

@@ -1,3 +1,7 @@
+v2.4.12
+- Fixed sidecar subtitle matching to prefer the real playing filename/path instead of `Player.Title`, so existing target-language subtitles next to the video are detected more reliably
+- Auto mode now also uses the real playing filename/path when saving translated subtitles, falling back to `Player.Title` only when no real media path is available
+
 v2.4.11
 - Remote Extractor Timeout now drives both the Kodi-side wait and the real remote probe/extraction commands on the server, removing the previous timeout mismatch
 - Updated Remote Extractor settings text and README guidance so `/probe`, `/extract`, and timeout behavior are documented more clearly

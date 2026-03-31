@@ -134,6 +134,18 @@ def get_best_playing_path(self):
 
     return xbmc.Player().getPlayingFile()
 
+
+def get_preferred_video_name(best_playing_path, fallback_title=None):
+    if best_playing_path and not best_playing_path.startswith(("plugin://", "http://", "https://")):
+        return os.path.splitext(os.path.basename(best_playing_path))[0]
+
+    if fallback_title:
+        fallback_title = fallback_title.strip()
+        if fallback_title:
+            return fallback_title
+
+    return "Streamed_Video"
+
 def get_kodi_temp_scan_folders():
     folders = [KODI_TEMP_SUB_FOLDER]
 
@@ -214,16 +226,9 @@ def process_subtitles(original_path, monitor, force_retranslate=False, save_path
             
         session_playing_file = playing_file
             
-        # FIX: Get video name safely. If it's a URL, use the Player Title label.
         raw_name = xbmc.getInfoLabel('Player.Title')
-        if not raw_name or raw_name == "":
-            # Fallback to file name only if it's not a plugin/http source
-            if not monitor.is_playing_network_stream():
-                raw_name = os.path.splitext(os.path.basename(playing_file))[0]
-            else:
-                raw_name = "Streamed_Video"
-
-        video_name = raw_name
+        session_best_path = get_best_playing_path(monitor)
+        video_name = get_preferred_video_name(session_best_path or playing_file, raw_name)
         log(f"Processing for video: {video_name}", "debug", monitor)
 
         # Ensure save_path is VFS compatible (forward slashes)
@@ -1162,13 +1167,7 @@ class TranslatarrMonitor(xbmc.Monitor):
             return
 
         raw_name = xbmc.getInfoLabel('Player.Title')
-        if not raw_name or raw_name == "":
-            if best_playing_path and not best_playing_path.startswith(("plugin://", "http://", "https://")):
-                video_name = os.path.splitext(os.path.basename(best_playing_path))[0]
-            else:
-                video_name = "Streamed_Video"
-        else:
-            video_name = raw_name
+        video_name = get_preferred_video_name(best_playing_path or playing_file, raw_name)
 
         video_name_normalized = normalize_stem(video_name)
         
@@ -1405,13 +1404,7 @@ class TranslatarrMonitor(xbmc.Monitor):
 
         # 1. FIX: Derives video name (Prevents crash on plugins)
         raw_name = xbmc.getInfoLabel('Player.Title')
-        if not raw_name or raw_name == "":
-            if not self.is_playing_network_stream():
-                video_name = os.path.splitext(os.path.basename(playing_file))[0]
-            else:
-                video_name = "Streamed_Video"
-        else:
-            video_name = raw_name
+        video_name = get_preferred_video_name(best_playing_path or playing_file, raw_name)
 
         video_name_normalized = normalize_stem(video_name)
         

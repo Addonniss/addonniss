@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="service.nextonlibrary" name="Next On Library" version="0.0.1" provider-name="Addonniss">
+    <requires>
+        <import addon="xbmc.python" version="3.0.0"/>
+    </requires>
+    <extension point="xbmc.service" library="service.py" start="login"/>
+    <extension point="xbmc.python.script" library="launcher.py">
+        <provides>executable</provides>
+    </extension>
+    <extension point="kodi.addon.metadata">
+        <summary lang="en_GB">Prompt to play the next library episode using chapter-aware timing.</summary>
+        <description lang="en_GB">Monitors library episode playback and offers the next library episode near the end of the current one. It prefers the final chapter marker as the trigger point and falls back to a user-defined playback percentage when no chapters are available. Uses a simple on-screen overlay button.</description>
+        <platform>all</platform>
+        <license>GPL-2.0-only</license>
+        <assets>
+            <icon>icon.png</icon>
+            <fanart>fanart.jpg</fanart>
+        </assets>
+    </extension>
+</addon>
