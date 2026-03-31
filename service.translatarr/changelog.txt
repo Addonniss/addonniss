@@ -1,3 +1,7 @@
+v2.4.13
+- Embedded subtitle extraction now skips streamed sources that do not expose a real file path, instead of attempting remote extractor probe/extract calls on transient `plugin://`, `http://`, or `https://` playback URLs
+- Added a user-facing notification when embedded extraction is unavailable because playback does not expose a real file path
+
 v2.4.12
 - Fixed sidecar subtitle matching to prefer the real playing filename/path instead of `Player.Title`, so existing target-language subtitles next to the video are detected more reliably
 - Auto mode now also uses the real playing filename/path when saving translated subtitles, falling back to `Player.Title` only when no real media path is available

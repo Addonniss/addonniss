@@ -136,7 +136,7 @@ def get_best_playing_path(self):
 
 
 def get_preferred_video_name(best_playing_path, fallback_title=None):
-    if best_playing_path and not best_playing_path.startswith(("plugin://", "http://", "https://")):
+    if is_real_media_path(best_playing_path):
         return os.path.splitext(os.path.basename(best_playing_path))[0]
 
     if fallback_title:
@@ -145,6 +145,13 @@ def get_preferred_video_name(best_playing_path, fallback_title=None):
             return fallback_title
 
     return "Streamed_Video"
+
+
+def is_real_media_path(path_value):
+    value = (path_value or "").strip().lower()
+    if not value:
+        return False
+    return not value.startswith(("plugin://", "http://", "https://"))
 
 def get_kodi_temp_scan_folders():
     folders = [KODI_TEMP_SUB_FOLDER]
@@ -861,6 +868,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         self.playback_started_at = 0
         self.last_embedded_extraction_attempt_key = None
         self.last_embedded_target_skip_notify_key = None
+        self.last_embedded_unavailable_notify_key = None
         self.logged_stale_manual_source_paths = set()
         self.logged_auto_temp_skip_paths = set()
 
@@ -880,6 +888,23 @@ class TranslatarrMonitor(xbmc.Monitor):
             return "already_checked"
 
         self.last_embedded_extraction_attempt_key = attempt_key
+
+        if not is_real_media_path(resolved_media_path):
+            log(
+                "Embedded extraction unavailable: media source does not expose a real file path ({0}).".format(
+                    resolved_media_path
+                ),
+                "debug",
+                self
+            )
+            if self.use_notifications and self.last_embedded_unavailable_notify_key != attempt_key:
+                ui.notify(
+                    "Embedded extraction requires a real file path.",
+                    title="Translatarr",
+                    duration=10000
+                )
+                self.last_embedded_unavailable_notify_key = attempt_key
+            return "unavailable"
 
         local_tools_available = _local_embedded_tools_available(
             resolved_media_path,
@@ -1180,7 +1205,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         playback_started_at = getattr(self, "playback_started_at", 0)
         custom_folder = None
 
-        if best_playing_path and not best_playing_path.startswith(("plugin://", "http://", "https://")):
+        if is_real_media_path(best_playing_path):
             movie_folder = os.path.dirname(best_playing_path)
             if movie_folder:
                 folders_to_scan.insert(0, movie_folder)
@@ -1418,7 +1443,7 @@ class TranslatarrMonitor(xbmc.Monitor):
             return
 
         folders_to_scan = [custom_dir]
-        if best_playing_path and not best_playing_path.startswith(("plugin://", "http://", "https://")):
+        if is_real_media_path(best_playing_path):
             movie_folder = os.path.dirname(best_playing_path)
             if movie_folder:
                 movie_folder_normalized = movie_folder.rstrip("/\\").replace("\\", "/").lower()
