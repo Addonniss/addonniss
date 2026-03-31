@@ -11,9 +11,14 @@ ADDON_ID = "service.nextonlibrary"
 ADDON = xbmcaddon.Addon(ADDON_ID)
 ADDON_PATH = ADDON.getAddonInfo("path")
 BUTTON_CONTROL_ID = 3012
+CLOSE_BUTTON_CONTROL_ID = 3013
 ACTION_SELECT_ITEM = 7
 ACTION_PLAYER_STOP = 13
 ACTION_NAV_BACK = 92
+ACTION_MOUSE_MOVE = 107
+ACTION_MOUSE_LEFT_CLICK = 100
+ACTION_MOUSE_DOUBLE_CLICK = 103
+ACTION_MOUSE_DRAG = 106
 OS_MACHINE = machine()
 
 
@@ -54,6 +59,18 @@ def get_setting_int(setting_id, default=0, minimum=None, maximum=None):
     return value
 
 
+def get_setting_string(setting_id, default=""):
+    try:
+        value = ADDON.getSettingString(setting_id)
+    except AttributeError:
+        value = ADDON.getSetting(setting_id)
+    return value if value not in (None, "") else default
+
+
+def is_meaningful_gap(current_value, previous_value, minimum_gap):
+    return (current_value - previous_value) >= minimum_gap
+
+
 def jsonrpc(method, params=None, log_errors=True):
     payload = {"jsonrpc": "2.0", "id": 1, "method": method}
     if params is not None:
@@ -81,22 +98,32 @@ class NextOnLibraryOverlay(xbmcgui.WindowXMLDialog):
 
     def onInit(self):  # pylint: disable=invalid-name
         try:
-            self.getControl(BUTTON_CONTROL_ID).setLabel(localize(30011))
+            self.getControl(BUTTON_CONTROL_ID).setLabel(self.service.get_overlay_label())
             self.setFocusId(BUTTON_CONTROL_ID)
+            self.service.configure_overlay_controls(self)
         except RuntimeError:
             pass
 
     def onClick(self, control_id):  # pylint: disable=invalid-name
         if control_id == BUTTON_CONTROL_ID and self.service:
-            self.service.play_next_episode()
+            self.service.handle_overlay_action()
+        elif control_id == CLOSE_BUTTON_CONTROL_ID and self.service:
+            self.service.dismiss_overlay()
 
     def onAction(self, action):  # pylint: disable=invalid-name
         action_id = action.getId()
         if action_id == ACTION_SELECT_ITEM and self.service:
             focused_id = self.getFocusId()
             if focused_id == BUTTON_CONTROL_ID:
-                self.service.play_next_episode()
-        elif action_id in (ACTION_PLAYER_STOP, ACTION_NAV_BACK):
+                self.service.handle_overlay_action()
+            elif focused_id == CLOSE_BUTTON_CONTROL_ID:
+                self.service.dismiss_overlay()
+        elif action_id in (ACTION_MOUSE_MOVE, ACTION_MOUSE_LEFT_CLICK, ACTION_MOUSE_DOUBLE_CLICK, ACTION_MOUSE_DRAG):
+            return
+        elif self.service:
+            user_initiated = action_id != ACTION_PLAYER_STOP
+            self.service.dismiss_overlay(user_initiated=user_initiated)
+        else:
             self.close()
 
 
@@ -139,17 +166,29 @@ class NextOnLibraryService(xbmc.Monitor):
         self.next_episode = None
         self.chapter_starts = []
         self.chapter_percents = []
+        self.skip_intro_target = None
+        self.skip_intro_start = None
+        self.skip_intro_prompted = False
+        self.skip_intro_overlay_shown_at = None
+        self.last_logged_skip_intro_target = None
         self.trigger_time = None
+        self.next_trigger_source = None
+        self.next_overlay_dismissed = False
         self.prompted = False
+        self.overlay_action = None
 
     def close_overlay(self):
         if not self.overlay:
+            self.overlay_action = None
+            self.skip_intro_overlay_shown_at = None
             return
         try:
             self.overlay.close()
         except RuntimeError:
             pass
         self.overlay = None
+        self.overlay_action = None
+        self.skip_intro_overlay_shown_at = None
 
     def handle_playback_started(self):
         self.close_overlay()
@@ -194,6 +233,11 @@ class NextOnLibraryService(xbmc.Monitor):
             if total_time <= 0:
                 continue
 
+            self.refresh_chapter_markers(total_time)
+
+            if self.handle_skip_intro(current_time, total_time):
+                continue
+
             if self.trigger_time is None:
                 self.trigger_time = self.calculate_trigger_time(total_time)
                 log("Using trigger time %.2f seconds" % self.trigger_time, xbmc.LOGDEBUG)
@@ -233,8 +277,14 @@ class NextOnLibraryService(xbmc.Monitor):
         self.current_episode = item
         self.next_episode = None
         self.chapter_starts, self.chapter_percents = self.get_chapter_markers()
+        self.skip_intro_target = None
+        self.skip_intro_start = None
+        self.skip_intro_prompted = False
         self.trigger_time = None
+        self.next_trigger_source = None
+        self.next_overlay_dismissed = False
         self.prompted = False
+        self.overlay_action = None
 
         if self.chapter_starts:
             chapter_info = ", ".join(["%.2f" % value for value in self.chapter_starts])
@@ -461,15 +511,19 @@ class NextOnLibraryService(xbmc.Monitor):
 
         return hours * 3600 + minutes * 60 + seconds + milliseconds
 
+    def parse_setting_time(self, value):
+        return self.parse_time_string(value)
+
     def calculate_trigger_time(self, total_time):
         if get_setting_bool("prefer_chapter_trigger"):
-            self.refresh_chapter_markers(total_time)
             chapter_trigger = self.get_last_chapter_trigger(total_time)
             if chapter_trigger is not None:
+                self.next_trigger_source = "chapter"
                 return chapter_trigger
             log("No usable chapter trigger found, falling back to percentage trigger", xbmc.LOGDEBUG)
 
         fallback_percent = get_setting_int("fallback_trigger_percent", default=90, minimum=50, maximum=99)
+        self.next_trigger_source = "fallback"
         return max(1.0, total_time * (fallback_percent / 100.0))
 
     def get_last_chapter_trigger(self, total_time):
@@ -503,6 +557,139 @@ class NextOnLibraryService(xbmc.Monitor):
                 ),
                 xbmc.LOGDEBUG,
             )
+        if get_setting_bool("enable_skip_intro"):
+            self.skip_intro_start, self.skip_intro_target = self.calculate_skip_intro_window(total_time)
+
+    def calculate_skip_intro_window(self, total_time):
+        max_percent = get_setting_int("skip_intro_max_percent", default=25, minimum=1, maximum=50)
+        early_cutoff = total_time * (max_percent / 100.0)
+        minimum_intro_target = 20.0
+        minimum_gap = 20.0
+        candidates = []
+        previous_start = 0.0
+        for start_time in self.chapter_starts:
+            if start_time <= 0:
+                previous_start = max(previous_start, start_time)
+                continue
+            if start_time < minimum_intro_target:
+                previous_start = start_time
+                continue
+            if start_time <= early_cutoff and is_meaningful_gap(start_time, previous_start, minimum_gap):
+                candidates.append(start_time)
+            previous_start = start_time
+
+        if not candidates:
+            if not get_setting_bool("enable_skip_intro_fallback"):
+                return None, None
+            fallback_start = self.parse_setting_time(get_setting_string("skip_intro_fallback_start", "00:15"))
+            fallback_end = self.parse_setting_time(get_setting_string("skip_intro_fallback_end", "01:30"))
+            if fallback_start is None:
+                fallback_start = 15.0
+            if fallback_end is None:
+                fallback_end = 90.0
+            fallback_start = max(1.0, min(fallback_start, max(1.0, total_time - 1.0)))
+            fallback_end = max(fallback_start + 1.0, min(fallback_end, total_time))
+            rounded_target = round(fallback_end, 2)
+            if self.last_logged_skip_intro_target != rounded_target:
+                log(
+                    "No usable intro chapter target found, falling back to start=%.2f end=%.2f" % (
+                        fallback_start,
+                        fallback_end,
+                    ),
+                    xbmc.LOGDEBUG,
+                )
+                self.last_logged_skip_intro_target = rounded_target
+            return fallback_start, fallback_end
+
+        if len(candidates) >= 2:
+            window_start = candidates[0]
+            target = candidates[1]
+            rounded_target = round(target, 2)
+            if self.last_logged_skip_intro_target != rounded_target:
+                log(
+                    "Using skip intro window %.2f -> %.2f seconds" % (
+                        window_start,
+                        target,
+                    ),
+                    xbmc.LOGDEBUG,
+                )
+                self.last_logged_skip_intro_target = rounded_target
+            return window_start, target
+
+        target = candidates[0]
+        rounded_target = round(target, 2)
+        if self.last_logged_skip_intro_target != rounded_target:
+            log("Using skip intro target %.2f seconds" % target, xbmc.LOGDEBUG)
+            self.last_logged_skip_intro_target = rounded_target
+        return 1.0, target
+
+    def handle_skip_intro(self, current_time, total_time):
+        if not get_setting_bool("enable_skip_intro"):
+            if self.overlay_action == "skip_intro":
+                self.close_overlay()
+            return False
+
+        if self.skip_intro_target is None:
+            self.skip_intro_start, self.skip_intro_target = self.calculate_skip_intro_window(total_time)
+
+        if self.skip_intro_target is None:
+            return False
+
+        if self.skip_intro_start is None:
+            self.skip_intro_start = 1.0
+
+        # Skip Intro should only be offered while playback is still before the intro-end marker.
+        if current_time >= self.skip_intro_target:
+            if self.overlay_action == "skip_intro":
+                self.close_overlay()
+            self.skip_intro_prompted = True
+            return False
+
+        if current_time < self.skip_intro_start:
+            return False
+
+        hide_threshold = self.skip_intro_start + ((self.skip_intro_target - self.skip_intro_start) * 0.2)
+        if current_time >= hide_threshold:
+            if self.overlay_action == "skip_intro":
+                log(
+                    "Closing Skip Intro overlay early in intro window (current=%.2f, start=%.2f, target=%.2f)" % (
+                        current_time,
+                        self.skip_intro_start,
+                        self.skip_intro_target,
+                    ),
+                    xbmc.LOGDEBUG,
+                )
+                self.close_overlay()
+            self.skip_intro_prompted = True
+            return False
+
+        if self.skip_intro_prompted:
+            return False
+
+        if self.skip_intro_overlay_shown_at is not None and (current_time - self.skip_intro_overlay_shown_at) >= 10.0:
+            if self.overlay_action == "skip_intro":
+                log(
+                    "Closing Skip Intro overlay after timeout (current=%.2f, shown_at=%.2f)" % (
+                        current_time,
+                        self.skip_intro_overlay_shown_at,
+                    ),
+                    xbmc.LOGDEBUG,
+                )
+                self.close_overlay()
+            self.skip_intro_prompted = True
+            return False
+
+        if self.overlay_action == "skip_intro":
+            return True
+
+        if self.overlay:
+            return False
+
+        self.show_overlay("skip_intro")
+        self.skip_intro_overlay_shown_at = current_time
+        self.skip_intro_prompted = True
+        log("Displayed Skip Intro overlay at %.2f -> target %.2f" % (current_time, self.skip_intro_target), xbmc.LOGDEBUG)
+        return True
 
     def get_next_episode(self):
         if self.next_episode is not None:
@@ -547,6 +734,9 @@ class NextOnLibraryService(xbmc.Monitor):
         return None
 
     def prompt_for_next_episode(self):
+        if self.next_overlay_dismissed:
+            return
+
         self.prompted = True
 
         episode = self.get_next_episode()
@@ -554,18 +744,119 @@ class NextOnLibraryService(xbmc.Monitor):
             log("No next library episode found", xbmc.LOGDEBUG)
             return
 
-        if self.overlay:
-            return
+        self.show_overlay("next_episode")
+        log("Displayed Next overlay for episode %s" % episode.get("episodeid"), xbmc.LOGDEBUG)
 
+    def show_overlay(self, action_name):
+        if self.overlay:
+            if self.overlay_action == action_name:
+                return
+            self.close_overlay()
+
+        self.overlay_action = action_name
+        xml_filename = self.get_overlay_xml()
         self.overlay = NextOnLibraryOverlay(
-            "script-nextonlibrary-overlay.xml",
+            xml_filename,
             ADDON_PATH,
             "default",
             "1080i",
         )
         self.overlay.service = self
         self.overlay.show()
-        log("Displayed Next overlay for episode %s" % episode.get("episodeid"), xbmc.LOGDEBUG)
+        log(
+            "Opened overlay xml=%s for action=%s trigger_source=%s" % (
+                xml_filename,
+                self.overlay_action,
+                self.next_trigger_source,
+            ),
+            xbmc.LOGDEBUG,
+        )
+
+    def configure_overlay_controls(self, overlay):
+        show_close_button = self.should_show_close_button()
+        try:
+            close_button = overlay.getControl(CLOSE_BUTTON_CONTROL_ID)
+        except RuntimeError:
+            log(
+                "Overlay control configuration -> action=%s, trigger_source=%s, show_close=%s, close_control=missing" % (
+                    self.overlay_action,
+                    self.next_trigger_source,
+                    show_close_button,
+                ),
+                xbmc.LOGDEBUG,
+            )
+            return
+
+        if show_close_button:
+            close_button.setVisible(True)
+            close_button.setEnabled(True)
+            log(
+                "Overlay control configuration -> action=%s, trigger_source=%s, show_close=true" % (
+                    self.overlay_action,
+                    self.next_trigger_source,
+                ),
+                xbmc.LOGDEBUG,
+            )
+        else:
+            close_button.setVisible(False)
+            close_button.setEnabled(False)
+            log(
+                "Overlay control configuration -> action=%s, trigger_source=%s, show_close=false" % (
+                    self.overlay_action,
+                    self.next_trigger_source,
+                ),
+                xbmc.LOGDEBUG,
+            )
+
+    def get_overlay_label(self):
+        if self.overlay_action == "skip_intro":
+            return localize(30017)
+        return localize(30011)
+
+    def get_overlay_xml(self):
+        return "script-nextonlibrary-overlay.xml"
+
+    def should_show_close_button(self):
+        return False
+
+    def handle_overlay_action(self):
+        if self.overlay_action == "skip_intro":
+            self.seek_skip_intro()
+            return
+        self.play_next_episode()
+
+    def dismiss_overlay(self, user_initiated=True):
+        if self.overlay_action == "next_episode" and user_initiated:
+            self.next_overlay_dismissed = True
+            self.prompted = True
+            log("Next overlay dismissed by user action", xbmc.LOGDEBUG)
+        self.close_overlay()
+
+    def seek_skip_intro(self):
+        target_time = self.skip_intro_target
+        try:
+            current_time = self.player.getTime()
+        except RuntimeError:
+            current_time = 0.0
+        self.close_overlay()
+        if target_time is None:
+            log("Skip Intro target vanished before click handling", xbmc.LOGDEBUG)
+            return
+        if current_time >= target_time:
+            log(
+                "Skip Intro click ignored because playback already passed the target (current=%.2f, target=%.2f)" % (
+                    current_time,
+                    target_time,
+                ),
+                xbmc.LOGDEBUG,
+            )
+            return
+        try:
+            self.player.seekTime(target_time)
+            self.skip_intro_overlay_shown_at = None
+            log("Seeking to skip intro target %.2f seconds" % target_time, xbmc.LOGDEBUG)
+        except RuntimeError:
+            log("Failed to seek to skip intro target %.2f seconds" % target_time, xbmc.LOGDEBUG)
 
     def play_next_episode(self):
         episode = self.get_next_episode()

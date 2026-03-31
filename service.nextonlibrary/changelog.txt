@@ -1,3 +1,7 @@
+0.0.3
+- Added Skip Intro with chapter-aware timing and optional manual fallback window
+- Improved Next and Skip Intro overlay behavior and artwork
+
 0.0.2
 - Replaced the confirmation dialog with a simple on-screen Next overlay button
 - Added chapter-aware trigger detection using Kodi chapter markers, with fallback percentage timing when chapters are unavailable

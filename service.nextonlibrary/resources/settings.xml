@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings version="1">
     <section id="service.nextonlibrary">
-        <category id="general" label="30000">
+        <category id="nexton" label="30000">
             <group id="service">
                 <setting id="service_enabled" type="boolean" label="30001" help="30002">
                     <control type="toggle" />
@@ -25,6 +25,71 @@
                 <setting id="debug_logging" type="boolean" label="30007" help="30008">
                     <control type="toggle" />
                     <default>false</default>
+                </setting>
+            </group>
+        </category>
+
+        <category id="skipintro" label="30012">
+            <group id="skip_intro">
+                <setting id="enable_skip_intro" type="boolean" label="30013" help="30014">
+                    <control type="toggle" />
+                    <default>true</default>
+                </setting>
+
+                <setting id="enable_skip_intro_fallback" type="boolean" label="30023" help="30024">
+                    <control type="toggle" />
+                    <default>false</default>
+                    <dependencies>
+                        <dependency type="enable">
+                            <condition operator="is">true</condition>
+                            <setting>enable_skip_intro</setting>
+                        </dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="skip_intro_max_percent" type="integer" label="30015" help="30016">
+                    <constraints>
+                        <minimum>1</minimum>
+                        <maximum>50</maximum>
+                    </constraints>
+                    <control type="edit" format="integer" />
+                    <default>25</default>
+                    <dependencies>
+                        <dependency type="enable">
+                            <condition operator="is">true</condition>
+                            <setting>enable_skip_intro</setting>
+                        </dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="skip_intro_fallback_start" type="string" label="30019" help="30020">
+                    <control type="edit" format="string" />
+                    <default>00:15</default>
+                    <dependencies>
+                        <dependency type="enable">
+                            <condition operator="is">true</condition>
+                            <setting>enable_skip_intro</setting>
+                        </dependency>
+                        <dependency type="enable">
+                            <condition operator="is">true</condition>
+                            <setting>enable_skip_intro_fallback</setting>
+                        </dependency>
+                    </dependencies>
+                </setting>
+
+                <setting id="skip_intro_fallback_end" type="string" label="30021" help="30022">
+                    <control type="edit" format="string" />
+                    <default>01:30</default>
+                    <dependencies>
+                        <dependency type="enable">
+                            <condition operator="is">true</condition>
+                            <setting>enable_skip_intro</setting>
+                        </dependency>
+                        <dependency type="enable">
+                            <condition operator="is">true</condition>
+                            <setting>enable_skip_intro_fallback</setting>
+                        </dependency>
+                    </dependencies>
                 </setting>
             </group>
         </category>

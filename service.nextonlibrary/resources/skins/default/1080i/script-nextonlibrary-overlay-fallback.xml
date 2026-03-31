@@ -12,9 +12,9 @@
                 <effect type="slide" start="0,0" end="280,0" time="180" />
             </animation>
             <control type="button" id="3012">
-                <left>1560</left>
+                <left>1456</left>
                 <top>760</top>
-                <width>280</width>
+                <width>180</width>
                 <height>72</height>
                 <label>$ADDON[service.nextonlibrary 30011]</label>
                 <font>font20_title</font>
@@ -33,7 +33,7 @@
             <control type="button" id="3013">
                 <left>1660</left>
                 <top>760</top>
-                <width>170</width>
+                <width>180</width>
                 <height>72</height>
                 <label>$ADDON[service.nextonlibrary 30018]</label>
                 <font>font20_title</font>
@@ -43,7 +43,6 @@
                 <shadowcolor>00000000</shadowcolor>
                 <align>center</align>
                 <aligny>center</aligny>
-                <visible>false</visible>
                 <texturefocus border="30" colordiffuse="CCFFFFFF">button.png</texturefocus>
                 <texturenofocus border="30" colordiffuse="CCFFFFFF">button.png</texturenofocus>
                 <alttexturefocus border="30" colordiffuse="CCFFFFFF">button.png</alttexturefocus>
