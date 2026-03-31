@@ -391,20 +391,24 @@ class NextOnLibraryService(xbmc.Monitor):
         if not tokens:
             return []
 
-        starts = []
-
         # Kodi builds appear to expose Player.Chapters in different layouts:
         # - one start percentage per chapter, e.g. "0.00000,89.75975"
-        # - start/end pairs, e.g. start1,end1,start2,end2,...
-        if chapter_count > 0 and len(tokens) == chapter_count:
-            starts = tokens
-        elif len(tokens) % 2 == 0 and len(tokens) > 2:
-            starts = tokens[0::2]
-        else:
-            starts = tokens
+        # - repeated chapter boundaries, e.g. start1,end1,start2,end2,...
+        # Normalize both by preserving ordered unique boundary values.
+        boundaries = []
+        seen = set()
+        for value in tokens:
+            rounded_value = round(value, 5)
+            if rounded_value in seen:
+                continue
+            seen.add(rounded_value)
+            boundaries.append(value)
+
+        if chapter_count > 0 and len(boundaries) > chapter_count:
+            boundaries = boundaries[:chapter_count]
 
         cleaned_starts = []
-        for start_percent in starts:
+        for start_percent in boundaries:
             if 0.0 <= start_percent < 100.0:
                 cleaned_starts.append(start_percent)
 
