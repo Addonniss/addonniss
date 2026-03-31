@@ -1,2 +1,7 @@
+0.0.2
+- Replaced the confirmation dialog with a simple on-screen Next overlay button
+- Added chapter-aware trigger detection using Kodi chapter markers, with fallback percentage timing when chapters are unavailable
+- Added icon, fanart, README, and Programs add-on presentation polish
+
 0.0.1
 - Initial release
