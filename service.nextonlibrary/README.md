@@ -37,5 +37,6 @@ It is meant for users who want lightweight playback helpers for library episodes
 - Works with library TV episodes only
 - `Next` prefers the last usable chapter before the end
 - `Skip Intro` prefers early chapter markers when they are available
+- `Skip Intro` can also work on non-library playsback as streaming or add-on playback, including debrid-based sources, when Kodi exposes usable chapter markers
 - Manual Skip Intro fallback is optional
 - Launching the add-on from Programs opens its settings

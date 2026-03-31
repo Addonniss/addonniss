@@ -162,6 +162,7 @@ class NextOnLibraryService(xbmc.Monitor):
     def reset_session(self):
         self.close_overlay()
         self.current_file = ""
+        self.current_item = None
         self.current_episode = None
         self.next_episode = None
         self.chapter_starts = []
@@ -213,11 +214,8 @@ class NextOnLibraryService(xbmc.Monitor):
                     self.reset_session()
                 continue
 
-            if not self.current_episode:
+            if not self.current_file:
                 self.bootstrap_session()
-                continue
-
-            if self.prompted:
                 continue
 
             if not self.session_matches_current_playback():
@@ -236,6 +234,12 @@ class NextOnLibraryService(xbmc.Monitor):
             self.refresh_chapter_markers(total_time)
 
             if self.handle_skip_intro(current_time, total_time):
+                continue
+
+            if not self.current_episode:
+                continue
+
+            if self.prompted:
                 continue
 
             if self.trigger_time is None:
@@ -261,20 +265,21 @@ class NextOnLibraryService(xbmc.Monitor):
         except RuntimeError:
             return
 
-        item = self.get_current_episode()
+        item = self.get_current_playback_item()
         if not item:
             if self.current_file:
-                log("Current playback is not a library episode, clearing session", xbmc.LOGDEBUG)
-            self.reset_session()
+                log("Current playback is not a video item Kodi can describe, clearing session", xbmc.LOGDEBUG)
+                self.reset_session()
             return
 
-        if self.current_file == current_file and self.current_episode:
+        if self.current_file == current_file and self.current_item:
             return
 
         self.close_overlay()
 
         self.current_file = current_file
-        self.current_episode = item
+        self.current_item = item
+        self.current_episode = self.get_library_episode(item)
         self.next_episode = None
         self.chapter_starts, self.chapter_percents = self.get_chapter_markers()
         self.skip_intro_target = None
@@ -292,15 +297,25 @@ class NextOnLibraryService(xbmc.Monitor):
             chapter_info = "percents=%s" % ", ".join(["%.2f" % value for value in self.chapter_percents])
         else:
             chapter_info = "none"
-        log(
-            "Tracking %s S%02dE%02d, chapters=%s" % (
-                item.get("showtitle", ""),
-                int(item.get("season", 0)),
-                int(item.get("episode", 0)),
-                chapter_info,
-            ),
-            xbmc.LOGDEBUG,
-        )
+        if self.current_episode:
+            log(
+                "Tracking %s S%02dE%02d, chapters=%s" % (
+                    self.current_episode.get("showtitle", ""),
+                    int(self.current_episode.get("season", 0)),
+                    int(self.current_episode.get("episode", 0)),
+                    chapter_info,
+                ),
+                xbmc.LOGDEBUG,
+            )
+        else:
+            playback_label = item.get("label") or item.get("title") or current_file
+            log(
+                "Tracking playback '%s' for Skip Intro only, chapters=%s" % (
+                    playback_label,
+                    chapter_info,
+                ),
+                xbmc.LOGDEBUG,
+            )
 
     def session_matches_current_playback(self):
         try:
@@ -317,7 +332,7 @@ class NextOnLibraryService(xbmc.Monitor):
                 return player.get("playerid")
         return None
 
-    def get_current_episode(self):
+    def get_current_playback_item(self):
         player_id = self.get_active_player_id()
         if player_id is None:
             return None
@@ -338,13 +353,18 @@ class NextOnLibraryService(xbmc.Monitor):
             },
         )
         item = result.get("result", {}).get("item", {})
+        if item.get("type") not in ("episode", "movie", "unknown"):
+            return None
+        return item
+
+    def get_library_episode(self, item):
+        if not item:
+            return None
         if item.get("type") != "episode":
             return None
-
         tvshow_id = item.get("tvshowid", -1)
         if tvshow_id in (-1, None):
             return None
-
         return item
 
     def get_chapter_markers(self):

@@ -1,3 +1,6 @@
+0.0.4
+- Expanded Skip Intro support to work on non-library playback, including streaming or add-on playback and debrid-based sources, when Kodi exposes chapter markers
+
 0.0.3
 - Added Skip Intro with chapter-aware timing and optional manual fallback window
 - Improved Next and Skip Intro overlay behavior and artwork
