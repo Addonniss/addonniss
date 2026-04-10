@@ -4,10 +4,10 @@ Translatarr is a Kodi service add-on that detects subtitles during playback, tra
 
 It supports these translation providers:
 
-- Gemini
-- OpenAI
-- DeepL Free
-- LibreTranslate
+- Gemini: [model docs](https://ai.google.dev/gemini-api/docs/models/gemini)
+- OpenAI: [GPT-4o](https://platform.openai.com/docs/models/gpt-4o), [GPT-4o mini](https://platform.openai.com/docs/models/gpt-4o-mini), [GPT-5 mini](https://platform.openai.com/docs/models/gpt-5-mini/)
+- DeepL Free: [API Free plan](https://support.deepl.com/hc/en-us/articles/360021200939-DeepL-API-Free)
+- LibreTranslate: [documentation](https://docs.libretranslate.com/)
 
 ## What New Users Need To Know
 
@@ -66,11 +66,11 @@ Requires a Gemini API key. Model selection is available in settings, including G
 
 ### OpenAI
 
-Requires an OpenAI API key. Model selection is available in settings.
+Requires an OpenAI API key. Model selection is available in settings, including GPT-4o, GPT-4o mini, and GPT-5 mini.
 
 ### DeepL Free
 
-Requires a DeepL API key. Available languages depend on what DeepL Free supports.
+Requires a DeepL API key. DeepL API Free includes 500,000 characters per month, which is roughly enough for about 10 movies on average. Available languages depend on what DeepL Free supports.
 
 ### LibreTranslate
 
