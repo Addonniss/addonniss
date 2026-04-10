@@ -4,71 +4,12 @@ This repository hosts the Kodi add-ons published by Addonniss, plus the companio
 
 ## What’s Included
 
-### `service.translatarr`
-Translatarr is a Kodi service add-on that detects subtitles during playback, translates them into your selected target language, writes a translated `.srt`, and switches playback to the translated subtitle automatically.
-
-It supports these providers:
-
-- Gemini
-- OpenAI
-- DeepL Free
-- LibreTranslate
-
-It also supports optional dual-language display, SDH/HI cue removal, embedded subtitle extraction, and the remote extractor companion service.
-
-Links:
-
-- [README](service.translatarr/README.md)
-- [Changelog](service.translatarr/changelog.txt)
-
-### `translatarr-remote-extractor`
-This is a Docker-first companion service for `service.translatarr`, not a Kodi add-on.
-
-It provides:
-
-- remote embedded subtitle extraction
-- `/health`, `/probe`, and `/extract` endpoints
-- bearer-token authentication
-- path mapping for `smb://`, UNC, and `dav://` playback paths
-
-Links:
-
-- [README](translatarr-remote-extractor/README.md)
-- [Changelog](translatarr-remote-extractor/CHANGELOG.md)
-
-
-### `Skip.Intro.Next (S.I.N.)`
-Skip.Intro.Next (S.I.N.) is a Kodi service add-on that provides two lightweight playback helpers for TV episodes: `Skip Intro` and `Next On`.
-
-It can use:
-
-- online metadata from TheIntroDB and IntroDB.app
-- local chapter markers exposed by Kodi
-- a manual fallback intro window
-- a fallback percentage trigger for the next-episode prompt
-
-Links:
-
-- [README](service.nextonlibrary/README.md)
-- [Changelog](service.nextonlibrary/changelog.txt)
-
-
-### `script.kodiarr.instant`
-KodiARR Instant is a Kodi script add-on that adds context menu actions for sending movies to Radarr and TV shows, seasons, or episodes to Sonarr.
-
-It includes:
-
-- instant Radarr and Sonarr context menu entries
-- connection test actions
-- add-and-search flows for supported items
-- a custom settings UI for quick setup
-
-Links:
-
-- [README](script.kodiarr.instant/README.md)
-- [Changelog](script.kodiarr.instant/changelog.txt)
-
-
+| Add-on | Type | What it does | Docs |
+| --- | --- | --- | --- |
+| **Translatarr** (`service.translatarr`) | Kodi service | Detects subtitles during playback, translates them into your selected target language, writes a translated `.srt`, and switches playback automatically. Supports Gemini, OpenAI, DeepL Free, and LibreTranslate, plus optional dual-language display, SDH/HI cue removal, embedded subtitle extraction, and the remote extractor companion service. | [README](service.translatarr/README.md) · [Changelog](service.translatarr/changelog.txt) |
+| **Skip.Intro.Next (S.I.N.)** (`service.nextonlibrary`) | Kodi service | Adds two lightweight playback helpers for TV episodes: `Skip Intro` and `Next On`. It can use online metadata from TheIntroDB and IntroDB.app, local chapter markers, a manual fallback intro window, and a fallback percentage trigger for the next-episode prompt. | [README](service.nextonlibrary/README.md) · [Changelog](service.nextonlibrary/changelog.txt) |
+| **KodiARR Instant** (`script.kodiarr.instant`) | Kodi script | Adds context menu actions for sending movies to Radarr and TV shows, seasons, or episodes to Sonarr. Includes instant context menu entries, connection test actions, add-and-search flows, and a custom settings UI for quick setup. | [README](script.kodiarr.instant/README.md) · [Changelog](script.kodiarr.instant/changelog.txt) |
+| **Translatarr Remote Extractor** (`translatarr-remote-extractor`) | Companion service | Docker-first companion service for `service.translatarr` that provides remote embedded subtitle extraction, `/health`, `/probe`, and `/extract` endpoints, bearer-token authentication, and path mapping for `smb://`, UNC, and `dav://` playback paths. | [README](translatarr-remote-extractor/README.md) · [Changelog](translatarr-remote-extractor/CHANGELOG.md) |
 
 ## Install
 
