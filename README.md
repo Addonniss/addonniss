@@ -27,7 +27,7 @@ This repository hosts the Kodi add-ons published by Addonniss, plus the companio
 
 - This repo is structured for Kodi repository generation and GitHub Pages publishing.
 - Each add-on is maintained as an independent project.
-- `create_repository.py` builds the repository metadata and zip packages.
+
 
 ## Support
 
