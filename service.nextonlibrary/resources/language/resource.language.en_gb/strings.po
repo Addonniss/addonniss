@@ -38,7 +38,7 @@ msgid "Adds extra Kodi log lines to help troubleshoot timing and next-episode de
 msgstr ""
 
 msgctxt "#30009"
-msgid "Skip Intro & Next"
+msgid "S.I.N."
 msgstr ""
 
 msgctxt "#30010"

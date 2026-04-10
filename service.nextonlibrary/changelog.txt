@@ -1,3 +1,6 @@
+0.0.6
+- Renamed the add-on presentation to Skip.Intro.Next (S.I.N.) to reflect the combined Skip Intro and Next On focus
+
 0.0.5
 - Added online Skip Intro and Next On metadata support using TheIntroDB and IntroDB.app, including TV episode lookups for streaming and add-on playback
 - Added an Advanced settings group with relocated debug logging and a View Changelog action

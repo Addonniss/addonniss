@@ -39,7 +39,7 @@ def log(message, level=xbmc.LOGINFO, force=False):
         return
     if level == xbmc.LOGDEBUG and debug_enabled:
         level = xbmc.LOGINFO
-    xbmc.log("[NextOnLibrary] %s" % message, level)
+    xbmc.log("[S.I.N.] %s" % message, level)
 
 
 def get_setting_bool(setting_id):

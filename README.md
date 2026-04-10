@@ -37,8 +37,8 @@ Links:
 - [Changelog](translatarr-remote-extractor/CHANGELOG.md)
 
 
-### `service.nextonlibrary`
-Skip Intro & Next is a Kodi service add-on that provides two lightweight playback helpers for TV episodes: `Skip Intro` and `Next On`.
+### `Skip.Intro.Next (S.I.N.)`
+Skip.Intro.Next (S.I.N.) is a Kodi service add-on that provides two lightweight playback helpers for TV episodes: `Skip Intro` and `Next On`.
 
 It can use:
 

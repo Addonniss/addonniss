@@ -12,7 +12,7 @@ ADDON = xbmcaddon.Addon(ADDON_ID)
 
 
 def log(message, level=xbmc.LOGINFO):
-    xbmc.log("[NextOnLibrary][Launcher] %s" % message, level)
+    xbmc.log("[S.I.N.][Launcher] %s" % message, level)
 
 
 def show_changelog():

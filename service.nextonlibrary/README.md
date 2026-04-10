@@ -1,4 +1,4 @@
-# Skip Intro & Next
+# Skip.Intro.Next (S.I.N.)
 
 `service.nextonlibrary` is a Kodi service add-on that adds two lightweight playback helpers for TV episodes:
 
