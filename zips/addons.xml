@@ -54,7 +54,7 @@
     </extension>
 
 </addon>
-<addon id="service.nextonlibrary" name="Skip Intro &amp; Next" version="0.0.5" provider-name="Addonniss">
+<addon id="service.nextonlibrary" name="Skip.Intro.Next" version="0.0.6" provider-name="Addonniss">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
     </requires>
