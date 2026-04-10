@@ -1,3 +1,9 @@
+0.0.5
+- Added online Skip Intro and Next On metadata support using TheIntroDB and IntroDB.app, including TV episode lookups for streaming and add-on playback
+- Added an Advanced settings group with relocated debug logging and a View Changelog action
+- Replaced the old local-metadata wording with Online Metadata Priority settings and aligned the behavior with the on/off meaning
+- Reduced repeated debug-log noise during playback while keeping first-use diagnostics
+
 0.0.4
 - Expanded Skip Intro support to work on non-library playback, including streaming or add-on playback and debrid-based sources, when Kodi exposes chapter markers
 

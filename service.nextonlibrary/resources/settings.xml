@@ -13,6 +13,11 @@
                     <default>true</default>
                 </setting>
 
+                <setting id="online_next_metadata_priority" type="boolean" label="30027" help="30028">
+                    <control type="toggle" />
+                    <default>true</default>
+                </setting>
+
                 <setting id="fallback_trigger_percent" type="integer" label="30005" help="30006">
                     <constraints>
                         <minimum>50</minimum>
@@ -20,11 +25,6 @@
                     </constraints>
                     <control type="edit" format="integer" />
                     <default>90</default>
-                </setting>
-
-                <setting id="debug_logging" type="boolean" label="30007" help="30008">
-                    <control type="toggle" />
-                    <default>false</default>
                 </setting>
             </group>
         </category>
@@ -36,14 +36,19 @@
                     <default>true</default>
                 </setting>
 
+                <setting id="online_intro_metadata_priority" type="boolean" label="30025" help="30026">
+                    <control type="toggle" />
+                    <default>true</default>
+                    <dependencies>
+                        <dependency type="enable" setting="enable_skip_intro">true</dependency>
+                    </dependencies>
+                </setting>
+
                 <setting id="enable_skip_intro_fallback" type="boolean" label="30023" help="30024">
                     <control type="toggle" />
                     <default>false</default>
                     <dependencies>
-                        <dependency type="enable">
-                            <condition operator="is">true</condition>
-                            <setting>enable_skip_intro</setting>
-                        </dependency>
+                        <dependency type="enable" setting="enable_skip_intro">true</dependency>
                     </dependencies>
                 </setting>
 
@@ -55,10 +60,7 @@
                     <control type="edit" format="integer" />
                     <default>25</default>
                     <dependencies>
-                        <dependency type="enable">
-                            <condition operator="is">true</condition>
-                            <setting>enable_skip_intro</setting>
-                        </dependency>
+                        <dependency type="enable" setting="enable_skip_intro">true</dependency>
                     </dependencies>
                 </setting>
 
@@ -66,14 +68,8 @@
                     <control type="edit" format="string" />
                     <default>00:15</default>
                     <dependencies>
-                        <dependency type="enable">
-                            <condition operator="is">true</condition>
-                            <setting>enable_skip_intro</setting>
-                        </dependency>
-                        <dependency type="enable">
-                            <condition operator="is">true</condition>
-                            <setting>enable_skip_intro_fallback</setting>
-                        </dependency>
+                        <dependency type="enable" setting="enable_skip_intro">true</dependency>
+                        <dependency type="enable" setting="enable_skip_intro_fallback">true</dependency>
                     </dependencies>
                 </setting>
 
@@ -81,15 +77,23 @@
                     <control type="edit" format="string" />
                     <default>01:30</default>
                     <dependencies>
-                        <dependency type="enable">
-                            <condition operator="is">true</condition>
-                            <setting>enable_skip_intro</setting>
-                        </dependency>
-                        <dependency type="enable">
-                            <condition operator="is">true</condition>
-                            <setting>enable_skip_intro_fallback</setting>
-                        </dependency>
+                        <dependency type="enable" setting="enable_skip_intro">true</dependency>
+                        <dependency type="enable" setting="enable_skip_intro_fallback">true</dependency>
                     </dependencies>
+                </setting>
+            </group>
+        </category>
+
+        <category id="advanced" label="30029">
+            <group id="advanced_group" label="30029">
+                <setting id="debug_logging" type="boolean" label="30007" help="30008">
+                    <control type="toggle" />
+                    <default>false</default>
+                </setting>
+
+                <setting id="show_changelog" type="action" label="30030" help="30031">
+                    <control type="button" format="action" />
+                    <data>RunScript(service.nextonlibrary,show_changelog)</data>
                 </setting>
             </group>
         </category>

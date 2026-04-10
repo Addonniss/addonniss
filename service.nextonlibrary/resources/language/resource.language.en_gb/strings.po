@@ -38,7 +38,7 @@ msgid "Adds extra Kodi log lines to help troubleshoot timing and next-episode de
 msgstr ""
 
 msgctxt "#30009"
-msgid "Next on Library"
+msgid "Skip Intro & Next"
 msgstr ""
 
 msgctxt "#30010"
@@ -99,4 +99,32 @@ msgstr ""
 
 msgctxt "#30024"
 msgid "When no usable intro chapter is available, use the manual intro start and end times."
+msgstr ""
+
+msgctxt "#30025"
+msgid "Online Metadata Priority"
+msgstr ""
+
+msgctxt "#30026"
+msgid "On: prioritize online intro metadata from TheIntroDB and IntroDB.app, then fall back to local chapters. Off: prioritize local chapters and fall back to those online sources."
+msgstr ""
+
+msgctxt "#30027"
+msgid "Online Metadata Priority"
+msgstr ""
+
+msgctxt "#30028"
+msgid "On: prioritize online Next On metadata from TheIntroDB and IntroDB.app, then fall back to local chapters. Off: prioritize local chapters and fall back to those online sources."
+msgstr ""
+
+msgctxt "#30029"
+msgid "Advanced"
+msgstr ""
+
+msgctxt "#30030"
+msgid "View Changelog"
+msgstr ""
+
+msgctxt "#30031"
+msgid "Open the add-on changelog in a text viewer."
 msgstr ""

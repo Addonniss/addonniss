@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 import json
 import re
+from contextlib import closing
 from platform import machine
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 import xbmc
 import xbmcaddon
@@ -20,6 +24,9 @@ ACTION_MOUSE_LEFT_CLICK = 100
 ACTION_MOUSE_DOUBLE_CLICK = 103
 ACTION_MOUSE_DRAG = 106
 OS_MACHINE = machine()
+THEINTRODB_BASE_URL = "https://api.theintrodb.org/v2/media"
+INTRODB_SEGMENTS_URL = "http://api.introdb.app/segments"
+REMOTE_LOOKUP_TIMEOUT = 5
 
 
 def localize(string_id):
@@ -157,6 +164,7 @@ class NextOnLibraryService(xbmc.Monitor):
         xbmc.Monitor.__init__(self)
         self.player = NextOnLibraryPlayer(self)
         self.overlay = None
+        self.remote_intro_cache = {}
         self.reset_session()
 
     def reset_session(self):
@@ -169,9 +177,18 @@ class NextOnLibraryService(xbmc.Monitor):
         self.chapter_percents = []
         self.skip_intro_target = None
         self.skip_intro_start = None
+        self.skip_intro_remote_source = None
+        self.skip_intro_remote_attempted = False
         self.skip_intro_prompted = False
         self.skip_intro_overlay_shown_at = None
         self.last_logged_skip_intro_target = None
+        self.logged_remote_contexts = set()
+        self.logged_skip_intro_remote_hits = set()
+        self.logged_skip_intro_remote_misses = set()
+        self.logged_next_remote_hits = set()
+        self.logged_next_remote_misses = set()
+        self.logged_next_preferences = False
+        self.logged_skip_intro_preferences = False
         self.trigger_time = None
         self.next_trigger_source = None
         self.next_overlay_dismissed = False
@@ -343,10 +360,12 @@ class NextOnLibraryService(xbmc.Monitor):
                 "playerid": player_id,
                 "properties": [
                     "episode",
+                    "imdbnumber",
                     "season",
                     "showtitle",
                     "title",
                     "tvshowid",
+                    "uniqueid",
                     "file",
                     "playcount",
                 ],
@@ -534,13 +553,656 @@ class NextOnLibraryService(xbmc.Monitor):
     def parse_setting_time(self, value):
         return self.parse_time_string(value)
 
+    def parse_int(self, value):
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    def normalize_numeric_id(self, value):
+        if value in (None, ""):
+            return None
+        match = re.search(r"(\d+)", str(value))
+        if not match:
+            return None
+        try:
+            return int(match.group(1))
+        except (TypeError, ValueError):
+            return None
+
+    def normalize_imdb_id(self, value):
+        if value in (None, ""):
+            return None
+        match = re.search(r"(tt\d{7,8})", str(value))
+        if not match:
+            return None
+        return match.group(1)
+
+    def get_first_info_label(self, labels):
+        for label in labels:
+            value = xbmc.getInfoLabel(label)
+            if value:
+                return value
+        return ""
+
+    def get_library_unique_ids(self):
+        current = self.current_episode
+        if not current:
+            return {}
+
+        episode_id = current.get("id") or current.get("episodeid")
+        if not episode_id:
+            return {}
+
+        cache_key = ("episode_uniqueids", int(episode_id))
+        if cache_key in self.remote_intro_cache:
+            return self.remote_intro_cache[cache_key]
+
+        result = jsonrpc(
+            "VideoLibrary.GetEpisodeDetails",
+            {
+                "episodeid": int(episode_id),
+                "properties": ["uniqueid"],
+            },
+            log_errors=False,
+        )
+        details = result.get("result", {}).get("episodedetails", {})
+        unique_ids = details.get("uniqueid", {}) or {}
+        self.remote_intro_cache[cache_key] = unique_ids
+        return unique_ids
+
+    def get_library_episode_identifiers(self):
+        current = self.current_episode
+        if not current:
+            return {}
+
+        episode_id = current.get("id") or current.get("episodeid")
+        if not episode_id:
+            dbid_label = xbmc.getInfoLabel("VideoPlayer.DBID")
+            episode_id = self.normalize_numeric_id(dbid_label)
+        if not episode_id:
+            return {}
+
+        cache_key = ("episode_identifiers", int(episode_id))
+        if cache_key in self.remote_intro_cache:
+            return self.remote_intro_cache[cache_key]
+
+        result = jsonrpc(
+            "VideoLibrary.GetEpisodeDetails",
+            {
+                "episodeid": int(episode_id),
+                "properties": ["imdbnumber", "uniqueid", "tvshowid"],
+            },
+            log_errors=False,
+        )
+        details = result.get("result", {}).get("episodedetails", {}) or {}
+        identifiers = {
+            "imdbnumber": details.get("imdbnumber"),
+            "uniqueid": details.get("uniqueid", {}) or {},
+            "tvshowid": details.get("tvshowid"),
+        }
+        self.remote_intro_cache[cache_key] = identifiers
+        return identifiers
+
+    def get_library_show_identifiers(self):
+        current = self.current_episode
+        if not current:
+            return {}
+
+        tvshow_id = current.get("tvshowid")
+        if tvshow_id in (None, -1, "-1"):
+            episode_identifiers = self.get_library_episode_identifiers()
+            tvshow_id = episode_identifiers.get("tvshowid")
+        if tvshow_id in (None, -1, "-1"):
+            tvshow_id = self.normalize_numeric_id(xbmc.getInfoLabel("VideoPlayer.TvShowDBID"))
+        if tvshow_id is None:
+            return {}
+
+        cache_key = ("tvshow_identifiers", int(tvshow_id))
+        if cache_key in self.remote_intro_cache:
+            return self.remote_intro_cache[cache_key]
+
+        result = jsonrpc(
+            "VideoLibrary.GetTVShowDetails",
+            {
+                "tvshowid": int(tvshow_id),
+                "properties": ["imdbnumber", "uniqueid"],
+            },
+            log_errors=False,
+        )
+        details = result.get("result", {}).get("tvshowdetails", {}) or {}
+        identifiers = {
+            "imdbnumber": details.get("imdbnumber"),
+            "uniqueid": details.get("uniqueid", {}) or {},
+        }
+        self.remote_intro_cache[cache_key] = identifiers
+        return identifiers
+
+    def get_playback_tmdb_id(self):
+        item = self.current_item or {}
+        item_unique_ids = item.get("uniqueid", {}) or {}
+        tmdb_id = self.normalize_numeric_id(item_unique_ids.get("tmdb"))
+        if tmdb_id is not None:
+            return tmdb_id
+
+        show_identifiers = self.get_library_show_identifiers()
+        tmdb_id = self.normalize_numeric_id((show_identifiers.get("uniqueid", {}) or {}).get("tmdb"))
+        if tmdb_id is not None:
+            return tmdb_id
+
+        episode_identifiers = self.get_library_episode_identifiers()
+        tmdb_id = self.normalize_numeric_id((episode_identifiers.get("uniqueid", {}) or {}).get("tmdb"))
+        if tmdb_id is not None:
+            return tmdb_id
+
+        unique_ids = self.get_library_unique_ids()
+        tmdb_id = self.normalize_numeric_id(unique_ids.get("tmdb"))
+        if tmdb_id is not None:
+            return tmdb_id
+
+        label_value = self.get_first_info_label(
+            [
+                "ListItem.UniqueID(tmdb)",
+                "VideoPlayer.UniqueID(tmdb)",
+                "VideoPlayer.Property(tmdb_id)",
+                "VideoPlayer.Property(tmdb)",
+            ]
+        )
+        return self.normalize_numeric_id(label_value)
+
+    def get_playback_imdb_id(self):
+        item = self.current_item or {}
+        imdb_id = self.normalize_imdb_id(item.get("imdbnumber"))
+        if imdb_id:
+            return imdb_id
+
+        item_unique_ids = item.get("uniqueid", {}) or {}
+        imdb_id = self.normalize_imdb_id(item_unique_ids.get("imdb"))
+        if imdb_id:
+            return imdb_id
+
+        show_identifiers = self.get_library_show_identifiers()
+        imdb_id = self.normalize_imdb_id(show_identifiers.get("imdbnumber"))
+        if imdb_id:
+            return imdb_id
+        imdb_id = self.normalize_imdb_id((show_identifiers.get("uniqueid", {}) or {}).get("imdb"))
+        if imdb_id:
+            return imdb_id
+
+        episode_identifiers = self.get_library_episode_identifiers()
+        imdb_id = self.normalize_imdb_id(episode_identifiers.get("imdbnumber"))
+        if imdb_id:
+            return imdb_id
+        imdb_id = self.normalize_imdb_id((episode_identifiers.get("uniqueid", {}) or {}).get("imdb"))
+        if imdb_id:
+            return imdb_id
+
+        unique_ids = self.get_library_unique_ids()
+        imdb_id = self.normalize_imdb_id(unique_ids.get("imdb"))
+        if imdb_id:
+            return imdb_id
+
+        label_value = self.get_first_info_label(
+            [
+                "VideoPlayer.IMDBNumber",
+                "ListItem.IMDBNumber",
+                "ListItem.UniqueID(imdb)",
+                "VideoPlayer.UniqueID(imdb)",
+            ]
+        )
+        return self.normalize_imdb_id(label_value)
+
+    def get_playback_show_imdb_id(self):
+        show_identifiers = self.get_library_show_identifiers()
+        imdb_id = self.normalize_imdb_id(show_identifiers.get("imdbnumber"))
+        if imdb_id:
+            return imdb_id
+        imdb_id = self.normalize_imdb_id((show_identifiers.get("uniqueid", {}) or {}).get("imdb"))
+        if imdb_id:
+            return imdb_id
+
+        label_value = self.get_first_info_label(
+            [
+                "VideoPlayer.TVshowIMDBNumber",
+                "Container.ListItem.TVShowIMDBNumber",
+                "ListItem.TVShowIMDBNumber",
+            ]
+        )
+        return self.normalize_imdb_id(label_value)
+
+    def build_skip_intro_remote_context(self):
+        item = self.current_item or {}
+        season = self.parse_int(item.get("season"))
+        episode = self.parse_int(item.get("episode"))
+        if season is None or episode is None:
+            log("Remote metadata skipped: playback item has no season/episode numbers", xbmc.LOGDEBUG)
+            return None
+
+        tmdb_id = self.get_playback_tmdb_id()
+        imdb_id = self.get_playback_imdb_id()
+        show_imdb_id = self.get_playback_show_imdb_id() or imdb_id
+        if tmdb_id is None and not imdb_id and not show_imdb_id:
+            log(
+                "Remote metadata skipped: no usable tmdb/imdb ids for S%02dE%02d" % (
+                    season,
+                    episode,
+                ),
+                xbmc.LOGDEBUG,
+            )
+            return None
+
+        context = {
+            "type": "tv",
+            "season": season,
+            "episode": episode,
+            "tmdb_id": tmdb_id,
+            "imdb_id": imdb_id,
+            "show_imdb_id": show_imdb_id,
+        }
+        self.log_remote_context_once(context)
+        return context
+
+    def build_skip_intro_cache_key(self, context):
+        return (
+            context.get("type"),
+            context.get("tmdb_id"),
+            context.get("imdb_id"),
+            context.get("show_imdb_id"),
+            context.get("season"),
+            context.get("episode"),
+        )
+
+    def log_remote_context_once(self, context):
+        context_key = self.build_skip_intro_cache_key(context)
+        if context_key in self.logged_remote_contexts:
+            return
+        self.logged_remote_contexts.add(context_key)
+        log(
+            "Remote metadata context -> season=%s episode=%s tmdb_id=%s imdb_id=%s" % (
+                context.get("season"),
+                context.get("episode"),
+                context.get("tmdb_id"),
+                context.get("show_imdb_id") or context.get("imdb_id") or "",
+            ),
+            xbmc.LOGDEBUG,
+        )
+
+    def fetch_remote_json(self, url, source_name):
+        log("%s lookup request -> %s" % (source_name, url), xbmc.LOGDEBUG)
+        request = Request(
+            url,
+            headers={
+                "User-Agent": "%s/%s" % (ADDON_ID, ADDON.getAddonInfo("version")),
+                "Accept": "application/json",
+            },
+        )
+        try:
+            with closing(urlopen(request, timeout=REMOTE_LOOKUP_TIMEOUT)) as response:
+                body = response.read().decode("utf-8")
+        except HTTPError as exc:
+            if exc.code == 404:
+                log("%s lookup returned 404 (no metadata match)" % source_name, xbmc.LOGDEBUG)
+                return None
+            if exc.code not in (404,):
+                log("%s lookup failed with HTTP %s" % (source_name, exc.code), xbmc.LOGDEBUG)
+            return None
+        except URLError as exc:
+            log("%s lookup failed: %s" % (source_name, exc.reason), xbmc.LOGDEBUG)
+            return None
+        except Exception as exc:
+            log("%s lookup failed: %s" % (source_name, exc), xbmc.LOGDEBUG)
+            return None
+
+        try:
+            return json.loads(body)
+        except (TypeError, ValueError) as exc:
+            log("%s lookup returned invalid JSON: %s" % (source_name, exc), xbmc.LOGDEBUG)
+            return None
+
+    def normalize_skip_intro_window(self, start_value, end_value, total_time):
+        try:
+            end_seconds = float(end_value)
+        except (TypeError, ValueError):
+            return None
+
+        try:
+            start_seconds = float(start_value) if start_value is not None else 1.0
+        except (TypeError, ValueError):
+            start_seconds = 1.0
+
+        start_seconds = max(1.0, start_seconds)
+        end_seconds = min(float(total_time), end_seconds)
+        if end_seconds <= start_seconds:
+            return None
+        return start_seconds, end_seconds
+
+    def normalize_remote_segment_window(self, segment, total_time):
+        if not isinstance(segment, dict):
+            return None
+
+        start_ms = segment.get("start_ms")
+        end_ms = segment.get("end_ms")
+        if end_ms is not None:
+            return self.normalize_skip_intro_window(
+                None if start_ms is None else (float(start_ms) / 1000.0),
+                float(end_ms) / 1000.0,
+                total_time,
+            )
+
+        return self.normalize_skip_intro_window(
+            segment.get("start_sec"),
+            segment.get("end_sec"),
+            total_time,
+        )
+
+    def select_theintrodb_segment(self, payload):
+        for segment_name in ("recap", "intro"):
+            entries = payload.get(segment_name) or []
+            valid_entries = []
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                try:
+                    end_ms = float(entry.get("end_ms"))
+                except (TypeError, ValueError):
+                    continue
+                start_ms = entry.get("start_ms")
+                try:
+                    start_ms = float(start_ms) if start_ms is not None else None
+                except (TypeError, ValueError):
+                    start_ms = None
+                if start_ms is not None and end_ms <= start_ms:
+                    continue
+                valid_entries.append((end_ms, start_ms))
+
+            if valid_entries:
+                end_ms, start_ms = sorted(valid_entries, key=lambda item: item[0])[0]
+                return segment_name, start_ms, end_ms
+        return None, None, None
+
+    def fetch_skip_intro_from_theintrodb(self, context, total_time):
+        query = {
+            "season": context.get("season"),
+            "episode": context.get("episode"),
+        }
+        tmdb_id = context.get("tmdb_id")
+        imdb_id = context.get("imdb_id")
+        if tmdb_id is not None:
+            query["tmdb_id"] = tmdb_id
+        elif imdb_id:
+            query["imdb_id"] = imdb_id
+        else:
+            return None
+
+        payload = self.fetch_remote_json(
+            "%s?%s" % (THEINTRODB_BASE_URL, urlencode(query)),
+            "TheIntroDB",
+        )
+        if not payload:
+            return None
+
+        segment_name, start_ms, end_ms = self.select_theintrodb_segment(payload)
+        if end_ms is None:
+            return None
+
+        window = self.normalize_skip_intro_window(
+            None if start_ms is None else (start_ms / 1000.0),
+            end_ms / 1000.0,
+            total_time,
+        )
+        if window:
+            log(
+                "Using Skip Intro metadata from TheIntroDB (%s)" % segment_name,
+                xbmc.LOGDEBUG,
+            )
+        return window
+
+    def fetch_skip_intro_from_introdb(self, context, total_time):
+        imdb_id = context.get("show_imdb_id")
+        if not imdb_id:
+            log("IntroDB.app lookup skipped: no show IMDb id available", xbmc.LOGDEBUG)
+            return None
+
+        payload = self.fetch_remote_json(
+            "%s?%s" % (
+                INTRODB_SEGMENTS_URL,
+                urlencode(
+                    {
+                        "imdb_id": imdb_id,
+                        "season": context.get("season"),
+                        "episode": context.get("episode"),
+                    }
+                ),
+            ),
+            "IntroDB.app",
+        )
+        if not isinstance(payload, dict):
+            return None
+
+        for segment_name in ("recap", "intro"):
+            segment = payload.get(segment_name)
+            window = self.normalize_remote_segment_window(segment, total_time)
+            if window:
+                log("Using Skip Intro metadata from IntroDB.app (%s)" % segment_name, xbmc.LOGDEBUG)
+                return window
+        return None
+
+    def fetch_next_trigger_from_introdb(self, context, total_time):
+        imdb_id = context.get("show_imdb_id")
+        if not imdb_id:
+            log("IntroDB.app Next On lookup skipped: no show IMDb id available", xbmc.LOGDEBUG)
+            return None
+
+        payload = self.fetch_remote_json(
+            "%s?%s" % (
+                INTRODB_SEGMENTS_URL,
+                urlencode(
+                    {
+                        "imdb_id": imdb_id,
+                        "season": context.get("season"),
+                        "episode": context.get("episode"),
+                    }
+                ),
+            ),
+            "IntroDB.app",
+        )
+        if not isinstance(payload, dict):
+            return None
+
+        outro = payload.get("outro")
+        if not isinstance(outro, dict):
+            log("Next On remote timing found no IntroDB.app outro marker", xbmc.LOGDEBUG)
+            return None
+
+        start_ms = outro.get("start_ms")
+        start_sec = outro.get("start_sec")
+        try:
+            trigger_time = float(start_ms) / 1000.0 if start_ms is not None else float(start_sec)
+        except (TypeError, ValueError):
+            log("Next On remote timing found invalid IntroDB.app outro marker", xbmc.LOGDEBUG)
+            return None
+
+        if not (0 < trigger_time < total_time):
+            log("Next On remote timing found unusable IntroDB.app outro marker", xbmc.LOGDEBUG)
+            return None
+
+        log("Using Next On timing metadata from IntroDB.app outro", xbmc.LOGDEBUG)
+        return max(1.0, min(float(total_time) - 1.0, trigger_time))
+
+    def get_remote_skip_intro_window(self, total_time):
+        context = self.build_skip_intro_remote_context()
+        if not context:
+            return None
+
+        cache_key = self.build_skip_intro_cache_key(context)
+        if cache_key in self.remote_intro_cache:
+            cached = self.remote_intro_cache[cache_key]
+            if cached:
+                self.skip_intro_remote_source = cached.get("source")
+                if cache_key not in self.logged_skip_intro_remote_hits:
+                    self.logged_skip_intro_remote_hits.add(cache_key)
+                    log(
+                        "Skip Intro remote metadata cache hit -> source=%s start=%.2f end=%.2f" % (
+                            cached.get("source"),
+                            cached.get("start"),
+                            cached.get("end"),
+                        ),
+                        xbmc.LOGDEBUG,
+                    )
+                return self.normalize_skip_intro_window(
+                    cached.get("start"),
+                    cached.get("end"),
+                    total_time,
+                )
+            if cache_key not in self.logged_skip_intro_remote_misses:
+                self.logged_skip_intro_remote_misses.add(cache_key)
+                log("Skip Intro remote metadata cache miss remembered for this playback", xbmc.LOGDEBUG)
+            return None
+
+        for source_name, fetcher in (
+            ("theintrodb", self.fetch_skip_intro_from_theintrodb),
+            ("introdb", self.fetch_skip_intro_from_introdb),
+        ):
+            log("Trying Skip Intro remote metadata source -> %s" % source_name, xbmc.LOGDEBUG)
+            window = fetcher(context, total_time)
+            if not window:
+                log("Skip Intro remote metadata source %s had no usable data" % source_name, xbmc.LOGDEBUG)
+                continue
+            self.remote_intro_cache[cache_key] = {
+                "source": source_name,
+                "start": window[0],
+                "end": window[1],
+            }
+            self.skip_intro_remote_source = source_name
+            return window
+
+        self.remote_intro_cache[cache_key] = None
+        log("Skip Intro remote metadata lookup exhausted all sources", xbmc.LOGDEBUG)
+        return None
+
+    def get_manual_skip_intro_window(self, total_time):
+        if not get_setting_bool("enable_skip_intro_fallback"):
+            return None, None
+        fallback_start = self.parse_setting_time(get_setting_string("skip_intro_fallback_start", "00:15"))
+        fallback_end = self.parse_setting_time(get_setting_string("skip_intro_fallback_end", "01:30"))
+        if fallback_start is None:
+            fallback_start = 15.0
+        if fallback_end is None:
+            fallback_end = 90.0
+        fallback_start = max(1.0, min(fallback_start, max(1.0, total_time - 1.0)))
+        fallback_end = max(fallback_start + 1.0, min(fallback_end, total_time))
+        rounded_target = round(fallback_end, 2)
+        if self.last_logged_skip_intro_target != rounded_target:
+            log(
+                "No usable intro chapter or remote metadata found, falling back to start=%.2f end=%.2f" % (
+                    fallback_start,
+                    fallback_end,
+                ),
+                xbmc.LOGDEBUG,
+            )
+            self.last_logged_skip_intro_target = rounded_target
+        return fallback_start, fallback_end
+
+    def get_remote_next_trigger(self, total_time):
+        context = self.build_skip_intro_remote_context()
+        if not context:
+            return None
+
+        cache_key = ("next_trigger",) + self.build_skip_intro_cache_key(context)
+        if cache_key in self.remote_intro_cache:
+            cached_trigger = self.remote_intro_cache[cache_key]
+            if cached_trigger is None:
+                if cache_key not in self.logged_next_remote_misses:
+                    self.logged_next_remote_misses.add(cache_key)
+                    log("Next On remote timing cache miss remembered for this playback", xbmc.LOGDEBUG)
+                return None
+            if cache_key not in self.logged_next_remote_hits:
+                self.logged_next_remote_hits.add(cache_key)
+                log("Next On remote timing cache hit -> %.2f" % cached_trigger, xbmc.LOGDEBUG)
+            return max(1.0, min(float(total_time) - 1.0, float(cached_trigger)))
+
+        query = {
+            "season": context.get("season"),
+            "episode": context.get("episode"),
+        }
+        tmdb_id = context.get("tmdb_id")
+        imdb_id = context.get("imdb_id")
+        if tmdb_id is not None:
+            query["tmdb_id"] = tmdb_id
+        elif imdb_id:
+            query["imdb_id"] = imdb_id
+
+        if query.get("tmdb_id") is not None or query.get("imdb_id"):
+            payload = self.fetch_remote_json(
+                "%s?%s" % (THEINTRODB_BASE_URL, urlencode(query)),
+                "TheIntroDB",
+            )
+            if isinstance(payload, dict):
+                credits = payload.get("credits") or []
+                credit_starts = []
+                for entry in credits:
+                    if not isinstance(entry, dict):
+                        continue
+                    start_ms = entry.get("start_ms")
+                    try:
+                        start_seconds = float(start_ms) / 1000.0
+                    except (TypeError, ValueError):
+                        continue
+                    if 0 < start_seconds < total_time:
+                        credit_starts.append(start_seconds)
+
+                if credit_starts:
+                    trigger_time = min(credit_starts)
+                    self.remote_intro_cache[cache_key] = trigger_time
+                    log("Using Next On timing metadata from TheIntroDB credits", xbmc.LOGDEBUG)
+                    return max(1.0, min(float(total_time) - 1.0, trigger_time))
+
+                log("Next On remote timing found no usable TheIntroDB credits markers", xbmc.LOGDEBUG)
+            else:
+                log("Next On remote timing had no TheIntroDB payload", xbmc.LOGDEBUG)
+
+        trigger_time = self.fetch_next_trigger_from_introdb(context, total_time)
+        if trigger_time is not None:
+            self.remote_intro_cache[cache_key] = trigger_time
+            return trigger_time
+
+        self.remote_intro_cache[cache_key] = None
+        log("Next On remote timing lookup exhausted all sources", xbmc.LOGDEBUG)
+        return None
+
     def calculate_trigger_time(self, total_time):
-        if get_setting_bool("prefer_chapter_trigger"):
+        online_metadata_priority = get_setting_bool("online_next_metadata_priority")
+        prefer_chapter_trigger = get_setting_bool("prefer_chapter_trigger")
+        if not self.logged_next_preferences:
+            self.logged_next_preferences = True
+            log(
+                "Next On timing preferences -> online_next_metadata_priority=%s prefer_chapter_trigger=%s" % (
+                    online_metadata_priority,
+                    prefer_chapter_trigger,
+                ),
+                xbmc.LOGDEBUG,
+            )
+
+        if online_metadata_priority:
+            remote_trigger = self.get_remote_next_trigger(total_time)
+            if remote_trigger is not None:
+                self.next_trigger_source = "theintrodb"
+                return remote_trigger
+
+        if prefer_chapter_trigger:
             chapter_trigger = self.get_last_chapter_trigger(total_time)
             if chapter_trigger is not None:
                 self.next_trigger_source = "chapter"
                 return chapter_trigger
-            log("No usable chapter trigger found, falling back to percentage trigger", xbmc.LOGDEBUG)
+
+        if not online_metadata_priority:
+            remote_trigger = self.get_remote_next_trigger(total_time)
+            if remote_trigger is not None:
+                self.next_trigger_source = "theintrodb"
+                return remote_trigger
+
+        if prefer_chapter_trigger:
+            log("No usable chapter or remote trigger found, falling back to percentage trigger", xbmc.LOGDEBUG)
 
         fallback_percent = get_setting_int("fallback_trigger_percent", default=90, minimum=50, maximum=99)
         self.next_trigger_source = "fallback"
@@ -581,10 +1243,22 @@ class NextOnLibraryService(xbmc.Monitor):
             self.skip_intro_start, self.skip_intro_target = self.calculate_skip_intro_window(total_time)
 
     def calculate_skip_intro_window(self, total_time):
+        self.skip_intro_remote_source = None
         max_percent = get_setting_int("skip_intro_max_percent", default=25, minimum=1, maximum=50)
         early_cutoff = total_time * (max_percent / 100.0)
         minimum_intro_target = 20.0
         minimum_gap = 20.0
+        online_metadata_priority = get_setting_bool("online_intro_metadata_priority")
+        if not self.logged_skip_intro_preferences:
+            self.logged_skip_intro_preferences = True
+            log(
+                "Skip Intro preferences -> online_intro_metadata_priority=%s max_percent=%s fallback_enabled=%s" % (
+                    online_metadata_priority,
+                    max_percent,
+                    get_setting_bool("enable_skip_intro_fallback"),
+                ),
+                xbmc.LOGDEBUG,
+            )
         candidates = []
         previous_start = 0.0
         for start_time in self.chapter_starts:
@@ -598,50 +1272,53 @@ class NextOnLibraryService(xbmc.Monitor):
                 candidates.append(start_time)
             previous_start = start_time
 
-        if not candidates:
-            if not get_setting_bool("enable_skip_intro_fallback"):
-                return None, None
-            fallback_start = self.parse_setting_time(get_setting_string("skip_intro_fallback_start", "00:15"))
-            fallback_end = self.parse_setting_time(get_setting_string("skip_intro_fallback_end", "01:30"))
-            if fallback_start is None:
-                fallback_start = 15.0
-            if fallback_end is None:
-                fallback_end = 90.0
-            fallback_start = max(1.0, min(fallback_start, max(1.0, total_time - 1.0)))
-            fallback_end = max(fallback_start + 1.0, min(fallback_end, total_time))
-            rounded_target = round(fallback_end, 2)
+        def log_remote_window(remote_window):
+            rounded_target = round(remote_window[1], 2)
             if self.last_logged_skip_intro_target != rounded_target:
                 log(
-                    "No usable intro chapter target found, falling back to start=%.2f end=%.2f" % (
-                        fallback_start,
-                        fallback_end,
+                    "Using skip intro metadata window %.2f -> %.2f seconds from %s" % (
+                        remote_window[0],
+                        remote_window[1],
+                        self.skip_intro_remote_source or "remote",
                     ),
                     xbmc.LOGDEBUG,
                 )
                 self.last_logged_skip_intro_target = rounded_target
-            return fallback_start, fallback_end
+            return remote_window
 
-        if len(candidates) >= 2:
-            window_start = candidates[0]
-            target = candidates[1]
+        if online_metadata_priority:
+            remote_window = self.get_remote_skip_intro_window(total_time)
+            if remote_window:
+                return log_remote_window(remote_window)
+
+        if candidates:
+            if len(candidates) >= 2:
+                window_start = candidates[0]
+                target = candidates[1]
+                rounded_target = round(target, 2)
+                if self.last_logged_skip_intro_target != rounded_target:
+                    log(
+                        "Using skip intro window %.2f -> %.2f seconds" % (
+                            window_start,
+                            target,
+                        ),
+                        xbmc.LOGDEBUG,
+                    )
+                    self.last_logged_skip_intro_target = rounded_target
+                return window_start, target
+
+            target = candidates[0]
             rounded_target = round(target, 2)
             if self.last_logged_skip_intro_target != rounded_target:
-                log(
-                    "Using skip intro window %.2f -> %.2f seconds" % (
-                        window_start,
-                        target,
-                    ),
-                    xbmc.LOGDEBUG,
-                )
+                log("Using skip intro target %.2f seconds" % target, xbmc.LOGDEBUG)
                 self.last_logged_skip_intro_target = rounded_target
-            return window_start, target
+            return 1.0, target
 
-        target = candidates[0]
-        rounded_target = round(target, 2)
-        if self.last_logged_skip_intro_target != rounded_target:
-            log("Using skip intro target %.2f seconds" % target, xbmc.LOGDEBUG)
-            self.last_logged_skip_intro_target = rounded_target
-        return 1.0, target
+        if not online_metadata_priority:
+            remote_window = self.get_remote_skip_intro_window(total_time)
+            if remote_window:
+                return log_remote_window(remote_window)
+        return self.get_manual_skip_intro_window(total_time)
 
     def handle_skip_intro(self, current_time, total_time):
         if not get_setting_bool("enable_skip_intro"):
