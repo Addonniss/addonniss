@@ -1,3 +1,9 @@
+1.0.0
+- First stable release of Skip.Intro.Next (S.I.N.)
+- Combines Skip Intro and Next On with online metadata support from TheIntroDB and IntroDB.app, plus chapter-based and percentage fallback timing
+- Supports library playback as well as compatible streaming or add-on playback when Kodi exposes the needed metadata
+- Finalized the simplified settings layout, always-on chapter handling for Next On, and the fixed 50 percent Skip Intro chapter cutoff
+
 0.0.6
 - Renamed the add-on presentation to Skip.Intro.Next (S.I.N.) to reflect the combined Skip Intro and Next On focus
 

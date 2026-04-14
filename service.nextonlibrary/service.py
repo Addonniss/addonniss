@@ -1172,13 +1172,11 @@ class NextOnLibraryService(xbmc.Monitor):
 
     def calculate_trigger_time(self, total_time):
         online_metadata_priority = get_setting_bool("online_next_metadata_priority")
-        prefer_chapter_trigger = get_setting_bool("prefer_chapter_trigger")
         if not self.logged_next_preferences:
             self.logged_next_preferences = True
             log(
-                "Next On timing preferences -> online_next_metadata_priority=%s prefer_chapter_trigger=%s" % (
+                "Next On timing preferences -> online_next_metadata_priority=%s chapter_timing_enabled=True" % (
                     online_metadata_priority,
-                    prefer_chapter_trigger,
                 ),
                 xbmc.LOGDEBUG,
             )
@@ -1189,11 +1187,10 @@ class NextOnLibraryService(xbmc.Monitor):
                 self.next_trigger_source = "theintrodb"
                 return remote_trigger
 
-        if prefer_chapter_trigger:
-            chapter_trigger = self.get_last_chapter_trigger(total_time)
-            if chapter_trigger is not None:
-                self.next_trigger_source = "chapter"
-                return chapter_trigger
+        chapter_trigger = self.get_last_chapter_trigger(total_time)
+        if chapter_trigger is not None:
+            self.next_trigger_source = "chapter"
+            return chapter_trigger
 
         if not online_metadata_priority:
             remote_trigger = self.get_remote_next_trigger(total_time)
@@ -1201,8 +1198,7 @@ class NextOnLibraryService(xbmc.Monitor):
                 self.next_trigger_source = "theintrodb"
                 return remote_trigger
 
-        if prefer_chapter_trigger:
-            log("No usable chapter or remote trigger found, falling back to percentage trigger", xbmc.LOGDEBUG)
+        log("No usable chapter or remote trigger found, falling back to percentage trigger", xbmc.LOGDEBUG)
 
         fallback_percent = get_setting_int("fallback_trigger_percent", default=90, minimum=50, maximum=99)
         self.next_trigger_source = "fallback"
@@ -1244,7 +1240,7 @@ class NextOnLibraryService(xbmc.Monitor):
 
     def calculate_skip_intro_window(self, total_time):
         self.skip_intro_remote_source = None
-        max_percent = get_setting_int("skip_intro_max_percent", default=25, minimum=1, maximum=50)
+        max_percent = 50
         early_cutoff = total_time * (max_percent / 100.0)
         minimum_intro_target = 20.0
         minimum_gap = 20.0
