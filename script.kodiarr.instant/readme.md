@@ -84,6 +84,7 @@ Open the add-on and choose **Radarr Settings** or **Sonarr Settings** to configu
 ### **Works With**
 * ✅ Kodi 20 (Nexus)
 * ✅ Kodi 21 (Omega)
+* ✅ Kodi 22 (ALPHA 3)
 * ✅ Windows, Android / Android TV, Linux, CoreELEC / LibreELEC
 
 ### **Dependencies**
