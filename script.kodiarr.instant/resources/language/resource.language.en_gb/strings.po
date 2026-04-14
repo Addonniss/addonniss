@@ -42,7 +42,7 @@ msgid "Save & Test Radarr Connection"
 msgstr ""
 
 msgctxt "#30010"
-msgid "Save settings first, then use this button to verify the saved Radarr URL and API key."
+msgid "Save settings first, then use this button to verify the saved Radarr URL and API key and load root folders and quality profiles."
 msgstr ""
 
 msgctxt "#30011"
@@ -86,7 +86,7 @@ msgid "Save & Test Sonarr Connection"
 msgstr ""
 
 msgctxt "#30021"
-msgid "Save settings first, then use this button to verify the saved Sonarr URL and API key."
+msgid "Save settings first, then use this button to verify the saved Sonarr URL and API key and load root folders and quality profiles."
 msgstr ""
 
 msgctxt "#30022"

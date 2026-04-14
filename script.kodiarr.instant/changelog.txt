@@ -1,3 +1,8 @@
+v1.1.0
+- Added Test & Load in the custom Radarr and Sonarr settings windows
+- Root folders can now be auto-filled when only one exists or selected from the instance when multiple are available
+- Quality profiles are now loaded from Radarr and Sonarr and selected by profile name while the addon stores the matching ID automatically
+
 v1.0.7
 - Replaced the old settings flow with a custom Radarr/Sonarr settings UI so connection testing works correctly without reopening settings
 - Added direct Radarr and Sonarr custom settings entry points from addon launch and settings

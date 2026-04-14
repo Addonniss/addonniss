@@ -7,9 +7,20 @@ from .common import get_setting, get_int, clean_url, notify, alert, log, open_se
 from .context import get_movie_id
 
 
-def test_connection(show_notification=True):
-    radarr_url = clean_url(get_setting("radarr_url"))
-    api = get_setting("radarr_api")
+def _get_connection_values(url=None, api=None):
+    return clean_url(url or get_setting("radarr_url")), (api or get_setting("radarr_api")).strip()
+
+
+def _get_status(radarr_url, headers):
+    return requests.get(
+        "{}/api/v3/system/status".format(radarr_url),
+        headers=headers,
+        timeout=10
+    )
+
+
+def test_connection(show_notification=True, url=None, api=None):
+    radarr_url, api = _get_connection_values(url, api)
 
     if not radarr_url or not api:
         if show_notification:
@@ -20,11 +31,7 @@ def test_connection(show_notification=True):
     headers = {"X-Api-Key": api}
 
     try:
-        resp = requests.get(
-            "{}/api/v3/system/status".format(radarr_url),
-            headers=headers,
-            timeout=10
-        )
+        resp = _get_status(radarr_url, headers)
 
         if resp.status_code == 200:
             data = resp.json()
@@ -43,6 +50,37 @@ def test_connection(show_notification=True):
             alert("Radarr", "Connection error:\n{}".format(e))
         log("Radarr test crash: {}".format(e), xbmc.LOGERROR)
         return False
+
+
+def fetch_setup_options(url=None, api=None):
+    radarr_url, api = _get_connection_values(url, api)
+    if not radarr_url or not api:
+        raise ValueError("Please fill Radarr URL and API key.")
+
+    headers = {"X-Api-Key": api}
+
+    root_resp = requests.get(
+        "{}/api/v3/rootfolder".format(radarr_url),
+        headers=headers,
+        timeout=10
+    )
+    root_resp.raise_for_status()
+
+    profile_resp = requests.get(
+        "{}/api/v3/qualityprofile".format(radarr_url),
+        headers=headers,
+        timeout=10
+    )
+    profile_resp.raise_for_status()
+
+    roots = [item.get("path", "").strip() for item in root_resp.json() if item.get("path")]
+    profiles = [
+        {"id": item.get("id"), "name": item.get("name", "").strip()}
+        for item in profile_resp.json()
+        if item.get("id") is not None and item.get("name")
+    ]
+
+    return {"roots": roots, "profiles": profiles}
 
 
 def run():

@@ -7,9 +7,20 @@ from .common import get_setting, get_int, clean_url, notify, alert, log, open_se
 from .context import get_sonarr_context
 
 
-def test_connection(show_notification=True):
-    sonarr_url = clean_url(get_setting("sonarr_url"))
-    api = get_setting("sonarr_api")
+def _get_connection_values(url=None, api=None):
+    return clean_url(url or get_setting("sonarr_url")), (api or get_setting("sonarr_api")).strip()
+
+
+def _get_status(sonarr_url, headers):
+    return requests.get(
+        "{}/api/v3/system/status".format(sonarr_url),
+        headers=headers,
+        timeout=10
+    )
+
+
+def test_connection(show_notification=True, url=None, api=None):
+    sonarr_url, api = _get_connection_values(url, api)
 
     if not sonarr_url or not api:
         if show_notification:
@@ -20,11 +31,7 @@ def test_connection(show_notification=True):
     headers = {"X-Api-Key": api}
 
     try:
-        resp = requests.get(
-            "{}/api/v3/system/status".format(sonarr_url),
-            headers=headers,
-            timeout=10
-        )
+        resp = _get_status(sonarr_url, headers)
 
         if resp.status_code == 200:
             data = resp.json()
@@ -43,6 +50,37 @@ def test_connection(show_notification=True):
             alert("Sonarr", "Connection error:\n{}".format(e))
         log("Sonarr test crash: {}".format(e), xbmc.LOGERROR)
         return False
+
+
+def fetch_setup_options(url=None, api=None):
+    sonarr_url, api = _get_connection_values(url, api)
+    if not sonarr_url or not api:
+        raise ValueError("Please fill Sonarr URL and API key.")
+
+    headers = {"X-Api-Key": api}
+
+    root_resp = requests.get(
+        "{}/api/v3/rootfolder".format(sonarr_url),
+        headers=headers,
+        timeout=10
+    )
+    root_resp.raise_for_status()
+
+    profile_resp = requests.get(
+        "{}/api/v3/qualityprofile".format(sonarr_url),
+        headers=headers,
+        timeout=10
+    )
+    profile_resp.raise_for_status()
+
+    roots = [item.get("path", "").strip() for item in root_resp.json() if item.get("path")]
+    profiles = [
+        {"id": item.get("id"), "name": item.get("name", "").strip()}
+        for item in profile_resp.json()
+        if item.get("id") is not None and item.get("name")
+    ]
+
+    return {"roots": roots, "profiles": profiles}
 
 
 def run():

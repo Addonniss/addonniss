@@ -168,7 +168,7 @@
                 <font>font13</font>
                 <textcolor>FFFFFFFF</textcolor>
                 <shadowcolor>FF000000</shadowcolor>
-                <label>Quality Profile ID</label>
+                <label>Quality Profile</label>
             </control>
             <control type="image">
                 <left>340</left>
@@ -221,7 +221,7 @@
                 <align>center</align>
                 <textcolor>FFFFFFFF</textcolor>
                 <focusedcolor>FFFFFFFF</focusedcolor>
-                <label>Test Connection</label>
+                <label>Test &amp; Load</label>
                 <texturefocus border="16">button_focus.png</texturefocus>
                 <texturenofocus border="16">button_bg.png</texturenofocus>
                 <onup>3104</onup>
