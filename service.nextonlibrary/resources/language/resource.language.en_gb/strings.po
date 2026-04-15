@@ -6,7 +6,7 @@ msgid "Next On"
 msgstr ""
 
 msgctxt "#30001"
-msgid "Enable Service"
+msgid "Enable Next On Service"
 msgstr ""
 
 msgctxt "#30002"
@@ -54,7 +54,7 @@ msgid "Skip Intro"
 msgstr ""
 
 msgctxt "#30013"
-msgid "Enable Skip Intro"
+msgid "Enable Skip Intro Service"
 msgstr ""
 
 msgctxt "#30014"

@@ -1,3 +1,6 @@
+1.0.1
+- Fixed Kodi settings visibility so the add-on settings are available consistently at Basic level
+
 1.0.0
 - First stable release of Skip.Intro.Next (S.I.N.)
 - Combines Skip Intro and Next On with online metadata support from TheIntroDB and IntroDB.app, plus chapter-based and percentage fallback timing

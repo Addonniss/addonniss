@@ -1,3 +1,6 @@
+v2.4.14
+- Fixed Kodi settings visibility so Translatarr settings are available consistently at Basic level
+
 v2.4.13
 - Embedded subtitle extraction now skips streamed sources that do not expose a real file path, instead of attempting remote extractor probe/extract calls on transient `plugin://`, `http://`, or `https://` playback URLs
 - Added a user-facing notification when embedded extraction is unavailable because playback does not expose a real file path
