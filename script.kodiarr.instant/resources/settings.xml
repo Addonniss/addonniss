@@ -17,6 +17,90 @@
                     <control type="button" format="action" />
                     <data>RunScript(script.kodiarr.instant,action=show_changelog)</data>
                 </setting>
+
+                <setting id="radarr_url" type="string" label="30001">
+                    <default>http://127.0.0.1:7878</default>
+                    <visible>false</visible>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="edit" format="string" />
+                </setting>
+
+                <setting id="radarr_api" type="string" label="30003">
+                    <default />
+                    <visible>false</visible>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="edit" format="string" />
+                </setting>
+
+                <setting id="radarr_root" type="string" label="30005">
+                    <default />
+                    <visible>false</visible>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="edit" format="string" />
+                </setting>
+
+                <setting id="radarr_quality_profile" type="integer" label="30007">
+                    <default>1</default>
+                    <visible>false</visible>
+                    <control type="edit" format="integer" />
+                </setting>
+
+                <setting id="radarr_quality_profile_label" type="string" label="30007">
+                    <default />
+                    <visible>false</visible>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="edit" format="string" />
+                </setting>
+
+                <setting id="sonarr_url" type="string" label="30012">
+                    <default>http://127.0.0.1:8989</default>
+                    <visible>false</visible>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="edit" format="string" />
+                </setting>
+
+                <setting id="sonarr_api" type="string" label="30014">
+                    <default />
+                    <visible>false</visible>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="edit" format="string" />
+                </setting>
+
+                <setting id="sonarr_root" type="string" label="30016">
+                    <default />
+                    <visible>false</visible>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="edit" format="string" />
+                </setting>
+
+                <setting id="sonarr_quality_profile" type="integer" label="30018">
+                    <default>1</default>
+                    <visible>false</visible>
+                    <control type="edit" format="integer" />
+                </setting>
+
+                <setting id="sonarr_quality_profile_label" type="string" label="30018">
+                    <default />
+                    <visible>false</visible>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="edit" format="string" />
+                </setting>
             </group>
         </category>
     </section>

@@ -1,3 +1,6 @@
+v1.1.1
+- Fixed settings persistence after Kodi restart by restoring hidden backing settings for the custom Radarr and Sonarr setup windows
+
 v1.1.0
 - Added Test & Load in the custom Radarr and Sonarr settings windows
 - Root folders can now be auto-filled when only one exists or selected from the instance when multiple are available
