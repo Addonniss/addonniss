@@ -59,6 +59,12 @@ def find_series_id():
 def get_sonarr_context():
     info = {}
     info["series_id"], info["id_type"] = find_series_id()
+    info["series_title"] = (
+        xbmc.getInfoLabel("ListItem.TVShowTitle")
+        or xbmc.getInfoLabel("ListItem.Title")
+        or ""
+    ).strip()
+    info["year"] = xbmc.getInfoLabel("ListItem.Year").strip()
 
     raw_season = xbmc.getInfoLabel("ListItem.Season")
     raw_episode = xbmc.getInfoLabel("ListItem.Episode")

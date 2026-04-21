@@ -1,3 +1,6 @@
+v1.1.2
+- Improved Sonarr season handling so selected seasons are monitored correctly and only released missing episodes in that season are searched
+
 v1.1.1
 - Fixed settings persistence after Kodi restart by restoring hidden backing settings for the custom Radarr and Sonarr setup windows
 
