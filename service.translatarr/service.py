@@ -765,6 +765,7 @@ class TranslatarrMonitor(xbmc.Monitor):
         
         self.model = addon.getSetting('model')
         self.openai_model = addon.getSetting('openai_model')
+        self.anthropic_model = addon.getSetting('anthropic_model')
         self.deepl_api_key = addon.getSetting('deepl_api_key')
         self.libretranslate_url = addon.getSetting('libretranslate_url')
         
@@ -828,6 +829,8 @@ class TranslatarrMonitor(xbmc.Monitor):
         # Show only the active provider model
         if self.provider == "OpenAI":
             settings_snapshot += f"openai_model={self.openai_model}"
+        elif self.provider == "Anthropic":
+            settings_snapshot += f"anthropic_model={self.anthropic_model}"
         elif self.provider == "DeepL":
             settings_snapshot += "model=DeepL Free"
         elif self.provider == "LibreTranslate":

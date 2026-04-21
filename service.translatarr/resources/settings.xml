@@ -135,6 +135,7 @@
                         <options>
                             <option label="Gemini">Gemini</option>
                             <option label="OpenAI">OpenAI</option>
+                            <option label="Anthropic">Anthropic</option>
                             <option label="DeepL Free">DeepL</option>
                             <option label="LibreTranslate">LibreTranslate</option>
                         </options>
@@ -157,8 +158,10 @@
                     <level>0</level>
                     <constraints>
                         <options>
+                            <option label="Gemini 2.5 Pro">Gemini 2.5 Pro</option>
                             <option label="Gemini 2.5 Flash">Gemini 2.5 Flash</option>
                             <option label="Fast Mode - Gemini 2.5 Flash">Fast Mode - Gemini 2.5 Flash</option>
+                            <option label="Gemini 2.5 Flash-Lite">Gemini 2.5 Flash-Lite</option>
                             <option label="Gemini 2.0 Flash (Legacy)">Gemini 2.0 Flash (Legacy)</option>
                             <option label="Gemini 1.5 Flash (Legacy)">Gemini 1.5 Flash (Legacy)</option>
                         </options>
@@ -193,6 +196,32 @@
                     <default>gpt-4o-mini</default>
                     <dependencies>
                         <dependency type="visible" setting="provider">OpenAI</dependency>
+                    </dependencies>
+                </setting>
+                <setting id="anthropic_api_key" type="string" label="30087" help="30088">
+                    <level>0</level>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="edit" format="string" />
+                    <default />
+                    <dependencies>
+                        <dependency type="visible" setting="provider">Anthropic</dependency>
+                    </dependencies>
+                </setting>
+                <setting id="anthropic_model" type="string" label="30089" help="30090">
+                    <level>0</level>
+                    <constraints>
+                        <options>
+                            <option label="Claude Haiku 4.5">Claude Haiku</option>
+                            <option label="Claude Sonnet 4.6">Claude Sonnet</option>
+                            <option label="Claude Opus 4.7">Claude Opus</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                    <default>Claude Haiku</default>
+                    <dependencies>
+                        <dependency type="visible" setting="provider">Anthropic</dependency>
                     </dependencies>
                 </setting>
                 <setting id="deepl_api_key" type="string" label="30045" help="30046">
@@ -248,6 +277,17 @@
                     <default>0.15</default>
                     <dependencies>
                         <dependency type="visible" setting="provider">OpenAI</dependency>
+                    </dependencies>
+                </setting>
+                <setting id="temp_anthropic" type="string" label="30032" help="30033">
+                    <level>0</level>
+                    <constraints>
+                        <allowempty>false</allowempty>
+                    </constraints>
+                    <control type="edit" format="string" />
+                    <default>0.15</default>
+                    <dependencies>
+                        <dependency type="visible" setting="provider">Anthropic</dependency>
                     </dependencies>
                 </setting>
                 <setting id="chunk_size" type="integer" label="30019" help="30020">
@@ -471,6 +511,108 @@
                     <default>Romanian</default>
                     <dependencies>
                         <dependency type="visible" setting="provider">OpenAI</dependency>
+                    </dependencies>
+                </setting>
+                <setting id="source_lang_anthropic" type="string" label="30015" help="30016">
+                    <level>0</level>
+                    <constraints>
+                        <options>
+                            <option label="Arabic">Arabic</option>
+                            <option label="Bengali">Bengali</option>
+                            <option label="Bulgarian">Bulgarian</option>
+                            <option label="Catalan">Catalan</option>
+                            <option label="Chinese">Chinese</option>
+                            <option label="Croatian">Croatian</option>
+                            <option label="Czech">Czech</option>
+                            <option label="Danish">Danish</option>
+                            <option label="Dutch">Dutch</option>
+                            <option label="English">English</option>
+                            <option label="Estonian">Estonian</option>
+                            <option label="Finnish">Finnish</option>
+                            <option label="French">French</option>
+                            <option label="German">German</option>
+                            <option label="Greek">Greek</option>
+                            <option label="Hebrew">Hebrew</option>
+                            <option label="Hindi">Hindi</option>
+                            <option label="Hungarian">Hungarian</option>
+                            <option label="Indonesian">Indonesian</option>
+                            <option label="Italian">Italian</option>
+                            <option label="Japanese">Japanese</option>
+                            <option label="Korean">Korean</option>
+                            <option label="Latvian">Latvian</option>
+                            <option label="Lithuanian">Lithuanian</option>
+                            <option label="Norwegian">Norwegian</option>
+                            <option label="Polish">Polish</option>
+                            <option label="Portuguese">Portuguese</option>
+                            <option label="Romanian">Romanian</option>
+                            <option label="Russian">Russian</option>
+                            <option label="Serbian">Serbian</option>
+                            <option label="Slovak">Slovak</option>
+                            <option label="Slovenian">Slovenian</option>
+                            <option label="Spanish">Spanish</option>
+                            <option label="Swahili">Swahili</option>
+                            <option label="Swedish">Swedish</option>
+                            <option label="Thai">Thai</option>
+                            <option label="Turkish">Turkish</option>
+                            <option label="Ukrainian">Ukrainian</option>
+                            <option label="Vietnamese">Vietnamese</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                    <default>English</default>
+                    <dependencies>
+                        <dependency type="visible" setting="provider">Anthropic</dependency>
+                    </dependencies>
+                </setting>
+                <setting id="target_lang_anthropic" type="string" label="30017" help="30018">
+                    <level>0</level>
+                    <constraints>
+                        <options>
+                            <option label="Arabic">Arabic</option>
+                            <option label="Bengali">Bengali</option>
+                            <option label="Bulgarian">Bulgarian</option>
+                            <option label="Catalan">Catalan</option>
+                            <option label="Chinese">Chinese</option>
+                            <option label="Croatian">Croatian</option>
+                            <option label="Czech">Czech</option>
+                            <option label="Danish">Danish</option>
+                            <option label="Dutch">Dutch</option>
+                            <option label="English">English</option>
+                            <option label="Estonian">Estonian</option>
+                            <option label="Finnish">Finnish</option>
+                            <option label="French">French</option>
+                            <option label="German">German</option>
+                            <option label="Greek">Greek</option>
+                            <option label="Hebrew">Hebrew</option>
+                            <option label="Hindi">Hindi</option>
+                            <option label="Hungarian">Hungarian</option>
+                            <option label="Indonesian">Indonesian</option>
+                            <option label="Italian">Italian</option>
+                            <option label="Japanese">Japanese</option>
+                            <option label="Korean">Korean</option>
+                            <option label="Latvian">Latvian</option>
+                            <option label="Lithuanian">Lithuanian</option>
+                            <option label="Norwegian">Norwegian</option>
+                            <option label="Polish">Polish</option>
+                            <option label="Portuguese">Portuguese</option>
+                            <option label="Romanian">Romanian</option>
+                            <option label="Russian">Russian</option>
+                            <option label="Serbian">Serbian</option>
+                            <option label="Slovak">Slovak</option>
+                            <option label="Slovenian">Slovenian</option>
+                            <option label="Spanish">Spanish</option>
+                            <option label="Swahili">Swahili</option>
+                            <option label="Swedish">Swedish</option>
+                            <option label="Thai">Thai</option>
+                            <option label="Turkish">Turkish</option>
+                            <option label="Ukrainian">Ukrainian</option>
+                            <option label="Vietnamese">Vietnamese</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                    <default>Romanian</default>
+                    <dependencies>
+                        <dependency type="visible" setting="provider">Anthropic</dependency>
                     </dependencies>
                 </setting>
                 <setting id="deepl_source_lang" type="string" label="30047" help="30048">

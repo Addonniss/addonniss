@@ -196,6 +196,7 @@ def get_active_language_setting(addon, provider, kind):
     provider_keys = {
         "DeepL": f"deepl_{kind}_lang",
         "OpenAI": f"{kind}_lang_openai",
+        "Anthropic": f"{kind}_lang_anthropic",
         "LibreTranslate": f"libre_{kind}_lang",
     }
 

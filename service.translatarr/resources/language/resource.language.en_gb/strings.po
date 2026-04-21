@@ -30,7 +30,7 @@ msgid "Active Engine"
 msgstr ""
 
 msgctxt "#30009"
-msgid "Choose between Gemini, OpenAI, or DeepL Free machine translation for processing."
+msgid "Choose between Gemini, OpenAI, Anthropic Claude, DeepL Free, or LibreTranslate for processing."
 msgstr ""
 
 msgctxt "#30010"
@@ -143,6 +143,22 @@ msgstr ""
 
 msgctxt "#30037"
 msgid "Select the specific GPT model version."
+msgstr ""
+
+msgctxt "#30087"
+msgid "Anthropic API Key"
+msgstr ""
+
+msgctxt "#30088"
+msgid "Enter your Anthropic API key."
+msgstr ""
+
+msgctxt "#30089"
+msgid "Anthropic Model"
+msgstr ""
+
+msgctxt "#30090"
+msgid "Select the specific Claude model version."
 msgstr ""
 
 msgctxt "#30038"
