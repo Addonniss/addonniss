@@ -224,6 +224,19 @@ def run():
     year = info.get("year", "").strip()
 
     log("Sonarr context: {}".format(info))
+    log(
+        "Sonarr raw labels: db_type='{}' item_type='{}' title='{}' tvshow='{}' year='{}' season='{}' episode='{}' path='{}' folder='{}'".format(
+            xbmc.getInfoLabel("ListItem.DBTYPE"),
+            xbmc.getInfoLabel("ListItem.Property(item.type)"),
+            xbmc.getInfoLabel("ListItem.Title"),
+            xbmc.getInfoLabel("ListItem.TVShowTitle"),
+            xbmc.getInfoLabel("ListItem.Year"),
+            xbmc.getInfoLabel("ListItem.Season"),
+            xbmc.getInfoLabel("ListItem.Episode"),
+            xbmc.getInfoLabel("ListItem.Path"),
+            xbmc.getInfoLabel("Container.FolderPath"),
+        )
+    )
 
     headers = {"X-Api-Key": api}
     if series_id:
