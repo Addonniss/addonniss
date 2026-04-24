@@ -6,6 +6,7 @@ It supports these translation providers:
 
 - Gemini: [model docs](https://ai.google.dev/gemini-api/docs/models/gemini)
 - OpenAI: [GPT-4o](https://platform.openai.com/docs/models/gpt-4o), [GPT-4o mini](https://platform.openai.com/docs/models/gpt-4o-mini), [GPT-5 mini](https://platform.openai.com/docs/models/gpt-5-mini/)
+- Anthropic Claude: [models overview](https://platform.claude.com/docs/en/about-claude/models/overview)
 - DeepL Free: [API Free plan](https://support.deepl.com/hc/en-us/articles/360021200939-DeepL-API-Free)
 - LibreTranslate: [documentation](https://docs.libretranslate.com/)
 
@@ -35,7 +36,7 @@ Configure these items first:
 3. Select a provider.
 4. Enter the required provider credentials or server URL.
 5. Set source and target languages.
-6. Choose a model if you use Gemini or OpenAI.
+6. Choose a model if you use Gemini, OpenAI, or Anthropic Claude.
 
 After that, start video playback and download or load subtitles as you normally would in Kodi.
 
@@ -62,15 +63,56 @@ Use Manual if you want predictable folder-based behavior or if your subtitle add
 
 ### Gemini
 
-Requires a Gemini API key. Model selection is available in settings, including Gemini 2.5 Flash and the fast variant of Gemini 2.5 Flash.
+Requires a Gemini API key. Model selection is available in settings, including:
+
+- Gemini 2.5 Pro
+- Gemini 2.5 Flash
+- Fast Mode - Gemini 2.5 Flash
+- Gemini 2.5 Flash-Lite
+- legacy Gemini 2.0 / 1.5 Flash options for compatibility
+
+Gemini 2.5 Flash remains the default. Flash-Lite is the budget / high-throughput option. Fast Mode keeps the normal Gemini 2.5 Flash model but reduces thinking for a different speed / UX tradeoff.
+
+Recommended usage:
+
+- `Gemini 2.5 Pro`: best when subtitle nuance matters most and you want the strongest overall quality, even if it is slower or more expensive.
+- `Gemini 2.5 Flash`: the best default balance for most users. Good quality, good speed, and suitable for normal day-to-day subtitle translation.
+- `Fast Mode - Gemini 2.5 Flash`: use when you want the same Flash family but with a speed-first feel and less thinking overhead during playback.
+- `Gemini 2.5 Flash-Lite`: best for budget-sensitive or high-throughput usage where cost and speed matter more than maximum nuance.
+- `Gemini 2.0 Flash (Legacy)` and `Gemini 1.5 Flash (Legacy)`: mainly for compatibility or fallback if a newer Gemini model behaves unexpectedly in your environment.
 
 ### OpenAI
 
 Requires an OpenAI API key. Model selection is available in settings, including GPT-4o, GPT-4o mini, and GPT-5 mini.
 
+Recommended usage:
+
+- `gpt-4o-mini`: best low-cost OpenAI default for most subtitle jobs.
+- `gpt-4o`: use when you want stronger wording quality and can accept higher cost.
+- `gpt-5-mini`: use when you want a newer OpenAI reasoning-focused option with a good quality / cost balance.
+
+### Anthropic Claude
+
+Requires an Anthropic API key. Model selection is available in settings, including:
+
+- Claude Haiku 4.5
+- Claude Sonnet 4.6
+- Claude Opus 4.7
+
+Recommended usage:
+
+- `Claude Haiku 4.5`: best for lower-cost, faster Claude usage.
+- `Claude Sonnet 4.6`: best all-around Claude option for most users, balancing quality, speed, and cost.
+- `Claude Opus 4.7`: use when you want the highest-end Claude quality for difficult dialogue, tone, or localization nuance.
+
 ### DeepL Free
 
 Requires a DeepL API key. DeepL API Free includes 500,000 characters per month, which is roughly enough for about 10 movies on average. Available languages depend on what DeepL Free supports.
+
+Recommended usage:
+
+- `DeepL Free`: best when you want very fast, predictable machine translation with simple setup and supported-language pairs.
+- It is a strong choice for users who value speed and consistency more than LLM-style tone shaping.
 
 ### LibreTranslate
 
@@ -79,6 +121,11 @@ Requires a LibreTranslate server URL. An API key is optional if your server requ
 Use a full base URL, for example:
 
 `http://your-server:5000`
+
+Recommended usage:
+
+- `LibreTranslate`: best when you want a self-hosted or home-network translation option with more privacy and no dependency on commercial cloud APIs.
+- It is especially useful if you already run your own server and want local-network control over subtitle translation.
 
 ## Embedded Subtitle Extraction
 
